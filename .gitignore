@@ -1,0 +1,77 @@
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# =========================
+# Go
+# =========================
+bin/
+build/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test
+*.test
+*.out
+coverage.out
+
+# Go modules
+vendor/
+
+# =========================
+# Node / Frontend (Vue / Vite / React)
+# =========================
+node_modules/
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files（按需保留 .env.example）
+.env
+.env.local
+.env.*.local
+
+# =========================
+# Wails
+# =========================
+# Wails build output
+wailsjs/
+frontend/dist/
+
+# Wails generated files
+wails.gen.go
+
+# =========================
+# SQLite / DB（如果你用 sqlite）
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+
+# =========================
+# Temporary files
+# =========================
+tmp/
+temp/
+*.log
+
+# =========================
+# Misc
+# =========================
+*.bak
+*.cache
