@@ -28,3 +28,26 @@ body {
 * {
     box-sizing: border-box;
 }
+
+.el-dialog {
+    --el-dialog-bg-color: #2d2d2d;
+    --el-dialog-title-font-size: 16px;
+}
+
+.el-dialog__header {
+    border-bottom: 1px solid #3d3d3d;
+    padding-bottom: 12px;
+}
+
+.el-dialog__title {
+    color: #e5e5e5;
+}
+
+.el-dialog__body {
+    color: #d4d4d4;
+}
+
+.el-message-box {
+    --el-messagebox-title-color: #e5e5e5;
+    --el-messagebox-content-color: #d4d4d4;
+}

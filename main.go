@@ -15,11 +15,13 @@ var assets embed.FS
 func main() {
 	app := NewApp()
 	ptyService := NewPtyService()
+	shortcutService := NewShortcutService()
+	historyService := NewHistoryService()
 
 	err := wails.Run(&options.App{
 		Title:  "onePanel",
-		Width:  1024,
-		Height: 768,
+		Width:  1280,
+		Height: 800,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -27,13 +29,19 @@ func main() {
 		OnStartup: func(ctx context.Context) {
 			app.startup(ctx)
 			ptyService.SetContext(ctx)
+			if err := InitDatabase(); err != nil {
+				println("数据库初始化失败:", err.Error())
+			}
 		},
 		OnShutdown: func(ctx context.Context) {
-			ptyService.Stop()
+			ptyService.StopAll()
+			CloseDatabase()
 		},
 		Bind: []interface{}{
 			app,
 			ptyService,
+			shortcutService,
+			historyService,
 		},
 	})
 

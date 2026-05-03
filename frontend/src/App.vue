@@ -1,52 +1,107 @@
 <template>
   <div class="app-container">
-    <el-container>
-      <el-header class="app-header">
-        <div class="header-content">
-          <h1 class="app-title">onePanel 终端</h1>
+    <el-container class="main-container">
+      <el-aside width="200px" class="app-aside">
+        <div class="aside-logo">
+          <span class="logo-text">onePanel</span>
         </div>
-      </el-header>
+        <el-menu
+          :default-active="activeMenu"
+          class="aside-menu"
+          @select="handleMenuSelect"
+          background-color="#1e1e1e"
+          text-color="#a0a0a0"
+          active-text-color="#409eff"
+        >
+          <el-menu-item index="terminal">
+            <el-icon><Monitor /></el-icon>
+            <span>命令行</span>
+          </el-menu-item>
+          <el-menu-item index="apps" disabled>
+            <el-icon><Grid /></el-icon>
+            <span>我的应用</span>
+          </el-menu-item>
+          <el-menu-item index="shortcuts" disabled>
+            <el-icon><Promotion /></el-icon>
+            <span>快捷命令</span>
+          </el-menu-item>
+          <el-menu-item index="tools" disabled>
+            <el-icon><SetUp /></el-icon>
+            <span>实用工具</span>
+          </el-menu-item>
+        </el-menu>
+      </el-aside>
       <el-main class="app-main">
-        <Terminal />
+        <TerminalPage v-if="activeMenu === 'terminal'" />
       </el-main>
     </el-container>
   </div>
 </template>
 
 <script setup>
-import Terminal from './components/Terminal.vue'
+import { ref } from 'vue'
+import { Monitor, Grid, Promotion, SetUp } from '@element-plus/icons-vue'
+import TerminalPage from './views/TerminalPage.vue'
+
+const activeMenu = ref('terminal')
+
+/**
+ * 处理侧边栏菜单选择
+ */
+const handleMenuSelect = (index) => {
+  activeMenu.value = index
+}
 </script>
 
 <style scoped>
 .app-container {
   height: 100vh;
   width: 100%;
+  overflow: hidden;
 }
 
-.app-header {
-  background-color: #2b2b2b;
-  border-bottom: 1px solid #3d3d3d;
+.main-container {
+  height: 100%;
+}
+
+.app-aside {
+  background-color: #1e1e1e;
+  border-right: 1px solid #2d2d2d;
+  overflow: hidden;
+}
+
+.aside-logo {
+  height: 50px;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  height: 50px !important;
+  justify-content: center;
+  border-bottom: 1px solid #2d2d2d;
 }
 
-.header-content {
-  display: flex;
-  align-items: center;
-}
-
-.app-title {
-  margin: 0;
+.logo-text {
   font-size: 18px;
-  font-weight: 500;
-  color: #e5e5e5;
+  font-weight: 700;
+  color: #409eff;
+  letter-spacing: 1px;
+}
+
+.aside-menu {
+  border-right: none;
+}
+
+.aside-menu .el-menu-item {
+  height: 48px;
+  line-height: 48px;
+}
+
+.aside-menu .el-menu-item.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .app-main {
-  padding: 15px;
-  background-color: #1e1e1e;
-  height: calc(100vh - 50px);
+  padding: 0;
+  background-color: #252526;
+  overflow: hidden;
 }
 </style>
