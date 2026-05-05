@@ -66,8 +66,44 @@ func createTables() error {
 			work_dir TEXT DEFAULT '',
 			executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS app_config (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			config_key TEXT NOT NULL UNIQUE,
+			config_value TEXT NOT NULL,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS sub_app (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			dir_name TEXT NOT NULL,
+			display_name TEXT NOT NULL,
+			icon_path TEXT DEFAULT '',
+			entry_url TEXT DEFAULT '',
+			sort_order INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS shortcut_cmd_group (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			sort_order INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS shortcut_cmd (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			group_id INTEGER,
+			name TEXT NOT NULL,
+			shell TEXT DEFAULT 'cmd.exe',
+			work_dir TEXT DEFAULT '',
+			commands TEXT NOT NULL,
+			sort_order INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (group_id) REFERENCES shortcut_cmd_group(id) ON DELETE SET NULL
+		)`,
 		`CREATE INDEX IF NOT EXISTS idx_command_history_executed_at ON command_history(executed_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_shortcut_command_category_id ON shortcut_command(category_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_sub_app_dir_name ON sub_app(dir_name)`,
 	}
 
 	for _, stmt := range statements {

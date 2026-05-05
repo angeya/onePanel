@@ -25,6 +25,12 @@ type PtyService struct {
 	idCounter atomic.Int64
 }
 
+type StartRequest struct {
+	Shell string `json:"shell"`
+	Cols  int    `json:"cols"`
+	Rows  int    `json:"rows"`
+}
+
 func NewPtyService() *PtyService {
 	return &PtyService{
 		instances: make(map[string]*ptyInstance),
@@ -38,16 +44,19 @@ func (p *PtyService) SetContext(ctx context.Context) {
 /**
  * 启动一个新的伪终端实例
  */
-func (p *PtyService) Start(shell string, cols, rows int) (string, error) {
+func (p *PtyService) Start(req StartRequest) (string, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	shell := req.Shell
 	if shell == "" {
 		shell = "cmd.exe"
 	}
+	cols := req.Cols
 	if cols <= 0 {
 		cols = 120
 	}
+	rows := req.Rows
 	if rows <= 0 {
 		rows = 30
 	}

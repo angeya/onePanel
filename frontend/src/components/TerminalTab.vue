@@ -2,14 +2,6 @@
   <div class="terminal-tab-container">
     <div class="terminal-toolbar">
       <div class="toolbar-left">
-        <el-button size="small" @click="startTerminal" :disabled="isRunning" type="primary" plain>
-          <el-icon><VideoPlay /></el-icon>
-          启动
-        </el-button>
-        <el-button size="small" @click="stopTerminal" :disabled="!isRunning" type="danger" plain>
-          <el-icon><VideoPause /></el-icon>
-          停止
-        </el-button>
         <el-button size="small" @click="clearTerminal" plain>
           <el-icon><Delete /></el-icon>
           清空
@@ -52,10 +44,16 @@ import { FitAddon } from 'xterm-addon-fit'
 import { SearchAddon } from 'xterm-addon-search'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import 'xterm/css/xterm.css'
-import { VideoPlay, VideoPause, Delete, Search, Close } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { Start, Write, Stop, IsRunning, Resize } from '../../wailsjs/go/main/PtyService'
+import { Delete, Search, Close } from '@element-plus/icons-vue'
+import { Start, Write, Stop, Resize } from '../../wailsjs/go/main/PtyService'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+
+const SEARCH_DECORATIONS = {
+  matchBackground: '#FFC800',
+  matchOverviewRuler: '#FFC800',
+  activeMatchBackground: '#FFA000',
+  activeMatchColorOverviewRuler: '#FFA000'
+}
 
 const props = defineProps({
   tabId: { type: String, required: true },
@@ -83,6 +81,7 @@ let resizeObserver = null
  */
 const initTerminal = () => {
   terminal = new Terminal({
+    allowProposedApi: true,
     fontFamily: 'Consolas, "Courier New", monospace',
     fontSize: 14,
     lineHeight: 1.2,
@@ -126,6 +125,7 @@ const initTerminal = () => {
 
   nextTick(() => {
     fitAddon.fit()
+    startTerminal()
   })
 
   onDataDisposable = terminal.onData((data) => {
@@ -175,33 +175,15 @@ const handleResize = () => {
 const startTerminal = async () => {
   try {
     fitAddon.fit()
-    const { cols, rows } = terminal
-    const id = await Start(props.shell, cols, rows)
+    const cols = terminal.cols
+    const rows = terminal.rows
+    const id = await Start({ shell: String(props.shell), cols: Number(cols), rows: Number(rows) })
     ptyId = id
     isRunning.value = true
     EventsOn('pty-output-' + ptyId, handlePtyOutput)
     EventsOn('pty-exit-' + ptyId, handlePtyExit)
-    ElMessage.success('终端已启动')
   } catch (err) {
-    ElMessage.error('启动终端失败: ' + err)
     terminal.writeln('\r\n\x1b[31m启动失败: ' + err + '\x1b[0m')
-  }
-}
-
-/**
- * 停止伪终端进程
- */
-const stopTerminal = async () => {
-  try {
-    if (ptyId) {
-      await Stop(ptyId)
-    }
-    isRunning.value = false
-    ptyId = ''
-    terminal.writeln('\r\n\x1b[33m终端已停止\x1b[0m')
-    ElMessage.warning('终端已停止')
-  } catch (err) {
-    ElMessage.error('停止终端失败: ' + err)
   }
 }
 
@@ -221,6 +203,8 @@ const toggleSearch = () => {
   showSearch.value = !showSearch.value
   if (showSearch.value && searchKeyword.value) {
     handleSearch()
+  } else if (!showSearch.value && searchAddon) {
+    searchAddon.clearDecorations()
   }
 }
 
@@ -228,8 +212,11 @@ const toggleSearch = () => {
  * 执行搜索
  */
 const handleSearch = () => {
-  if (searchAddon && searchKeyword.value) {
-    searchAddon.findNext(searchKeyword.value)
+  if (!searchAddon) return
+  if (searchKeyword.value) {
+    searchAddon.findNext(searchKeyword.value, { decorations: SEARCH_DECORATIONS })
+  } else {
+    searchAddon.clearDecorations()
   }
 }
 
@@ -238,7 +225,7 @@ const handleSearch = () => {
  */
 const findPrevious = () => {
   if (searchAddon && searchKeyword.value) {
-    searchAddon.findPrevious(searchKeyword.value)
+    searchAddon.findPrevious(searchKeyword.value, { decorations: SEARCH_DECORATIONS })
   }
 }
 
@@ -247,7 +234,7 @@ const findPrevious = () => {
  */
 const findNext = () => {
   if (searchAddon && searchKeyword.value) {
-    searchAddon.findNext(searchKeyword.value)
+    searchAddon.findNext(searchKeyword.value, { decorations: SEARCH_DECORATIONS })
   }
 }
 
@@ -290,6 +277,8 @@ onUnmounted(() => {
     EventsOff('pty-output-' + ptyId)
     EventsOff('pty-exit-' + ptyId)
     Stop(ptyId).catch(() => {})
+    ptyId = ''
+    isRunning.value = false
   }
 
   window.removeEventListener('resize', handleResize)
@@ -311,25 +300,7 @@ onUnmounted(() => {
   }
 })
 
-/**
- * 终端可见时注册事件监听，不可见时取消
- */
-const onVisible = () => {
-  if (ptyId) {
-    EventsOn('pty-output-' + ptyId, handlePtyOutput)
-    EventsOn('pty-exit-' + ptyId, handlePtyExit)
-    IsRunning(ptyId).then((running) => {
-      isRunning.value = running
-    })
-  }
-  nextTick(() => {
-    if (fitAddon) {
-      fitAddon.fit()
-    }
-  })
-}
-
-defineExpose({ onVisible })
+defineExpose({})
 </script>
 
 <style scoped>

@@ -17,6 +17,9 @@ func main() {
 	ptyService := NewPtyService()
 	shortcutService := NewShortcutService()
 	historyService := NewHistoryService()
+	staticServer := NewStaticServer()
+	appService := NewAppService()
+	shortcutCmdService := NewShortcutCmdService()
 
 	err := wails.Run(&options.App{
 		Title:  "onePanel",
@@ -35,6 +38,7 @@ func main() {
 		},
 		OnShutdown: func(ctx context.Context) {
 			ptyService.StopAll()
+			staticServer.Stop()
 			CloseDatabase()
 		},
 		Bind: []interface{}{
@@ -42,6 +46,9 @@ func main() {
 			ptyService,
 			shortcutService,
 			historyService,
+			staticServer,
+			appService,
+			shortcutCmdService,
 		},
 	})
 

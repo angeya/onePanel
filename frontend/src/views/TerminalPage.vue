@@ -21,7 +21,7 @@
             </el-icon>
           </div>
         </div>
-        <el-button class="tab-add" size="small" @click="addTab" :icon="Plus" circle />
+        <el-button class="tab-add" size="small" @click="() => addTab()" :icon="Plus" circle />
       </div>
     </div>
     <div class="terminal-body">
@@ -100,11 +100,11 @@ const closeTab = (id) => {
 
   tabs.value.splice(index, 1)
 
-  if (tabs.value.length === 0) {
-    addTab()
-  } else if (activeTabId.value === id) {
+  if (tabs.value.length > 0 && activeTabId.value === id) {
     const newIndex = Math.min(index, tabs.value.length - 1)
     activeTabId.value = tabs.value[newIndex].id
+  } else if (tabs.value.length === 0) {
+    activeTabId.value = ''
   }
 }
 
