@@ -20,6 +20,7 @@ func main() {
 	staticServer := NewStaticServer()
 	appService := NewAppService()
 	shortcutCmdService := NewShortcutCmdService()
+	toolService := NewToolService()
 
 	err := wails.Run(&options.App{
 		Title:  "onePanel",
@@ -49,6 +50,7 @@ func main() {
 			staticServer,
 			appService,
 			shortcutCmdService,
+			toolService,
 		},
 	})
 

@@ -25,7 +25,7 @@
             <el-icon><Promotion /></el-icon>
             <span>快捷命令</span>
           </el-menu-item>
-          <el-menu-item index="tools" disabled>
+          <el-menu-item index="tools">
             <el-icon><SetUp /></el-icon>
             <span>实用工具</span>
           </el-menu-item>
@@ -35,6 +35,7 @@
         <TerminalPage v-if="activeMenu === 'terminal'" />
         <AppsPage v-else-if="activeMenu === 'apps'" />
         <ShortcutCmdPage v-else-if="activeMenu === 'shortcuts'" />
+        <ToolsPage v-else-if="activeMenu === 'tools'" />
       </el-main>
     </el-container>
   </div>
@@ -46,6 +47,7 @@ import { Monitor, Grid, Promotion, SetUp } from '@element-plus/icons-vue'
 import TerminalPage from './views/TerminalPage.vue'
 import AppsPage from './views/AppsPage.vue'
 import ShortcutCmdPage from './views/ShortcutCmdPage.vue'
+import ToolsPage from './views/ToolsPage.vue'
 
 const activeMenu = ref('terminal')
 
