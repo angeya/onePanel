@@ -68,12 +68,12 @@
         </div>
       </div>
 
-      <el-empty v-if="commands.length === 0" description="暂无快速启动命令" :image-size="60" />
+      <el-empty v-if="commands.length === 0" description="暂无快捷命令" :image-size="60" />
     </div>
 
     <el-dialog
       v-model="commandDialogVisible"
-      :title="isEditing ? '编辑快速启动' : '新增快速启动'"
+      :title="isEditing ? '编辑快捷命令' : '新增快捷命令'"
       width="450px"
       :close-on-click-modal="false"
       class="command-dialog"
@@ -306,11 +306,11 @@ const saveCommand = async () => {
 }
 
 /**
- * 删除快速启动命令
+ * 删除快捷命令
  */
 const deleteCommand = async (id) => {
   try {
-    await ElMessageBox.confirm('确定删除该快速启动命令？', '提示', {
+    await ElMessageBox.confirm('确定删除该快捷命令？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
@@ -369,7 +369,7 @@ const deleteCategory = async (id) => {
 }
 
 /**
- * 双击执行快速启动命令
+ * 双击执行快捷命令
  */
 const executeCommand = (cmd) => {
   const commandLines = cmd.commands.split('\n').filter((line) => line.trim())

@@ -25,7 +25,7 @@
         <div v-if="activeNav === 'terminal'" class="sub-panel-content">
           <div class="sub-panel-title">终端</div>
           <el-tabs v-model="terminalSubTab" class="sub-tabs">
-            <el-tab-pane label="快速启动" name="shortcuts">
+            <el-tab-pane label="快捷命令" name="shortcuts">
               <ShortcutPanel @execute-command="handleTerminalQlExec" />
             </el-tab-pane>
             <el-tab-pane label="历史" name="history">
@@ -537,7 +537,7 @@ const findOrSwitchTab = (type, matchKey, matchValue) => {
 }
 
 /**
- * 终端快速启动执行
+ * 终端快捷命令执行
  */
 const handleTerminalQlExec = (command) => {
   if (terminalTabs.value.length === 0) {
@@ -1365,7 +1365,7 @@ onMounted(() => {
   background-color: #3d3d3d;
 }
 
-/* 快速启动侧边栏列表 */
+/* 快捷命令侧边栏列表 */
 .ql-sidebar-list {
   flex: 1;
   overflow-y: auto;
