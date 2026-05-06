@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"os/exec"
+	"strings"
 )
 
 type App struct {
@@ -20,36 +21,81 @@ func (a *App) startup(ctx context.Context) {
 }
 
 /**
- * 打开选择目录对话框
+ * 打开选择目录对话框（使用 PowerShell 实现，避免 Wails COM 对话框崩溃问题）
  */
 func (a *App) OpenDirectoryDialog(title string) (string, error) {
-	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: title,
-	})
-	if err != nil {
-		return "", fmt.Errorf("打开目录对话框失败: %w", err)
+	if title == "" {
+		title = "选择目录"
 	}
-	return dir, nil
+
+	psScript := fmt.Sprintf(`
+Add-Type -AssemblyName System.Windows.Forms
+$folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+$folderBrowser.Description = '%s'
+$folderBrowser.ShowNewFolderButton = $true
+if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+    Write-Output $folderBrowser.SelectedPath
+} else {
+    Write-Output ""
+}`, title)
+
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psScript)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("打开目录对话框失败: %w, stderr: %s", err, stderr.String())
+	}
+
+	result := strings.TrimSpace(stdout.String())
+	if result == "" {
+		return "", nil
+	}
+	return result, nil
 }
 
 /**
- * 打开选择文件对话框
+ * 打开选择文件对话框（使用 PowerShell 实现，避免 Wails COM 对话框崩溃问题）
  */
 func (a *App) OpenFileDialog(title string, filter string) (string, error) {
-	filters := []runtime.FileFilter{}
-	if filter != "" {
-		filters = append(filters, runtime.FileFilter{
-			DisplayName: filter,
-			Pattern:     filter,
-		})
+	if title == "" {
+		title = "选择文件"
 	}
 
-	file, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title:   title,
-		Filters: filters,
-	})
-	if err != nil {
-		return "", fmt.Errorf("打开文件对话框失败: %w", err)
+	filterStr := "所有文件 (*.*)|*.*"
+	if filter != "" {
+		filterStr = fmt.Sprintf("%s|%s", filter, filter)
 	}
-	return file, nil
+
+	psScript := fmt.Sprintf(`
+Add-Type -AssemblyName System.Windows.Forms
+$openFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+$openFileDialog.Title = '%s'
+$openFileDialog.Filter = '%s'
+$openFileDialog.Multiselect = $false
+if ($openFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+    Write-Output $openFileDialog.FileName
+} else {
+    Write-Output ""
+}`, title, filterStr)
+
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psScript)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("打开文件对话框失败: %w, stderr: %s", err, stderr.String())
+	}
+
+	result := strings.TrimSpace(stdout.String())
+	if result == "" {
+		return "", nil
+	}
+	return result, nil
 }
