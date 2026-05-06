@@ -2,6 +2,7 @@
   <div class="app-container">
     <AppSidebar
       :active-nav="activeNav"
+      :active-tab-id="activeTabId"
       :terminal-sub-tab="terminalSubTab"
       @update:terminal-sub-tab="terminalSubTab = $event"
       :nav-items="navItems"

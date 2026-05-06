@@ -1,38 +1,5 @@
 <template>
   <div class="terminal-tab-container">
-    <div class="terminal-toolbar">
-      <div class="toolbar-left">
-        <el-button size="small" @click="clearTerminal" plain>
-          <el-icon><Delete /></el-icon>
-          清空
-        </el-button>
-      </div>
-      <div class="toolbar-right">
-        <el-button size="small" @click="toggleSearch" plain>
-          <el-icon><Search /></el-icon>
-          搜索
-        </el-button>
-      </div>
-    </div>
-    <div v-if="showSearch" class="search-bar">
-      <el-input
-        v-model="searchKeyword"
-        size="small"
-        placeholder="搜索终端内容..."
-        @input="handleSearch"
-        clearable
-      >
-        <template #append>
-          <el-button-group>
-            <el-button size="small" @click="findPrevious">上一个</el-button>
-            <el-button size="small" @click="findNext">下一个</el-button>
-          </el-button-group>
-        </template>
-      </el-input>
-      <el-button size="small" @click="toggleSearch" class="search-close" plain>
-        <el-icon><Close /></el-icon>
-      </el-button>
-    </div>
     <div ref="terminalRef" class="terminal-content"></div>
   </div>
 </template>
@@ -44,7 +11,6 @@ import { FitAddon } from 'xterm-addon-fit'
 import { SearchAddon } from 'xterm-addon-search'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import 'xterm/css/xterm.css'
-import { Delete, Search, Close } from '@element-plus/icons-vue'
 import { Start, Write, Stop, Resize } from '../../wailsjs/go/main/PtyService'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 
@@ -64,8 +30,6 @@ const emit = defineEmits(['commandExecuted', 'sendCommand'])
 
 const terminalRef = ref(null)
 const isRunning = ref(false)
-const showSearch = ref(false)
-const searchKeyword = ref('')
 
 let terminal = null
 let fitAddon = null
@@ -188,57 +152,6 @@ const startTerminal = async () => {
 }
 
 /**
- * 清空终端显示内容
- */
-const clearTerminal = () => {
-  if (terminal) {
-    terminal.clear()
-  }
-}
-
-/**
- * 切换搜索栏显示
- */
-const toggleSearch = () => {
-  showSearch.value = !showSearch.value
-  if (showSearch.value && searchKeyword.value) {
-    handleSearch()
-  } else if (!showSearch.value && searchAddon) {
-    searchAddon.clearDecorations()
-  }
-}
-
-/**
- * 执行搜索
- */
-const handleSearch = () => {
-  if (!searchAddon) return
-  if (searchKeyword.value) {
-    searchAddon.findNext(searchKeyword.value, { decorations: SEARCH_DECORATIONS })
-  } else {
-    searchAddon.clearDecorations()
-  }
-}
-
-/**
- * 查找上一个匹配项
- */
-const findPrevious = () => {
-  if (searchAddon && searchKeyword.value) {
-    searchAddon.findPrevious(searchKeyword.value, { decorations: SEARCH_DECORATIONS })
-  }
-}
-
-/**
- * 查找下一个匹配项
- */
-const findNext = () => {
-  if (searchAddon && searchKeyword.value) {
-    searchAddon.findNext(searchKeyword.value, { decorations: SEARCH_DECORATIONS })
-  }
-}
-
-/**
  * 处理后端 PTY 输出数据
  */
 const handlePtyOutput = (data) => {
@@ -264,14 +177,40 @@ const handleSendCommandEvent = (event) => {
   }
 }
 
+/**
+ * 监听搜索事件（从侧栏搜索面板发出）
+ */
+const handleSearchEvent = (event) => {
+  if (event.detail.tabId !== props.tabId || !searchAddon) return
+  const { action, keyword } = event.detail
+  switch (action) {
+    case 'findNext':
+      if (keyword) {
+        searchAddon.findNext(keyword, { decorations: SEARCH_DECORATIONS })
+      } else {
+        searchAddon.clearDecorations()
+      }
+      break
+    case 'findPrevious':
+      if (keyword) {
+        searchAddon.findPrevious(keyword, { decorations: SEARCH_DECORATIONS })
+      }
+      break
+    case 'clearDecorations':
+      searchAddon.clearDecorations()
+      break
+  }
+}
+
 onMounted(() => {
   initTerminal()
-
   window.addEventListener('terminal-send-command', handleSendCommandEvent)
+  window.addEventListener('terminal-search', handleSearchEvent)
 })
 
 onUnmounted(() => {
   window.removeEventListener('terminal-send-command', handleSendCommandEvent)
+  window.removeEventListener('terminal-search', handleSearchEvent)
 
   if (ptyId) {
     EventsOff('pty-output-' + ptyId)
@@ -309,38 +248,6 @@ defineExpose({})
   flex-direction: column;
   height: 100%;
   background-color: #1e1e1e;
-}
-
-.terminal-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 12px;
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #3d3d3d;
-}
-
-.toolbar-left,
-.toolbar-right {
-  display: flex;
-  gap: 6px;
-}
-
-.search-bar {
-  display: flex;
-  align-items: center;
-  padding: 6px 12px;
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #3d3d3d;
-  gap: 8px;
-}
-
-.search-bar .el-input {
-  flex: 1;
-}
-
-.search-close {
-  flex-shrink: 0;
 }
 
 .terminal-content {
