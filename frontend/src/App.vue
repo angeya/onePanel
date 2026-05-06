@@ -25,8 +25,8 @@
         <div v-if="activeNav === 'terminal'" class="sub-panel-content">
           <div class="sub-panel-title">终端</div>
           <el-tabs v-model="terminalSubTab" class="sub-tabs">
-            <el-tab-pane label="快捷命令" name="shortcuts">
-              <ShortcutPanel @execute-command="handleTerminalShortcutExec" />
+            <el-tab-pane label="快速启动" name="shortcuts">
+              <ShortcutPanel @execute-command="handleTerminalQlExec" />
             </el-tab-pane>
             <el-tab-pane label="历史" name="history">
               <HistoryPanel @execute-command="handleTerminalHistoryExec" />
@@ -89,83 +89,83 @@
 
         <div v-if="activeNav === 'shortcuts'" class="sub-panel-content">
           <div class="sub-panel-header">
-            <span class="sub-panel-title">快捷命令</span>
-            <el-button size="small" @click="showShortcutAddDialog" plain>
+            <span class="sub-panel-title">快速启动</span>
+            <el-button size="small" @click="showQlAddDialog" plain>
               <el-icon><Plus /></el-icon>
             </el-button>
           </div>
           <div class="sub-panel-toolbar">
-            <el-button size="small" @click="showShortcutGroupDialog" plain>
+            <el-button size="small" @click="showQlGroupDialog" plain>
               <el-icon><FolderAdd /></el-icon>
               管理分组
             </el-button>
           </div>
-          <div class="shortcut-sidebar-list">
-            <div v-for="group in shortcutGroups" :key="group.id" class="shortcut-sidebar-group">
-              <div class="shortcut-group-header" @click="toggleShortcutGroup(group.id)">
+          <div class="ql-sidebar-list">
+            <div v-for="group in qlGroups" :key="group.id" class="ql-sidebar-group">
+              <div class="ql-group-header" @click="toggleQlGroup(group.id)">
                 <el-icon>
-                  <ArrowDown v-if="expandedShortcutGroups.has(group.id)" />
+                  <ArrowDown v-if="expandedQlGroups.has(group.id)" />
                   <ArrowRight v-else />
                 </el-icon>
                 <span class="group-name">{{ group.name }}</span>
-                <span class="group-count">({{ getShortcutCmdCount(group.id) }})</span>
+                <span class="group-count">({{ getQlCmdCount(group.id) }})</span>
               </div>
-              <div v-show="expandedShortcutGroups.has(group.id)" class="shortcut-group-items">
+              <div v-show="expandedQlGroups.has(group.id)" class="ql-group-items">
                 <div
-                  v-for="cmd in getShortcutCmdsByGroup(group.id)"
+                  v-for="cmd in getQlCmdsByGroup(group.id)"
                   :key="cmd.id"
-                  class="shortcut-sidebar-item"
-                  @dblclick="executeShortcutCmd(cmd)"
+                  class="ql-sidebar-item"
+                  @dblclick="executeQlCmd(cmd)"
                 >
                   <el-icon :size="16" :color="cmd.shell === 'powershell' ? '#012456' : '#4cc2ff'">
                     <Monitor />
                   </el-icon>
-                  <div class="shortcut-item-info">
-                    <div class="shortcut-item-name">{{ cmd.name }}</div>
-                    <div class="shortcut-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
+                  <div class="ql-item-info">
+                    <div class="ql-item-name">{{ cmd.name }}</div>
+                    <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
                   </div>
-                  <div class="shortcut-item-actions" @click.stop>
-                    <el-icon class="action-icon" @click="executeShortcutCmd(cmd)"><VideoPlay /></el-icon>
-                    <el-icon class="action-icon" @click="editShortcutCmd(cmd)"><Edit /></el-icon>
-                    <el-icon class="action-icon" @click="deleteShortcutCmd(cmd)"><Delete /></el-icon>
+                  <div class="ql-item-actions" @click.stop>
+                    <el-icon class="action-icon" @click="executeQlCmd(cmd)"><VideoPlay /></el-icon>
+                    <el-icon class="action-icon" @click="editQlCmd(cmd)"><Edit /></el-icon>
+                    <el-icon class="action-icon" @click="deleteQlCmd(cmd)"><Delete /></el-icon>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div v-if="ungroupedShortcutCmds.length > 0" class="shortcut-sidebar-group">
-              <div class="shortcut-group-header" @click="toggleShortcutGroup('none')">
+            <div v-if="ungroupedQlCmds.length > 0" class="ql-sidebar-group">
+              <div class="ql-group-header" @click="toggleQlGroup('none')">
                 <el-icon>
-                  <ArrowDown v-if="expandedShortcutGroups.has('none')" />
+                  <ArrowDown v-if="expandedQlGroups.has('none')" />
                   <ArrowRight v-else />
                 </el-icon>
                 <span class="group-name">未分组</span>
-                <span class="group-count">({{ ungroupedShortcutCmds.length }})</span>
+                <span class="group-count">({{ ungroupedQlCmds.length }})</span>
               </div>
-              <div v-show="expandedShortcutGroups.has('none')" class="shortcut-group-items">
+              <div v-show="expandedQlGroups.has('none')" class="ql-group-items">
                 <div
-                  v-for="cmd in ungroupedShortcutCmds"
+                  v-for="cmd in ungroupedQlCmds"
                   :key="cmd.id"
-                  class="shortcut-sidebar-item"
-                  @dblclick="executeShortcutCmd(cmd)"
+                  class="ql-sidebar-item"
+                  @dblclick="executeQlCmd(cmd)"
                 >
                   <el-icon :size="16" :color="cmd.shell === 'powershell' ? '#012456' : '#4cc2ff'">
                     <Monitor />
                   </el-icon>
-                  <div class="shortcut-item-info">
-                    <div class="shortcut-item-name">{{ cmd.name }}</div>
-                    <div class="shortcut-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
+                  <div class="ql-item-info">
+                    <div class="ql-item-name">{{ cmd.name }}</div>
+                    <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
                   </div>
-                  <div class="shortcut-item-actions" @click.stop>
-                    <el-icon class="action-icon" @click="executeShortcutCmd(cmd)"><VideoPlay /></el-icon>
-                    <el-icon class="action-icon" @click="editShortcutCmd(cmd)"><Edit /></el-icon>
-                    <el-icon class="action-icon" @click="deleteShortcutCmd(cmd)"><Delete /></el-icon>
+                  <div class="ql-item-actions" @click.stop>
+                    <el-icon class="action-icon" @click="executeQlCmd(cmd)"><VideoPlay /></el-icon>
+                    <el-icon class="action-icon" @click="editQlCmd(cmd)"><Edit /></el-icon>
+                    <el-icon class="action-icon" @click="deleteQlCmd(cmd)"><Delete /></el-icon>
                   </div>
                 </div>
               </div>
             </div>
 
-            <el-empty v-if="shortcutCmds.length === 0" description="暂无快捷命令" :image-size="40" />
+            <el-empty v-if="qlCmds.length === 0" description="暂无快速启动命令" :image-size="40" />
           </div>
         </div>
 
@@ -235,15 +235,10 @@
             class="app-iframe"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           />
-          <ShortcutExecTab
-            v-for="tab in shortcutExecTabs"
-            :key="tab.id"
-            v-show="activeTabId === tab.id"
-            :command-id="tab.commandId"
-            :command-name="tab.title.replace('快捷命令: ', '')"
-            :shell="tab.shell"
-            :work-dir="tab.workDir"
-            :commands="tab.commands"
+          <QuickLaunchTab
+            v-if="quickLaunchTab"
+            v-show="activeTabId === quickLaunchTab.id"
+            ref="quickLaunchTabRef"
           />
           <ToolsPage
             v-for="tab in toolTabs"
@@ -347,35 +342,35 @@
     <input ref="iconInputRef" type="file" accept="image/png" style="display: none" @change="handleIconUpload" />
 
     <el-dialog
-      v-model="shortcutCmdDialogVisible"
-      :title="isEditingShortcutCmd ? '编辑快捷命令' : '新增快捷命令'"
+      v-model="qlCmdDialogVisible"
+      :title="isEditingQlCmd ? '编辑快速启动' : '新增快速启动'"
       width="520px"
       :close-on-click-modal="false"
     >
-      <el-form :model="shortcutCmdForm" label-width="90px" size="default">
+      <el-form :model="qlCmdForm" label-width="90px" size="default">
         <el-form-item label="命令名称" required>
-          <el-input v-model="shortcutCmdForm.name" placeholder="请输入命令名称" />
+          <el-input v-model="qlCmdForm.name" placeholder="请输入命令名称" />
         </el-form-item>
         <el-form-item label="所属分组">
-          <el-select v-model="shortcutCmdForm.groupId" placeholder="请选择分组（可选）" clearable style="width: 100%">
-            <el-option v-for="group in shortcutGroups" :key="group.id" :label="group.name" :value="group.id" />
+          <el-select v-model="qlCmdForm.groupId" placeholder="请选择分组（可选）" clearable style="width: 100%">
+            <el-option v-for="group in qlGroups" :key="group.id" :label="group.name" :value="group.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="Shell 类型" required>
-          <el-radio-group v-model="shortcutCmdForm.shell">
+          <el-radio-group v-model="qlCmdForm.shell">
             <el-radio value="cmd.exe">CMD</el-radio>
             <el-radio value="powershell">PowerShell</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="工作目录">
           <div style="display: flex; gap: 8px; width: 100%">
-            <el-input v-model="shortcutCmdForm.workDir" placeholder="留空则使用默认目录" />
+            <el-input v-model="qlCmdForm.workDir" placeholder="留空则使用默认目录" />
             <el-button @click="selectWorkDir">选择</el-button>
           </div>
         </el-form-item>
         <el-form-item label="命令内容" required>
           <el-input
-            v-model="shortcutCmdForm.commands"
+            v-model="qlCmdForm.commands"
             type="textarea"
             :rows="5"
             placeholder="每行一条命令"
@@ -383,23 +378,23 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="shortcutCmdDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveShortcutCmd">确定</el-button>
+        <el-button @click="qlCmdDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveQlCmd">确定</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="shortcutGroupDialogVisible" title="管理分组" width="420px" :close-on-click-modal="false">
+    <el-dialog v-model="qlGroupDialogVisible" title="管理分组" width="420px" :close-on-click-modal="false">
       <div class="group-manage">
         <div class="group-add-row">
-          <el-input v-model="newGroupName" placeholder="输入分组名称" @keyup.enter="addShortcutGroup" />
-          <el-button type="primary" @click="addShortcutGroup">添加</el-button>
+          <el-input v-model="newGroupName" placeholder="输入分组名称" @keyup.enter="addQlGroup" />
+          <el-button type="primary" @click="addQlGroup">添加</el-button>
         </div>
         <div class="group-list">
-          <div v-for="group in shortcutGroups" :key="group.id" class="group-manage-item">
+          <div v-for="group in qlGroups" :key="group.id" class="group-manage-item">
             <span>{{ group.name }}</span>
-            <el-icon class="action-icon" @click="deleteShortcutGroup(group)"><Delete /></el-icon>
+            <el-icon class="action-icon" @click="deleteQlGroup(group)"><Delete /></el-icon>
           </div>
-          <el-empty v-if="shortcutGroups.length === 0" description="暂无分组" :image-size="40" />
+          <el-empty v-if="qlGroups.length === 0" description="暂无分组" :image-size="40" />
         </div>
       </div>
     </el-dialog>
@@ -418,7 +413,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import TerminalTab from './components/TerminalTab.vue'
 import ShortcutPanel from './components/ShortcutPanel.vue'
 import HistoryPanel from './components/HistoryPanel.vue'
-import ShortcutExecTab from './components/ShortcutExecTab.vue'
+import QuickLaunchTab from './components/QuickLaunchTab.vue'
 import ToolsPage from './views/ToolsPage.vue'
 import {
   GetStaticDir, SetStaticDir, GetServerStatus, StartServer, StopServer,
@@ -437,7 +432,7 @@ import { AddHistory } from '../wailsjs/go/main/HistoryService'
 const navItems = [
   { key: 'terminal', label: '终端', icon: Monitor },
   { key: 'apps', label: '我的应用', icon: Grid },
-  { key: 'shortcuts', label: '快捷命令', icon: Promotion },
+  { key: 'shortcuts', label: '快速启动', icon: Promotion },
   { key: 'tools', label: '实用工具', icon: SetUp }
 ]
 
@@ -450,8 +445,9 @@ let tabCounter = 0
 
 const terminalTabs = computed(() => tabs.value.filter(t => t.type === 'terminal'))
 const appTabs = computed(() => tabs.value.filter(t => t.type === 'app'))
-const shortcutExecTabs = computed(() => tabs.value.filter(t => t.type === 'shortcut-exec'))
+const quickLaunchTab = computed(() => tabs.value.find(t => t.type === 'quick-launch'))
 const toolTabs = computed(() => tabs.value.filter(t => t.type === 'tool'))
+const quickLaunchTabRef = ref(null)
 
 /**
  * 切换左侧导航
@@ -459,13 +455,13 @@ const toolTabs = computed(() => tabs.value.filter(t => t.type === 'tool'))
 const switchNav = (key) => {
   activeNav.value = key
   if (key === 'terminal') {
-    loadShortcutPanelData()
+    loadQlPanelData()
   } else if (key === 'apps') {
     loadApps()
     loadServerStatus()
   } else if (key === 'shortcuts') {
-    loadShortcutCmds()
-    loadShortcutGroups()
+    loadQlCmds()
+    loadQlGroups()
   }
 }
 
@@ -476,7 +472,7 @@ const getTabIcon = (tab) => {
   switch (tab.type) {
     case 'terminal': return Monitor
     case 'app': return Grid
-    case 'shortcut-exec': return Promotion
+    case 'quick-launch': return Promotion
     case 'tool': return SetUp
     default: return Monitor
   }
@@ -508,7 +504,7 @@ const switchTab = (id) => {
   if (tab) {
     if (tab.type === 'terminal') activeNav.value = 'terminal'
     else if (tab.type === 'app') activeNav.value = 'apps'
-    else if (tab.type === 'shortcut-exec') activeNav.value = 'shortcuts'
+    else if (tab.type === 'quick-launch') activeNav.value = 'shortcuts'
     else if (tab.type === 'tool') activeNav.value = 'tools'
   }
 }
@@ -541,9 +537,9 @@ const findOrSwitchTab = (type, matchKey, matchValue) => {
 }
 
 /**
- * 终端快捷命令执行
+ * 终端快速启动执行
  */
-const handleTerminalShortcutExec = (command) => {
+const handleTerminalQlExec = (command) => {
   if (terminalTabs.value.length === 0) {
     addTerminalTab()
   }
@@ -582,7 +578,7 @@ const handleSendCommand = (tabId, command) => {
 /**
  * 加载快捷面板数据（终端侧边栏用）
  */
-const loadShortcutPanelData = () => {}
+const loadQlPanelData = () => {}
 
 /**
  * ============== 我的应用相关 ==============
@@ -899,16 +895,16 @@ const doDeleteApp = async (app) => {
 }
 
 /**
- * ============== 快捷命令相关 ==============
+ * ============== 快速启动相关 ==============
  */
-const shortcutGroups = ref([])
-const shortcutCmds = ref([])
-const expandedShortcutGroups = ref(new Set(['none']))
+const qlGroups = ref([])
+const qlCmds = ref([])
+const expandedQlGroups = ref(new Set(['none']))
 
-const shortcutCmdDialogVisible = ref(false)
-const isEditingShortcutCmd = ref(false)
-const editingShortcutCmdId = ref(null)
-const shortcutCmdForm = ref({
+const qlCmdDialogVisible = ref(false)
+const isEditingQlCmd = ref(false)
+const editingQlCmdId = ref(null)
+const qlCmdForm = ref({
   name: '',
   groupId: null,
   shell: 'cmd.exe',
@@ -916,134 +912,135 @@ const shortcutCmdForm = ref({
   commands: ''
 })
 
-const shortcutGroupDialogVisible = ref(false)
+const qlGroupDialogVisible = ref(false)
 const newGroupName = ref('')
 
-const ungroupedShortcutCmds = computed(() => shortcutCmds.value.filter(cmd => !cmd.groupId))
+const ungroupedQlCmds = computed(() => qlCmds.value.filter(cmd => !cmd.groupId))
 
-const getShortcutCmdsByGroup = (groupId) => shortcutCmds.value.filter(cmd => cmd.groupId === groupId)
-const getShortcutCmdCount = (groupId) => shortcutCmds.value.filter(cmd => cmd.groupId === groupId).length
+const getQlCmdsByGroup = (groupId) => qlCmds.value.filter(cmd => cmd.groupId === groupId)
+const getQlCmdCount = (groupId) => qlCmds.value.filter(cmd => cmd.groupId === groupId).length
 
-const toggleShortcutGroup = (groupId) => {
-  const newSet = new Set(expandedShortcutGroups.value)
+const toggleQlGroup = (groupId) => {
+  const newSet = new Set(expandedQlGroups.value)
   if (newSet.has(groupId)) newSet.delete(groupId)
   else newSet.add(groupId)
-  expandedShortcutGroups.value = newSet
+  expandedQlGroups.value = newSet
 }
 
-const loadShortcutGroups = async () => {
+const loadQlGroups = async () => {
   try {
-    shortcutGroups.value = await GetSCGroups() || []
+    qlGroups.value = await GetSCGroups() || []
   } catch (err) {
     ElMessage.error('加载分组失败: ' + err)
   }
 }
 
-const loadShortcutCmds = async () => {
+const loadQlCmds = async () => {
   try {
-    shortcutCmds.value = await GetSCCommands() || []
+    qlCmds.value = await GetSCCommands() || []
   } catch (err) {
     ElMessage.error('加载命令失败: ' + err)
   }
 }
 
 /**
- * 执行快捷命令 - 在右侧tab中展示
+ * 执行快速启动命令 - 确保快速启动tab存在并调用执行
  */
-const executeShortcutCmd = async (cmd) => {
-  if (findOrSwitchTab('shortcut-exec', 'commandId', cmd.id)) return
+const executeQlCmd = async (cmd) => {
+  let tab = quickLaunchTab.value
+  if (!tab) {
+    tabCounter++
+    tab = {
+      id: `quick-launch-${Date.now()}-${tabCounter}`,
+      type: 'quick-launch',
+      title: '快速启动',
+      closable: true
+    }
+    tabs.value.push(tab)
+  }
+  activeTabId.value = tab.id
 
-  tabCounter++
-  const id = `shortcut-exec-${Date.now()}-${tabCounter}`
-  tabs.value.push({
-    id,
-    type: 'shortcut-exec',
-    title: `快捷命令: ${cmd.name}`,
-    commandId: cmd.id,
-    shell: cmd.shell,
-    workDir: cmd.workDir,
-    commands: cmd.commands,
-    closable: true
-  })
-  activeTabId.value = id
+  setTimeout(() => {
+    if (quickLaunchTabRef.value) {
+      quickLaunchTabRef.value.execute(cmd)
+    }
+  }, 50)
 }
 
-const showShortcutAddDialog = () => {
-  isEditingShortcutCmd.value = false
-  editingShortcutCmdId.value = null
-  shortcutCmdForm.value = { name: '', groupId: null, shell: 'cmd.exe', workDir: '', commands: '' }
-  shortcutCmdDialogVisible.value = true
+const showQlAddDialog = () => {
+  isEditingQlCmd.value = false
+  editingQlCmdId.value = null
+  qlCmdForm.value = { name: '', groupId: null, shell: 'cmd.exe', workDir: '', commands: '' }
+  qlCmdDialogVisible.value = true
 }
 
-const editShortcutCmd = (cmd) => {
-  isEditingShortcutCmd.value = true
-  editingShortcutCmdId.value = cmd.id
-  shortcutCmdForm.value = {
+const editQlCmd = (cmd) => {
+  isEditingQlCmd.value = true
+  editingQlCmdId.value = cmd.id
+  qlCmdForm.value = {
     name: cmd.name,
     groupId: cmd.groupId || null,
     shell: cmd.shell || 'cmd.exe',
     workDir: cmd.workDir || '',
     commands: cmd.commands
   }
-  shortcutCmdDialogVisible.value = true
+  qlCmdDialogVisible.value = true
 }
 
 const selectWorkDir = async () => {
   try {
     const dir = await OpenDirectoryDialog('选择工作目录')
-    if (dir) shortcutCmdForm.value.workDir = dir
+    if (dir) qlCmdForm.value.workDir = dir
   } catch (err) {
     console.error('选择目录失败:', err)
     ElMessage.warning('目录选择对话框打开失败，请手动输入路径')
   }
 }
 
-const saveShortcutCmd = async () => {
-  if (!shortcutCmdForm.value.name) { ElMessage.warning('请输入命令名称'); return }
-  if (!shortcutCmdForm.value.commands) { ElMessage.warning('请输入命令内容'); return }
+const saveQlCmd = async () => {
+  if (!qlCmdForm.value.name) { ElMessage.warning('请输入命令名称'); return }
+  if (!qlCmdForm.value.commands) { ElMessage.warning('请输入命令内容'); return }
 
   try {
-    if (isEditingShortcutCmd.value) {
+    if (isEditingQlCmd.value) {
       await UpdateSCCommand(
-        editingShortcutCmdId.value,
-        shortcutCmdForm.value.groupId,
-        shortcutCmdForm.value.name,
-        shortcutCmdForm.value.shell,
-        shortcutCmdForm.value.workDir,
-        shortcutCmdForm.value.commands,
+        editingQlCmdId.value,
+        qlCmdForm.value.groupId,
+        qlCmdForm.value.name,
+        qlCmdForm.value.shell,
+        qlCmdForm.value.workDir,
+        qlCmdForm.value.commands,
         0
       )
       ElMessage.success('更新成功')
     } else {
       await CreateSCCommand(
-        shortcutCmdForm.value.groupId,
-        shortcutCmdForm.value.name,
-        shortcutCmdForm.value.shell,
-        shortcutCmdForm.value.workDir,
-        shortcutCmdForm.value.commands,
+        qlCmdForm.value.groupId,
+        qlCmdForm.value.name,
+        qlCmdForm.value.shell,
+        qlCmdForm.value.workDir,
+        qlCmdForm.value.commands,
         0
       )
       ElMessage.success('创建成功')
     }
-    shortcutCmdDialogVisible.value = false
-    await loadShortcutCmds()
+    qlCmdDialogVisible.value = false
+    await loadQlCmds()
   } catch (err) {
     ElMessage.error('保存失败: ' + err)
   }
 }
 
-const deleteShortcutCmd = async (cmd) => {
+const deleteQlCmd = async (cmd) => {
   try {
     await ElMessageBox.confirm(
-      `确定删除快捷命令 "${cmd.name}" 吗？`,
+      `确定删除快速启动命令 "${cmd.name}" 吗？`,
       '确认删除',
       { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
     )
     await DeleteSCCommand(cmd.id)
     ElMessage.success('删除成功')
-    const execTab = tabs.value.find(t => t.type === 'shortcut-exec' && t.commandId === cmd.id)
-    if (execTab) closeTab(execTab.id)
-    await loadShortcutCmds()
+    await loadQlCmds()
   } catch (err) {
     if (err !== 'cancel') {
       ElMessage.error('删除失败: ' + err)
@@ -1051,24 +1048,24 @@ const deleteShortcutCmd = async (cmd) => {
   }
 }
 
-const showShortcutGroupDialog = () => {
+const showQlGroupDialog = () => {
   newGroupName.value = ''
-  shortcutGroupDialogVisible.value = true
+  qlGroupDialogVisible.value = true
 }
 
-const addShortcutGroup = async () => {
+const addQlGroup = async () => {
   if (!newGroupName.value.trim()) { ElMessage.warning('请输入分组名称'); return }
   try {
     await CreateSCGroup(newGroupName.value.trim(), 0)
     newGroupName.value = ''
     ElMessage.success('分组创建成功')
-    await loadShortcutGroups()
+    await loadQlGroups()
   } catch (err) {
     ElMessage.error('创建分组失败: ' + err)
   }
 }
 
-const deleteShortcutGroup = async (group) => {
+const deleteQlGroup = async (group) => {
   try {
     await ElMessageBox.confirm(
       `删除分组 "${group.name}" 后，该分组下的命令将变为未分组，确定删除？`,
@@ -1077,8 +1074,8 @@ const deleteShortcutGroup = async (group) => {
     )
     await DeleteSCGroup(group.id)
     ElMessage.success('分组删除成功')
-    await loadShortcutGroups()
-    await loadShortcutCmds()
+    await loadQlGroups()
+    await loadQlCmds()
   } catch (err) {
     if (err !== 'cancel') {
       ElMessage.error('删除失败: ' + err)
@@ -1108,8 +1105,8 @@ onMounted(() => {
   addTerminalTab()
   loadServerStatus()
   loadApps()
-  loadShortcutGroups()
-  loadShortcutCmds()
+  loadQlGroups()
+  loadQlCmds()
 })
 </script>
 
@@ -1368,27 +1365,27 @@ onMounted(() => {
   background-color: #3d3d3d;
 }
 
-/* 快捷命令侧边栏列表 */
-.shortcut-sidebar-list {
+/* 快速启动侧边栏列表 */
+.ql-sidebar-list {
   flex: 1;
   overflow-y: auto;
   padding: 4px 8px;
 }
 
-.shortcut-sidebar-list::-webkit-scrollbar {
+.ql-sidebar-list::-webkit-scrollbar {
   width: 4px;
 }
 
-.shortcut-sidebar-list::-webkit-scrollbar-thumb {
+.ql-sidebar-list::-webkit-scrollbar-thumb {
   background-color: #555;
   border-radius: 2px;
 }
 
-.shortcut-sidebar-group {
+.ql-sidebar-group {
   margin-bottom: 2px;
 }
 
-.shortcut-group-header {
+.ql-group-header {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1399,25 +1396,25 @@ onMounted(() => {
   font-size: 13px;
 }
 
-.shortcut-group-header:hover {
+.ql-group-header:hover {
   background-color: #2d2d2d;
 }
 
-.shortcut-group-header .group-name {
+.ql-group-header .group-name {
   font-weight: 500;
   flex: 1;
 }
 
-.shortcut-group-header .group-count {
+.ql-group-header .group-count {
   color: #666;
   font-size: 11px;
 }
 
-.shortcut-group-items {
+.ql-group-items {
   padding-left: 8px;
 }
 
-.shortcut-sidebar-item {
+.ql-sidebar-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1427,16 +1424,16 @@ onMounted(() => {
   transition: background-color 0.15s;
 }
 
-.shortcut-sidebar-item:hover {
+.ql-sidebar-item:hover {
   background-color: #2d2d2d;
 }
 
-.shortcut-item-info {
+.ql-item-info {
   flex: 1;
   min-width: 0;
 }
 
-.shortcut-item-name {
+.ql-item-name {
   font-size: 13px;
   color: #e5e5e5;
   overflow: hidden;
@@ -1444,7 +1441,7 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.shortcut-item-cmd {
+.ql-item-cmd {
   font-size: 11px;
   color: #666;
   overflow: hidden;
@@ -1454,7 +1451,7 @@ onMounted(() => {
   margin-top: 1px;
 }
 
-.shortcut-item-actions {
+.ql-item-actions {
   display: flex;
   gap: 2px;
   opacity: 0;
@@ -1462,7 +1459,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.shortcut-sidebar-item:hover .shortcut-item-actions {
+.ql-sidebar-item:hover .ql-item-actions {
   opacity: 1;
 }
 
