@@ -62,7 +62,7 @@
             v-if="activeNav === 'terminal'"
             class="tab-add"
             size="small"
-            @click="addTerminalTab"
+            @click="addTerminalTab()"
             :icon="Plus"
             circle
           />

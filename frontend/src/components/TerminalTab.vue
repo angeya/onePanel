@@ -147,7 +147,7 @@ const startTerminal = async () => {
     EventsOn('pty-output-' + ptyId, handlePtyOutput)
     EventsOn('pty-exit-' + ptyId, handlePtyExit)
   } catch (err) {
-    terminal.writeln('\r\n\x1b[31m启动失败: ' + err + '\x1b[0m')
+    terminal.writeln('\r\n\x1b[31m' + err + '\x1b[0m')
   }
 }
 
