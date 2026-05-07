@@ -8,7 +8,6 @@
       :nav-items="navItems"
       :apps="apps"
       :apps-loading="appsLoading"
-      :server-status="serverStatus"
       :get-app-icon-url="getAppIconUrl"
       :ql-groups="qlGroups"
       :ql-cmds="qlCmds"
@@ -22,7 +21,7 @@
       @show-app-settings="showAppSettings"
       @show-app-import="showAppImport"
       @refresh-apps="refreshApps"
-      @open-app="openApp"
+      @open-app="openAppHandler"
       @handle-app-cmd="handleAppCmd"
       @show-ql-add-dialog="showQlAddDialog"
       @show-ql-group-dialog="showQlGroupDialog"
@@ -104,7 +103,6 @@
     <AppDialogs
       :app-settings-visible="appSettingsVisible"
       :static-dir="staticDir"
-      :server-status="serverStatus"
       :app-import-visible="appImportVisible"
       :app-import-tab="appImportTab"
       :import-zip-path="importZipPath"
@@ -136,8 +134,6 @@
       @update:new-group-name="newGroupName = $event"
       @update-ql-cmd-form="handleUpdateQlCmdForm"
       @select-directory="selectDirectory"
-      @start-server="startServer"
-      @stop-server="stopServer"
       @save-static-dir="saveStaticDir"
       @select-zip-file="selectZipFile"
       @select-import-dir="selectImportDir"
@@ -193,13 +189,16 @@ const {
   appRenameDirVisible, appRenameDirValue,
   iconInputRef,
   loadApps, refreshApps, loadServerStatus,
-  getAppIconUrl, getAppUrl,
+  getAppIconUrl, openApp,
   showAppSettings, selectDirectory, saveStaticDir,
-  startServer, stopServer,
   showAppImport, selectZipFile, selectImportDir,
   doImportZip, doImportDir,
   handleAppCmd, saveAppDisplayName, saveAppDirName, handleIconUpload
 } = useAppService(closeAppTab)
+
+const openAppHandler = (app) => {
+  openApp(app, addAppTab)
+}
 
 const {
   qlGroups, qlCmds, expandedQlGroups,
@@ -273,18 +272,6 @@ const handleSendCommand = (tabId, command) => {
 const loadQlPanelData = () => {}
 
 /**
- * 打开应用
- */
-const openApp = (app) => {
-  if (!serverStatus.value.running) {
-    ElMessage.warning('请先启动静态服务器')
-    return
-  }
-  const url = getAppUrl(app)
-  addAppTab(app.id, app.displayName, url)
-}
-
-/**
  * 执行快速启动命令
  */
 const executeQlCmdWithRef = (cmd) => {
@@ -307,7 +294,6 @@ const openTool = (toolKey, toolName) => {
 
 onMounted(() => {
   addTerminalTab()
-  loadServerStatus()
   loadApps()
   loadQlGroups()
   loadQlCmds()

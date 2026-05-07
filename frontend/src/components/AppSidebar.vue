@@ -44,10 +44,6 @@
           </el-button>
         </div>
         <div class="sub-panel-toolbar">
-          <el-tag v-if="serverStatus.running" type="success" size="small">
-            :{{ serverStatus.port }}
-          </el-tag>
-          <el-tag v-else type="info" size="small">未启动</el-tag>
           <el-button size="small" @click="$emit('showAppImport')" plain>
             <el-icon><Upload /></el-icon>
           </el-button>
@@ -204,7 +200,6 @@ const props = defineProps({
   navItems: { type: Array, required: true },
   apps: { type: Array, default: () => [] },
   appsLoading: { type: Boolean, default: false },
-  serverStatus: { type: Object, default: () => ({ running: false, port: 0 }) },
   getAppIconUrl: { type: Function, default: () => '' },
   qlGroups: { type: Array, default: () => [] },
   qlCmds: { type: Array, default: () => [] },

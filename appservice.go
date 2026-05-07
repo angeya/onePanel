@@ -22,10 +22,10 @@ type SubApp struct {
 }
 
 type AppConfig struct {
-	Id         int64  `json:"id"`
-	ConfigKey  string `json:"configKey"`
+	Id          int64  `json:"id"`
+	ConfigKey   string `json:"configKey"`
 	ConfigValue string `json:"configValue"`
-	UpdatedAt  string `json:"updatedAt"`
+	UpdatedAt   string `json:"updatedAt"`
 }
 
 type AppService struct{}
@@ -59,14 +59,8 @@ func (a *AppService) SetStaticDir(dir string) error {
 		return fmt.Errorf("保存静态目录配置失败: %w", err)
 	}
 
-	if staticServer != nil {
-		if dir == "" {
-			staticServer.Stop()
-		} else {
-			if _, err := staticServer.Start(dir); err != nil {
-				return fmt.Errorf("启动静态服务器失败: %w", err)
-			}
-		}
+	if staticServer != nil && dir == "" {
+		staticServer.Stop()
 	}
 
 	return nil
@@ -111,6 +105,64 @@ func (a *AppService) StopServer() error {
 		return nil
 	}
 	return staticServer.Stop()
+}
+
+/**
+ * 打开应用 - 自动启动静态服务（如果未启动）并返回应用 URL
+ */
+func (a *AppService) OpenApp(appId int64) (map[string]interface{}, error) {
+	var app SubApp
+	err := db.QueryRow("SELECT id, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE id = ?", appId).Scan(
+		&app.Id, &app.DirName, &app.DisplayName, &app.IconPath, &app.EntryUrl, &app.SortOrder, &app.CreatedAt, &app.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("应用不存在")
+	}
+
+	staticDir, err := a.GetStaticDir()
+	if err != nil || staticDir == "" {
+		return nil, fmt.Errorf("请先设置静态目录")
+	}
+
+	appDir := filepath.Join(staticDir, app.DirName)
+	indexFile := filepath.Join(appDir, "index.html")
+
+	if _, err := os.Stat(indexFile); os.IsNotExist(err) {
+		return nil, fmt.Errorf("应用入口文件不存在")
+	}
+
+	port, err := a.ensureServerRunning(staticDir)
+	if err != nil {
+		return nil, err
+	}
+
+	iconUrl := ""
+	if app.IconPath != "" {
+		dir := app.EntryUrl[:len(app.EntryUrl)-len("index.html")]
+		iconUrl = fmt.Sprintf("http://127.0.0.1:%d%sicon.png", port, dir)
+	}
+
+	return map[string]interface{}{
+		"url":      fmt.Sprintf("http://127.0.0.1:%d%s", port, app.EntryUrl),
+		"name":     app.DisplayName,
+		"iconPath": iconUrl,
+	}, nil
+}
+
+/**
+ * 确保静态服务器已启动
+ */
+func (a *AppService) ensureServerRunning(dir string) (int, error) {
+	if staticServer == nil {
+		return 0, fmt.Errorf("静态服务器未初始化")
+	}
+	status := staticServer.GetStatus()
+	if running, ok := status["running"].(bool); ok && running {
+		if port, ok := status["port"].(int); ok {
+			return port, nil
+		}
+	}
+	return staticServer.Start(dir)
 }
 
 /**

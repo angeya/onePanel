@@ -1,9 +1,9 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  GetStaticDir, SetStaticDir, GetServerStatus, StartServer, StopServer,
+  GetStaticDir, SetStaticDir, GetServerStatus,
   GetApps, ScanApps, UpdateDisplayName, UpdateDirName, UploadIcon,
-  DeleteApp, ExportApp, ImportZip, ImportDir
+  DeleteApp, ExportApp, ImportZip, ImportDir, OpenApp as OpenAppService
 } from '../../wailsjs/go/main/AppService'
 import { OpenDirectoryDialog, OpenFileDialog } from '../../wailsjs/go/main/App'
 
@@ -86,11 +86,16 @@ export function useAppService(closeAppTab) {
   }
 
   /**
-   * 获取应用完整 URL
+   * 打开应用 - 调用后端自动启动静态服务并获取 URL
    */
-  const getAppUrl = (app) => {
-    if (!serverStatus.value.running) return ''
-    return `http://127.0.0.1:${serverStatus.value.port}${app.entryUrl}`
+  const openApp = async (app, addAppTab) => {
+    try {
+      const result = await OpenAppService(app.id)
+      await loadServerStatus()
+      addAppTab(app.id, result.name, result.url)
+    } catch (err) {
+      ElMessage.error('打开应用失败: ' + err)
+    }
   }
 
   /**
@@ -126,37 +131,10 @@ export function useAppService(closeAppTab) {
     try {
       await SetStaticDir(staticDir.value)
       ElMessage.success('保存成功')
-      await loadServerStatus()
       if (staticDir.value) await refreshApps()
       appSettingsVisible.value = false
     } catch (err) {
       ElMessage.error('保存失败: ' + err)
-    }
-  }
-
-  /**
-   * 启动服务器
-   */
-  const startServer = async () => {
-    try {
-      await StartServer()
-      await loadServerStatus()
-      ElMessage.success('服务已启动')
-    } catch (err) {
-      ElMessage.error('启动失败: ' + err)
-    }
-  }
-
-  /**
-   * 停止服务器
-   */
-  const stopServer = async () => {
-    try {
-      await StopServer()
-      await loadServerStatus()
-      ElMessage.success('服务已停止')
-    } catch (err) {
-      ElMessage.error('停止失败: ' + err)
     }
   }
 
@@ -354,12 +332,10 @@ export function useAppService(closeAppTab) {
     refreshApps,
     loadServerStatus,
     getAppIconUrl,
-    getAppUrl,
+    openApp,
     showAppSettings,
     selectDirectory,
     saveStaticDir,
-    startServer,
-    stopServer,
     showAppImport,
     selectZipFile,
     selectImportDir,

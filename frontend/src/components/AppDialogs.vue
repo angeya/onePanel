@@ -8,22 +8,6 @@
             <el-button @click="$emit('selectDirectory')">选择</el-button>
           </div>
         </el-form-item>
-        <el-form-item label="服务状态">
-          <div style="display: flex; align-items: center; gap: 12px">
-            <el-tag v-if="serverStatus.running" type="success" size="small">
-              运行中，端口: {{ serverStatus.port }}
-            </el-tag>
-            <el-tag v-else type="info" size="small">未启动</el-tag>
-            <el-button
-              v-if="!serverStatus.running"
-              size="small"
-              type="primary"
-              @click="$emit('startServer')"
-              :disabled="!staticDir"
-            >启动服务</el-button>
-            <el-button v-else size="small" type="danger" @click="$emit('stopServer')">停止服务</el-button>
-          </div>
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="$emit('update:appSettingsVisible', false)">关闭</el-button>
@@ -160,7 +144,6 @@ import { Delete } from '@element-plus/icons-vue'
 defineProps({
   appSettingsVisible: { type: Boolean, default: false },
   staticDir: { type: String, default: '' },
-  serverStatus: { type: Object, default: () => ({ running: false, port: 0 }) },
   appImportVisible: { type: Boolean, default: false },
   appImportTab: { type: String, default: 'zip' },
   importZipPath: { type: String, default: '' },
@@ -195,8 +178,6 @@ defineEmits([
   'update:newGroupName',
   'updateQlCmdForm',
   'selectDirectory',
-  'startServer',
-  'stopServer',
   'saveStaticDir',
   'selectZipFile',
   'selectImportDir',
