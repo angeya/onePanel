@@ -25,10 +25,9 @@
         class="history-item"
         @click="executeCommand(item.command)"
       >
-        <div class="history-command">{{ item.command }}</div>
+        <div class="history-command" :title="`${item.command}\n${item.executedAt}`">{{ item.command }}</div>
         <div class="history-meta">
-          <span class="history-time">{{ item.executedAt }}</span>
-          <span class="history-shell">{{ item.shell }}</span>
+          <span class="history-shell">{{ formatShell(item.shell) }}</span>
         </div>
         <el-icon class="history-delete" @click.stop="deleteItem(item.id)"><Delete /></el-icon>
       </div>
@@ -61,6 +60,12 @@ import {
 } from '../../wailsjs/go/main/HistoryService'
 
 const emit = defineEmits(['executeCommand'])
+
+const formatShell = (shell) => {
+  if (shell === 'cmd.exe') return 'cmd'
+  if (shell === 'powershell') return 'ps'
+  return shell.replace('.exe', '')
+}
 
 const histories = ref([])
 const loading = ref(false)
