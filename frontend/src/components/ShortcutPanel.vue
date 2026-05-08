@@ -408,7 +408,7 @@ onMounted(() => {
 }
 
 .shortcut-list::-webkit-scrollbar-thumb {
-  background-color: #555;
+  background-color: var(--scrollbar-thumb);
   border-radius: 2px;
 }
 
@@ -423,12 +423,12 @@ onMounted(() => {
   padding: 6px 8px;
   cursor: pointer;
   border-radius: 4px;
-  color: #c0c0c0;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .category-header:hover {
-  background-color: #2d2d2d;
+  background-color: var(--bg-hover);
 }
 
 .category-name {
@@ -436,7 +436,7 @@ onMounted(() => {
 }
 
 .category-count {
-  color: #666;
+  color: var(--text-faint);
   font-size: 12px;
 }
 
@@ -455,7 +455,7 @@ onMounted(() => {
 }
 
 .command-item:hover {
-  background-color: #2d2d2d;
+  background-color: var(--bg-hover);
 }
 
 .command-info {
@@ -468,12 +468,12 @@ onMounted(() => {
 
 .command-name {
   font-size: 13px;
-  color: #e5e5e5;
+  color: var(--text-primary);
 }
 
 .command-text {
   font-size: 11px;
-  color: #888;
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -493,14 +493,14 @@ onMounted(() => {
 
 .action-icon {
   cursor: pointer;
-  color: #a0a0a0;
+  color: var(--text-muted);
   padding: 2px;
   border-radius: 4px;
 }
 
 .action-icon:hover {
-  color: #e5e5e5;
-  background-color: #3d3d3d;
+  color: var(--text-primary);
+  background-color: var(--bg-active);
 }
 
 .category-manage {
@@ -529,11 +529,11 @@ onMounted(() => {
   align-items: center;
   padding: 8px;
   border-radius: 4px;
-  color: #e5e5e5;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .category-manage-item:hover {
-  background-color: #2d2d2d;
+  background-color: var(--bg-hover);
 }
 </style>

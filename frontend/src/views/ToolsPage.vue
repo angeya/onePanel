@@ -64,7 +64,7 @@
                 >
                   {{ row.state }}
                 </el-tag>
-                <span v-else style="color: #666">-</span>
+                <span v-else class="text-faint">-</span>
               </template>
             </el-table-column>
             <el-table-column prop="pid" label="PID" width="80" sortable="custom" />
@@ -245,7 +245,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #252526;
+  background-color: var(--bg-secondary);
 }
 
 .tools-header {
@@ -253,14 +253,14 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #3d3d3d;
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .page-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e5e5e5;
+  color: var(--text-primary);
 }
 
 .tools-body {
@@ -295,7 +295,7 @@ onMounted(() => {
 .section-title {
   font-size: 15px;
   font-weight: 500;
-  color: #e5e5e5;
+  color: var(--text-primary);
 }
 
 .section-actions {
@@ -322,23 +322,23 @@ onMounted(() => {
 }
 
 .port-table-wrapper :deep(.el-table) {
-  --el-table-bg-color: #2d2d2d;
-  --el-table-tr-bg-color: #2d2d2d;
-  --el-table-header-bg-color: #363636;
-  --el-table-row-hover-bg-color: #363636;
-  --el-table-border-color: #3d3d3d;
-  --el-table-text-color: #c0c0c0;
-  --el-table-header-text-color: #e5e5e5;
+  --el-table-bg-color: var(--table-bg);
+  --el-table-tr-bg-color: var(--table-bg);
+  --el-table-header-bg-color: var(--table-header-bg);
+  --el-table-row-hover-bg-color: var(--table-hover-bg);
+  --el-table-border-color: var(--table-border);
+  --el-table-text-color: var(--table-text);
+  --el-table-header-text-color: var(--table-header-text);
 }
 
 .port-table-wrapper :deep(.el-table__body tr.el-table__row--striped td.el-table__cell) {
-  background-color: #292929;
+  background-color: var(--table-stripe-bg);
 }
 
 .pagination-area :deep(.el-pagination) {
   --el-pagination-bg-color: transparent;
-  --el-pagination-text-color: #a0a0a0;
-  --el-pagination-button-bg-color: #2d2d2d;
-  --el-pagination-hover-color: #409eff;
+  --el-pagination-text-color: var(--text-muted);
+  --el-pagination-button-bg-color: var(--bg-tertiary);
+  --el-pagination-hover-color: var(--accent);
 }
 </style>

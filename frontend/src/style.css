@@ -18,6 +18,13 @@
     --success: #67c23a;
     --warning: #e6a23c;
     --scrollbar-thumb: #555;
+    --table-bg: #2d2d2d;
+    --table-header-bg: #363636;
+    --table-hover-bg: #363636;
+    --table-stripe-bg: #292929;
+    --table-text: #c0c0c0;
+    --table-header-text: #e5e5e5;
+    --table-border: #3d3d3d;
 }
 
 html.theme-light {
@@ -40,6 +47,13 @@ html.theme-light {
     --success: #67c23a;
     --warning: #e6a23c;
     --scrollbar-thumb: #c0c4cc;
+    --table-bg: #ffffff;
+    --table-header-bg: #f5f7fa;
+    --table-hover-bg: #f5f7fa;
+    --table-stripe-bg: #fafafa;
+    --table-text: #606266;
+    --table-header-text: #303133;
+    --table-border: #ebeef5;
 }
 
 html.theme-blue {
@@ -62,6 +76,13 @@ html.theme-blue {
     --success: #5cb85c;
     --warning: #f0ad4e;
     --scrollbar-thumb: #2a3f5f;
+    --table-bg: #1b2838;
+    --table-header-bg: #1e3a5f;
+    --table-hover-bg: #1e3a5f;
+    --table-stripe-bg: #162538;
+    --table-text: #a0b4cc;
+    --table-header-text: #e0e8f0;
+    --table-border: #2a3f5f;
 }
 
 html.theme-green {
@@ -84,6 +105,13 @@ html.theme-green {
     --success: #67c23a;
     --warning: #e6a23c;
     --scrollbar-thumb: #3a5a3a;
+    --table-bg: #243024;
+    --table-header-bg: #2e482e;
+    --table-hover-bg: #2e482e;
+    --table-stripe-bg: #1e2e1e;
+    --table-text: #a0c0a0;
+    --table-header-text: #d8e8d8;
+    --table-border: #3a5a3a;
 }
 
 html {

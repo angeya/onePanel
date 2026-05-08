@@ -187,7 +187,7 @@ onMounted(() => {
 }
 
 .history-list::-webkit-scrollbar-thumb {
-  background-color: #555;
+  background-color: var(--scrollbar-thumb);
   border-radius: 2px;
 }
 
@@ -204,13 +204,13 @@ onMounted(() => {
 }
 
 .history-item:hover {
-  background-color: #2d2d2d;
+  background-color: var(--bg-hover);
 }
 
 .history-command {
   flex: 1;
   font-size: 13px;
-  color: #e5e5e5;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -221,12 +221,12 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   font-size: 11px;
-  color: #666;
+  color: var(--text-faint);
   flex-shrink: 0;
 }
 
 .history-shell {
-  color: #409eff;
+  color: var(--accent);
 }
 
 .history-delete {
@@ -235,7 +235,7 @@ onMounted(() => {
   top: 50%;
   transform: translateY(-50%);
   opacity: 0;
-  color: #a0a0a0;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 2px;
   border-radius: 4px;
@@ -246,8 +246,8 @@ onMounted(() => {
 }
 
 .history-delete:hover {
-  color: #f56c6c;
-  background-color: #3d3d3d;
+  color: var(--danger);
+  background-color: var(--bg-active);
 }
 
 .history-pagination {
