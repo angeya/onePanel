@@ -2,7 +2,7 @@
   <div class="left-panel">
     <div class="nav-column">
       <div class="nav-logo">
-        <img src="../assets/images/logo64x64.png" alt="oneWin" class="logo-icon" />
+        <img src="../../assets/images/logo64x64.png" alt="oneWin" class="logo-icon" />
       </div>
       <div class="nav-menu">
         <div
@@ -192,9 +192,9 @@ import {
   FolderAdd, ArrowDown, ArrowRight, Edit, Delete,
   VideoPlay, Connection
 } from '@element-plus/icons-vue'
-import ShortcutPanel from './ShortcutPanel.vue'
-import HistoryPanel from './HistoryPanel.vue'
-import SearchPanel from './SearchPanel.vue'
+import ShortcutPanel from '../terminal/ShortcutPanel.vue'
+import HistoryPanel from '../terminal/HistoryPanel.vue'
+import SearchPanel from '../terminal/SearchPanel.vue'
 
 const props = defineProps({
   activeNav: { type: String, required: true },

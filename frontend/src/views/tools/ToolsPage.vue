@@ -107,7 +107,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Connection, Search, Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { GetPortList, KillProcess } from '../../wailsjs/go/main/ToolService'
+import { GetPortList, KillProcess } from '../../../wailsjs/go/main/ToolService'
 
 const props = defineProps({
   embedded: { type: Boolean, default: false }

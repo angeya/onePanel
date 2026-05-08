@@ -11,8 +11,8 @@ import { FitAddon } from 'xterm-addon-fit'
 import { SearchAddon } from 'xterm-addon-search'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import 'xterm/css/xterm.css'
-import { Start, Write, Stop, Resize } from '../../wailsjs/go/main/PtyService'
-import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+import { Start, Write, Stop, Resize } from '../../../wailsjs/go/main/PtyService'
+import { EventsOn, EventsOff } from '../../../wailsjs/runtime/runtime'
 
 const SEARCH_DECORATIONS = {
   matchBackground: '#FFC800',

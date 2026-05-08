@@ -151,7 +151,7 @@ import {
   CreateCommand,
   UpdateCommand,
   DeleteCommand as DeleteShortcutCommand
-} from '../../wailsjs/go/main/ShortcutService'
+} from '../../../wailsjs/go/main/ShortcutService'
 
 const emit = defineEmits(['executeCommand'])
 

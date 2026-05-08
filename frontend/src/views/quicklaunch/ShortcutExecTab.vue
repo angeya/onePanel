@@ -41,7 +41,7 @@
 import { ref } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { ExecuteCommand } from '../../wailsjs/go/main/ShortcutCmdService'
+import { ExecuteCommand } from '../../../wailsjs/go/main/ShortcutCmdService'
 
 const props = defineProps({
   commandId: { type: Number, required: true },

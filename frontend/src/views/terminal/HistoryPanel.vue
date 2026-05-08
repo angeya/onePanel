@@ -57,7 +57,7 @@ import {
   SearchHistory,
   ClearHistory,
   DeleteHistory
-} from '../../wailsjs/go/main/HistoryService'
+} from '../../../wailsjs/go/main/HistoryService'
 
 const emit = defineEmits(['executeCommand'])
 

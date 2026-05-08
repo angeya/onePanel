@@ -60,7 +60,7 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { GetSetting, SetSetting } from '../../wailsjs/go/main/SettingService'
+import { GetSetting, SetSetting } from '../../../wailsjs/go/main/SettingService'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },

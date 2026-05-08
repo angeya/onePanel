@@ -41,7 +41,7 @@
 <script setup>
 import { ref } from 'vue'
 import { Folder, CircleCloseFilled } from '@element-plus/icons-vue'
-import { ExecuteCommand } from '../../wailsjs/go/main/ShortcutCmdService'
+import { ExecuteCommand } from '../../../wailsjs/go/main/ShortcutCmdService'
 
 const execLogs = ref([])
 
