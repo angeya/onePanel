@@ -12,6 +12,7 @@ import (
 
 type SubApp struct {
 	Id          int64  `json:"id"`
+	AppType     string `json:"appType"`
 	DirName     string `json:"dirName"`
 	DisplayName string `json:"displayName"`
 	IconPath    string `json:"iconPath"`
@@ -112,11 +113,19 @@ func (a *AppService) StopServer() error {
  */
 func (a *AppService) OpenApp(appId int64) (map[string]interface{}, error) {
 	var app SubApp
-	err := db.QueryRow("SELECT id, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE id = ?", appId).Scan(
-		&app.Id, &app.DirName, &app.DisplayName, &app.IconPath, &app.EntryUrl, &app.SortOrder, &app.CreatedAt, &app.UpdatedAt,
+	err := db.QueryRow("SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE id = ?", appId).Scan(
+		&app.Id, &app.AppType, &app.DirName, &app.DisplayName, &app.IconPath, &app.EntryUrl, &app.SortOrder, &app.CreatedAt, &app.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("应用不存在")
+	}
+
+	if app.AppType == "web" {
+		return map[string]interface{}{
+			"url":      app.EntryUrl,
+			"name":     app.DisplayName,
+			"iconPath": "",
+		}, nil
 	}
 
 	staticDir, err := a.GetStaticDir()
@@ -214,14 +223,14 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 		entryUrl := fmt.Sprintf("/%s/index.html", dirName)
 
 		var existing SubApp
-		err := db.QueryRow("SELECT id, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE dir_name = ?", dirName).Scan(
-			&existing.Id, &existing.DirName, &existing.DisplayName, &existing.IconPath, &existing.EntryUrl, &existing.SortOrder, &existing.CreatedAt, &existing.UpdatedAt,
+		err := db.QueryRow("SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE dir_name = ? AND app_type = 'static'", dirName).Scan(
+			&existing.Id, &existing.AppType, &existing.DirName, &existing.DisplayName, &existing.IconPath, &existing.EntryUrl, &existing.SortOrder, &existing.CreatedAt, &existing.UpdatedAt,
 		)
 
 		if err != nil {
 			now := time.Now().Format("2006-01-02 15:04:05")
 			result, err := db.Exec(
-				"INSERT INTO sub_app (dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)",
+				"INSERT INTO sub_app (app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at) VALUES ('static', ?, ?, ?, ?, 0, ?, ?)",
 				dirName, displayName, iconPath, entryUrl, now, now,
 			)
 			if err != nil {
@@ -230,6 +239,7 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 			id, _ := result.LastInsertId()
 			apps = append(apps, SubApp{
 				Id:          id,
+				AppType:     "static",
 				DirName:     dirName,
 				DisplayName: displayName,
 				IconPath:    iconPath,
@@ -261,7 +271,7 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
  * 获取所有应用列表
  */
 func (a *AppService) GetApps() ([]SubApp, error) {
-	rows, err := db.Query("SELECT id, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app ORDER BY sort_order, id")
+	rows, err := db.Query("SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app ORDER BY sort_order, id")
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +280,7 @@ func (a *AppService) GetApps() ([]SubApp, error) {
 	var apps []SubApp
 	for rows.Next() {
 		var app SubApp
-		if err := rows.Scan(&app.Id, &app.DirName, &app.DisplayName, &app.IconPath, &app.EntryUrl, &app.SortOrder, &app.CreatedAt, &app.UpdatedAt); err != nil {
+		if err := rows.Scan(&app.Id, &app.AppType, &app.DirName, &app.DisplayName, &app.IconPath, &app.EntryUrl, &app.SortOrder, &app.CreatedAt, &app.UpdatedAt); err != nil {
 			return nil, err
 		}
 		apps = append(apps, app)
@@ -280,6 +290,58 @@ func (a *AppService) GetApps() ([]SubApp, error) {
 		apps = []SubApp{}
 	}
 	return apps, nil
+}
+
+/**
+ * 创建网页应用
+ */
+func (a *AppService) CreateWebApp(name string, url string) (*SubApp, error) {
+	if name == "" {
+		return nil, fmt.Errorf("应用名称不能为空")
+	}
+	if url == "" {
+		return nil, fmt.Errorf("应用地址不能为空")
+	}
+
+	now := time.Now().Format("2006-01-02 15:04:05")
+	result, err := db.Exec(
+		"INSERT INTO sub_app (app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at) VALUES ('web', '', ?, '', ?, 0, ?, ?)",
+		name, url, now, now,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("创建网页应用失败: %w", err)
+	}
+
+	id, _ := result.LastInsertId()
+	app := &SubApp{
+		Id:          id,
+		AppType:     "web",
+		DirName:     "",
+		DisplayName: name,
+		IconPath:    "",
+		EntryUrl:    url,
+		SortOrder:   0,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+	return app, nil
+}
+
+/**
+ * 更新网页应用
+ */
+func (a *AppService) UpdateWebApp(id int64, name string, url string) error {
+	if name == "" {
+		return fmt.Errorf("应用名称不能为空")
+	}
+	if url == "" {
+		return fmt.Errorf("应用地址不能为空")
+	}
+
+	now := time.Now().Format("2006-01-02 15:04:05")
+	_, err := db.Exec("UPDATE sub_app SET display_name = ?, entry_url = ?, updated_at = ? WHERE id = ? AND app_type = 'web'",
+		name, url, now, id)
+	return err
 }
 
 /**
@@ -368,19 +430,22 @@ func (a *AppService) UploadIcon(id int64, iconData []byte) error {
  * 删除应用
  */
 func (a *AppService) DeleteApp(id int64) error {
+	var appType string
 	var dirName string
-	err := db.QueryRow("SELECT dir_name FROM sub_app WHERE id = ?", id).Scan(&dirName)
+	err := db.QueryRow("SELECT app_type, dir_name FROM sub_app WHERE id = ?", id).Scan(&appType, &dirName)
 	if err != nil {
 		return err
 	}
 
-	staticDir, err := a.GetStaticDir()
-	if err != nil {
-		return err
-	}
-	if staticDir != "" {
-		appDir := filepath.Join(staticDir, dirName)
-		os.RemoveAll(appDir)
+	if appType == "static" {
+		staticDir, err := a.GetStaticDir()
+		if err != nil {
+			return err
+		}
+		if staticDir != "" && dirName != "" {
+			appDir := filepath.Join(staticDir, dirName)
+			os.RemoveAll(appDir)
+		}
 	}
 
 	_, err = db.Exec("DELETE FROM sub_app WHERE id = ?", id)

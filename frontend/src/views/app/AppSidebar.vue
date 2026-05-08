@@ -47,6 +47,10 @@
           </el-button>
         </div>
         <div class="sub-panel-toolbar">
+          <el-button size="small" @click="$emit('showAddWebApp')" plain>
+            <el-icon><Link /></el-icon>
+            网页
+          </el-button>
           <el-button size="small" @click="$emit('showAppImport')" plain>
             <el-icon><Upload /></el-icon>
           </el-button>
@@ -63,20 +67,23 @@
           >
             <div class="app-sidebar-icon">
               <img v-if="app.iconPath" :src="getAppIconUrl(app)" alt="" />
+              <el-icon v-else-if="app.appType === 'web'" :size="22" color="#67c23a"><Link /></el-icon>
               <el-icon v-else :size="22" color="#409eff"><Document /></el-icon>
             </div>
             <div class="app-sidebar-info">
               <div class="app-sidebar-name">{{ app.displayName }}</div>
-              <div class="app-sidebar-dir">{{ app.dirName }}</div>
+              <div class="app-sidebar-dir">{{ app.appType === 'web' ? app.entryUrl : app.dirName }}</div>
             </div>
             <el-dropdown trigger="click" @command="(cmd) => $emit('handleAppCmd', cmd, app)" @click.stop>
               <el-icon class="app-sidebar-more" @click.stop><MoreFilled /></el-icon>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="edit">编辑名称</el-dropdown-item>
-                  <el-dropdown-item command="rename">修改目录名</el-dropdown-item>
-                  <el-dropdown-item command="icon">上传图标</el-dropdown-item>
-                  <el-dropdown-item command="export">导出</el-dropdown-item>
+                  <el-dropdown-item command="edit">{{ app.appType === 'web' ? '编辑' : '编辑名称' }}</el-dropdown-item>
+                  <template v-if="app.appType !== 'web'">
+                    <el-dropdown-item command="rename">修改目录名</el-dropdown-item>
+                    <el-dropdown-item command="icon">上传图标</el-dropdown-item>
+                    <el-dropdown-item command="export">导出</el-dropdown-item>
+                  </template>
                   <el-dropdown-item command="delete" divided>
                     <span style="color: #f56c6c">删除</span>
                   </el-dropdown-item>
@@ -190,7 +197,7 @@ import {
   Monitor, Grid, Promotion, SetUp, Plus,
   Setting, Upload, Refresh, Document, MoreFilled,
   FolderAdd, ArrowDown, ArrowRight, Edit, Delete,
-  VideoPlay, Connection
+  VideoPlay, Connection, Link
 } from '@element-plus/icons-vue'
 import ShortcutPanel from '../terminal/ShortcutPanel.vue'
 import HistoryPanel from '../terminal/HistoryPanel.vue'
@@ -219,6 +226,7 @@ const emit = defineEmits([
   'terminalHistoryExec',
   'showAppSettings',
   'showAppImport',
+  'showAddWebApp',
   'refreshApps',
   'openApp',
   'handleAppCmd',

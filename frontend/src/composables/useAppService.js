@@ -3,7 +3,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   GetStaticDir, SetStaticDir, GetServerStatus,
   GetApps, ScanApps, UpdateDisplayName, UpdateDirName, UploadIcon,
-  DeleteApp, ExportApp, ImportZip, ImportDir, OpenApp as OpenAppService
+  DeleteApp, ExportApp, ImportZip, ImportDir, OpenApp as OpenAppService,
+  CreateWebApp, UpdateWebApp
 } from '../../wailsjs/go/main/AppService'
 import { OpenDirectoryDialog, OpenFileDialog } from '../../wailsjs/go/main/App'
 
@@ -35,6 +36,11 @@ export function useAppService(closeAppTab) {
 
   const iconInputRef = ref(null)
   const iconUploadingAppId = ref(null)
+
+  const webAppDialogVisible = ref(false)
+  const isEditingWebApp = ref(false)
+  const editingWebAppId = ref(null)
+  const webAppForm = ref({ name: '', url: '' })
 
   /**
    * 加载应用列表
@@ -203,14 +209,73 @@ export function useAppService(closeAppTab) {
   }
 
   /**
+   * 显示新增网页应用对话框
+   */
+  const showAddWebAppDialog = () => {
+    isEditingWebApp.value = false
+    editingWebAppId.value = null
+    webAppForm.value = { name: '', url: '' }
+    webAppDialogVisible.value = true
+  }
+
+  /**
+   * 显示编辑网页应用对话框
+   */
+  const showEditWebAppDialog = (app) => {
+    isEditingWebApp.value = true
+    editingWebAppId.value = app.id
+    webAppForm.value = { name: app.displayName, url: app.entryUrl }
+    webAppDialogVisible.value = true
+  }
+
+  /**
+   * 保存网页应用（新增或编辑）
+   */
+  const saveWebApp = async () => {
+    if (!webAppForm.value.name) {
+      ElMessage.warning('请输入应用名称')
+      return
+    }
+    if (!webAppForm.value.url) {
+      ElMessage.warning('请输入应用地址')
+      return
+    }
+
+    try {
+      if (isEditingWebApp.value) {
+        await UpdateWebApp(editingWebAppId.value, webAppForm.value.name, webAppForm.value.url)
+        ElMessage.success('修改成功')
+      } else {
+        await CreateWebApp(webAppForm.value.name, webAppForm.value.url)
+        ElMessage.success('添加成功')
+      }
+      webAppDialogVisible.value = false
+      await loadApps()
+    } catch (err) {
+      ElMessage.error('保存失败: ' + err)
+    }
+  }
+
+  /**
+   * 更新网页应用表单字段
+   */
+  const updateWebAppForm = ({ key, value }) => {
+    webAppForm.value[key] = value
+  }
+
+  /**
    * 处理应用操作命令
    */
   const handleAppCmd = (command, app) => {
     switch (command) {
       case 'edit':
-        editingAppId.value = app.id
-        appEditNameValue.value = app.displayName
-        appEditNameVisible.value = true
+        if (app.appType === 'web') {
+          showEditWebAppDialog(app)
+        } else {
+          editingAppId.value = app.id
+          appEditNameValue.value = app.displayName
+          appEditNameVisible.value = true
+        }
         break
       case 'rename':
         renamingAppId.value = app.id
@@ -295,12 +360,17 @@ export function useAppService(closeAppTab) {
    * 删除应用
    */
   const doDeleteApp = async (app) => {
+    const isWebApp = app.appType === 'web'
+    const message = isWebApp
+      ? `确定要删除网页应用 "${app.displayName}" 吗？`
+      : `确定要删除应用 "${app.displayName}" 吗？此操作将同时删除应用文件，不可恢复。`
+
     try {
-      await ElMessageBox.confirm(
-        `确定要删除应用 "${app.displayName}" 吗？此操作将同时删除应用文件，不可恢复。`,
-        '确认删除',
-        { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
-      )
+      await ElMessageBox.confirm(message, '确认删除', {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
       await DeleteApp(app.id)
       ElMessage.success('删除成功')
       if (closeAppTab) closeAppTab(app.id)
@@ -328,6 +398,9 @@ export function useAppService(closeAppTab) {
     appRenameDirVisible,
     appRenameDirValue,
     iconInputRef,
+    webAppDialogVisible,
+    isEditingWebApp,
+    webAppForm,
     loadApps,
     refreshApps,
     loadServerStatus,
@@ -341,6 +414,10 @@ export function useAppService(closeAppTab) {
     selectImportDir,
     doImportZip,
     doImportDir,
+    showAddWebAppDialog,
+    showEditWebAppDialog,
+    saveWebApp,
+    updateWebAppForm,
     handleAppCmd,
     saveAppDisplayName,
     saveAppDirName,

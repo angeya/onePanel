@@ -74,7 +74,8 @@ func createTables() error {
 		)`,
 		`CREATE TABLE IF NOT EXISTS sub_app (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			dir_name TEXT NOT NULL,
+			app_type TEXT NOT NULL DEFAULT 'static',
+			dir_name TEXT NOT NULL DEFAULT '',
 			display_name TEXT NOT NULL,
 			icon_path TEXT DEFAULT '',
 			entry_url TEXT DEFAULT '',
@@ -110,6 +111,14 @@ func createTables() error {
 		if _, err := db.Exec(stmt); err != nil {
 			return err
 		}
+	}
+
+	migrations := []string{
+		`ALTER TABLE sub_app ADD COLUMN app_type TEXT NOT NULL DEFAULT 'static'`,
+	}
+
+	for _, stmt := range migrations {
+		db.Exec(stmt)
 	}
 
 	return nil

@@ -20,6 +20,7 @@
       @terminal-history-exec="handleTerminalHistoryExec"
       @show-app-settings="showAppSettings"
       @show-app-import="showAppImport"
+      @show-add-web-app="showAddWebAppDialog"
       @refresh-apps="refreshApps"
       @open-app="openAppHandler"
       @handle-app-cmd="handleAppCmd"
@@ -113,6 +114,9 @@
       :app-edit-name-value="appEditNameValue"
       :app-rename-dir-visible="appRenameDirVisible"
       :app-rename-dir-value="appRenameDirValue"
+      :web-app-dialog-visible="webAppDialogVisible"
+      :is-editing-web-app="isEditingWebApp"
+      :web-app-form="webAppForm"
       :ql-cmd-dialog-visible="qlCmdDialogVisible"
       :is-editing-ql-cmd="isEditingQlCmd"
       :ql-cmd-form="qlCmdForm"
@@ -130,6 +134,9 @@
       @update:app-edit-name-value="appEditNameValue = $event"
       @update:app-rename-dir-visible="appRenameDirVisible = $event"
       @update:app-rename-dir-value="appRenameDirValue = $event"
+      @update:web-app-dialog-visible="webAppDialogVisible = $event"
+      @update-web-app-form="updateWebAppForm"
+      @save-web-app="saveWebApp"
       @update:ql-cmd-dialog-visible="qlCmdDialogVisible = $event"
       @update:ql-group-dialog-visible="qlGroupDialogVisible = $event"
       @update:new-group-name="newGroupName = $event"
@@ -205,11 +212,13 @@ const {
   appEditNameVisible, appEditNameValue,
   appRenameDirVisible, appRenameDirValue,
   iconInputRef,
+  webAppDialogVisible, isEditingWebApp, webAppForm,
   loadApps, refreshApps, loadServerStatus,
   getAppIconUrl, openApp,
   showAppSettings, selectDirectory, saveStaticDir,
   showAppImport, selectZipFile, selectImportDir,
   doImportZip, doImportDir,
+  showAddWebAppDialog, saveWebApp, updateWebAppForm,
   handleAppCmd, saveAppDisplayName, saveAppDirName, handleIconUpload
 } = useAppService(closeAppTab)
 
