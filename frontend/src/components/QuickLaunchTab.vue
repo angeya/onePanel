@@ -19,8 +19,8 @@
         </div>
         <div class="log-detail">
           <div class="log-meta">
-            <el-tag size="small" :type="log.shell === 'powershell' ? 'info' : 'primary'" class="shell-tag">
-              {{ log.shell === 'powershell' ? 'PS' : 'CMD' }}
+            <el-tag size="small" :type="log.shell === 'powershell.exe' ? 'info' : 'primary'" class="shell-tag">
+              {{ log.shell === 'powershell.exe' ? 'PS' : 'CMD' }}
             </el-tag>
             <span v-if="log.workDir" class="log-workdir" :title="log.workDir">
               <el-icon size="12"><Folder /></el-icon>

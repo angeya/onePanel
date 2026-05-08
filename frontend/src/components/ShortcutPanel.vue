@@ -95,7 +95,7 @@
         <el-form-item label="Shell">
           <el-select v-model="commandForm.shell" style="width: 100%">
             <el-option label="cmd.exe" value="cmd.exe" />
-            <el-option label="powershell" value="powershell" />
+            <el-option label="powershell.exe" value="powershell.exe" />
           </el-select>
         </el-form-item>
         <el-form-item label="工作目录">

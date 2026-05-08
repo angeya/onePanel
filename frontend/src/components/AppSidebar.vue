@@ -118,7 +118,7 @@
                 class="ql-sidebar-item"
                 @dblclick="$emit('executeQlCmd', cmd)"
               >
-                <el-icon :size="16" :color="cmd.shell === 'powershell' ? '#012456' : '#4cc2ff'">
+                <el-icon :size="16" :color="cmd.shell === 'powershell.exe' ? '#012456' : '#4cc2ff'">
                   <Monitor />
                 </el-icon>
                 <div class="ql-item-info">
@@ -150,7 +150,7 @@
                 class="ql-sidebar-item"
                 @dblclick="$emit('executeQlCmd', cmd)"
               >
-                <el-icon :size="16" :color="cmd.shell === 'powershell' ? '#012456' : '#4cc2ff'">
+                <el-icon :size="16" :color="cmd.shell === 'powershell.exe' ? '#012456' : '#4cc2ff'">
                   <Monitor />
                 </el-icon>
                 <div class="ql-item-info">

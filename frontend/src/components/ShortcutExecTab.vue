@@ -2,8 +2,8 @@
   <div class="shortcut-exec-tab">
     <div class="exec-header">
       <span class="exec-title">{{ commandName }}</span>
-      <el-tag size="small" :type="shell === 'powershell' ? 'info' : 'primary'">
-        {{ shell === 'powershell' ? 'PowerShell' : 'CMD' }}
+      <el-tag size="small" :type="shell === 'powershell.exe' ? 'info' : 'primary'">
+        {{ shell === 'powershell.exe' ? 'PowerShell' : 'CMD' }}
       </el-tag>
     </div>
     <div class="exec-info">

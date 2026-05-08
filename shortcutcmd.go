@@ -253,7 +253,7 @@ func executeShellCommands(shell, workDir, commands string) error {
 	}
 
 	var cmd *exec.Cmd
-	if shell == "powershell" {
+	if shell == "powershell" || shell == "powershell.exe" {
 		cmd = exec.Command("powershell", "-NoExit", "-Command", commands)
 	} else {
 		cmd = exec.Command("cmd.exe", "/k", commands)

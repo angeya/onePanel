@@ -63,7 +63,7 @@
             v-if="activeNav === 'terminal'"
             class="tab-add"
             size="small"
-            @click="addTerminalTab()"
+            @click="addTerminalTab(defaultShell)"
             :icon="Plus"
             circle
           />
@@ -249,7 +249,7 @@ const switchNav = (key) => {
  */
 const handleTerminalQlExec = (command) => {
   if (terminalTabs.value.length === 0) {
-    addTerminalTab()
+    addTerminalTab(defaultShell.value)
   }
   handleSendCommand(activeTabId.value, command)
 }
@@ -259,7 +259,7 @@ const handleTerminalQlExec = (command) => {
  */
 const handleTerminalHistoryExec = (command) => {
   if (terminalTabs.value.length === 0) {
-    addTerminalTab()
+    addTerminalTab(defaultShell.value)
   }
   handleSendCommand(activeTabId.value, command)
 }
@@ -358,8 +358,8 @@ const loadSettings = async () => {
   }
 }
 
-onMounted(() => {
-  loadSettings()
+onMounted(async () => {
+  await loadSettings()
   addTerminalTab(defaultShell.value)
   loadApps()
   loadQlGroups()

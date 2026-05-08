@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -61,7 +62,9 @@ func (p *PtyService) Start(req StartRequest) (string, error) {
 		rows = 30
 	}
 
-	cpty, err := conpty.Start(shell, conpty.ConPtyDimensions(cols, rows))
+	env := os.Environ()
+
+	cpty, err := conpty.Start(shell, conpty.ConPtyDimensions(cols, rows), conpty.ConPtyEnv(env))
 	if err != nil {
 		return "", fmt.Errorf("启动伪终端失败: %w", err)
 	}

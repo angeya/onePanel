@@ -63,7 +63,7 @@ const emit = defineEmits(['executeCommand'])
 
 const formatShell = (shell) => {
   if (shell === 'cmd.exe') return 'cmd'
-  if (shell === 'powershell') return 'ps'
+  if (shell === 'powershell.exe') return 'ps'
   return shell.replace('.exe', '')
 }
 

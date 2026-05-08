@@ -34,7 +34,7 @@
         <div class="section-title">默认终端</div>
         <el-radio-group v-model="defaultShell" @change="saveDefaultShell">
           <el-radio value="cmd.exe">CMD</el-radio>
-          <el-radio value="powershell">PowerShell</el-radio>
+          <el-radio value="powershell.exe">PowerShell</el-radio>
         </el-radio-group>
       </div>
 

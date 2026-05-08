@@ -94,7 +94,7 @@
         <el-form-item label="Shell 类型" required>
           <el-radio-group :model-value="qlCmdForm.shell" @update:model-value="$emit('updateQlCmdForm', { key: 'shell', value: $event })">
             <el-radio value="cmd.exe">CMD</el-radio>
-            <el-radio value="powershell">PowerShell</el-radio>
+            <el-radio value="powershell.exe">PowerShell</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="工作目录">
