@@ -17,6 +17,9 @@
         </div>
       </div>
       <div class="nav-bottom">
+        <div class="nav-settings" title="系统设置" @click="$emit('openSettings')">
+          <el-icon :size="18"><Setting /></el-icon>
+        </div>
         <div class="version-info" title="onePanel v0.0.1">v0.0.1</div>
       </div>
     </div>
@@ -225,7 +228,8 @@ const emit = defineEmits([
   'executeQlCmd',
   'editQlCmd',
   'deleteQlCmd',
-  'openTool'
+  'openTool',
+  'openSettings'
 ])
 
 const localTerminalSubTab = computed({
@@ -239,8 +243,8 @@ const localTerminalSubTab = computed({
   display: flex;
   width: auto;
   flex-shrink: 0;
-  background-color: #1e1e1e;
-  border-right: 1px solid #2d2d2d;
+  background-color: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
 }
 
 .nav-column {
@@ -248,7 +252,7 @@ const localTerminalSubTab = computed({
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-right: 1px solid #2d2d2d;
+  border-right: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
@@ -257,14 +261,14 @@ const localTerminalSubTab = computed({
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid #2d2d2d;
+  border-bottom: 1px solid var(--border-color);
   width: 100%;
 }
 
 .logo-text {
   font-size: 11px;
   font-weight: 700;
-  color: #409eff;
+  color: var(--accent);
   letter-spacing: 0.5px;
   writing-mode: vertical-rl;
   text-orientation: mixed;
@@ -287,27 +291,48 @@ const localTerminalSubTab = computed({
   justify-content: center;
   border-radius: 8px;
   cursor: pointer;
-  color: #808080;
+  color: var(--text-dimmed);
   transition: all 0.15s;
 }
 
 .nav-item:hover {
-  color: #c0c0c0;
-  background-color: #2d2d2d;
+  color: var(--text-secondary);
+  background-color: var(--bg-hover);
 }
 
 .nav-item.active {
-  color: #409eff;
-  background-color: #2d2d2d;
+  color: var(--accent);
+  background-color: var(--bg-hover);
 }
 
 .nav-bottom {
   padding: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-settings {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-dimmed);
+  transition: all 0.15s;
+}
+
+.nav-settings:hover {
+  color: var(--text-secondary);
+  background-color: var(--bg-hover);
 }
 
 .version-info {
   font-size: 10px;
-  color: #555;
+  color: var(--text-dimmed);
   text-align: center;
   cursor: default;
 }
@@ -337,7 +362,7 @@ const localTerminalSubTab = computed({
 .sub-panel-title {
   font-size: 13px;
   font-weight: 600;
-  color: #e5e5e5;
+  color: var(--text-primary);
   padding: 12px 12px 0;
 }
 
@@ -367,11 +392,11 @@ const localTerminalSubTab = computed({
 }
 
 .sub-tabs :deep(.el-tabs__nav-wrap::after) {
-  background-color: #2d2d2d;
+  background-color: var(--border-color);
 }
 
 .sub-tabs :deep(.el-tabs__item) {
-  color: #a0a0a0;
+  color: var(--text-muted);
   font-size: 12px;
   padding: 0 12px;
   height: 32px;
@@ -379,7 +404,7 @@ const localTerminalSubTab = computed({
 }
 
 .sub-tabs :deep(.el-tabs__item.is-active) {
-  color: #409eff;
+  color: var(--accent);
 }
 
 .sub-tabs :deep(.el-tabs__content) {
@@ -404,7 +429,7 @@ const localTerminalSubTab = computed({
 }
 
 .app-sidebar-list::-webkit-scrollbar-thumb {
-  background-color: #555;
+  background-color: var(--scrollbar-thumb);
   border-radius: 2px;
 }
 
@@ -420,7 +445,7 @@ const localTerminalSubTab = computed({
 }
 
 .app-sidebar-item:hover {
-  background-color: #2d2d2d;
+  background-color: var(--bg-hover);
 }
 
 .app-sidebar-icon {
@@ -430,7 +455,7 @@ const localTerminalSubTab = computed({
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background-color: #252526;
+  background-color: var(--bg-secondary);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -448,7 +473,7 @@ const localTerminalSubTab = computed({
 
 .app-sidebar-name {
   font-size: 13px;
-  color: #e5e5e5;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -456,7 +481,7 @@ const localTerminalSubTab = computed({
 
 .app-sidebar-dir {
   font-size: 11px;
-  color: #666;
+  color: var(--text-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -464,7 +489,7 @@ const localTerminalSubTab = computed({
 }
 
 .app-sidebar-more {
-  color: #555;
+  color: var(--text-dimmed);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -477,8 +502,8 @@ const localTerminalSubTab = computed({
 }
 
 .app-sidebar-more:hover {
-  color: #e5e5e5;
-  background-color: #3d3d3d;
+  color: var(--text-primary);
+  background-color: var(--bg-active);
 }
 
 .ql-sidebar-list {
@@ -492,7 +517,7 @@ const localTerminalSubTab = computed({
 }
 
 .ql-sidebar-list::-webkit-scrollbar-thumb {
-  background-color: #555;
+  background-color: var(--scrollbar-thumb);
   border-radius: 2px;
 }
 
@@ -507,12 +532,12 @@ const localTerminalSubTab = computed({
   padding: 6px 8px;
   cursor: pointer;
   border-radius: 4px;
-  color: #c0c0c0;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .ql-group-header:hover {
-  background-color: #2d2d2d;
+  background-color: var(--bg-hover);
 }
 
 .ql-group-header .group-name {
@@ -521,7 +546,7 @@ const localTerminalSubTab = computed({
 }
 
 .ql-group-header .group-count {
-  color: #666;
+  color: var(--text-faint);
   font-size: 11px;
 }
 
@@ -540,7 +565,7 @@ const localTerminalSubTab = computed({
 }
 
 .ql-sidebar-item:hover {
-  background-color: #2d2d2d;
+  background-color: var(--bg-hover);
 }
 
 .ql-item-info {
@@ -550,7 +575,7 @@ const localTerminalSubTab = computed({
 
 .ql-item-name {
   font-size: 13px;
-  color: #e5e5e5;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -558,7 +583,7 @@ const localTerminalSubTab = computed({
 
 .ql-item-cmd {
   font-size: 11px;
-  color: #666;
+  color: var(--text-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -580,15 +605,15 @@ const localTerminalSubTab = computed({
 
 .action-icon {
   cursor: pointer;
-  color: #a0a0a0;
+  color: var(--text-muted);
   padding: 2px;
   border-radius: 4px;
   font-size: 14px;
 }
 
 .action-icon:hover {
-  color: #e5e5e5;
-  background-color: #3d3d3d;
+  color: var(--text-primary);
+  background-color: var(--bg-active);
 }
 
 .tool-sidebar-list {
@@ -602,13 +627,13 @@ const localTerminalSubTab = computed({
   padding: 12px;
   border-radius: 8px;
   cursor: pointer;
-  color: #c0c0c0;
+  color: var(--text-secondary);
   transition: all 0.15s;
 }
 
 .tool-sidebar-item:hover {
-  background-color: #2d2d2d;
-  color: #e5e5e5;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .tool-name {
@@ -617,7 +642,7 @@ const localTerminalSubTab = computed({
 }
 
 .tool-arrow {
-  color: #555;
+  color: var(--text-dimmed);
   font-size: 12px;
 }
 </style>

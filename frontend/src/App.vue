@@ -30,6 +30,7 @@
       @edit-ql-cmd="editQlCmd"
       @delete-ql-cmd="deleteQlCmd"
       @open-tool="openTool"
+      @open-settings="openSettings"
     />
 
     <div class="right-panel">
@@ -147,6 +148,16 @@
       @add-ql-group="addQlGroup"
       @delete-ql-group="deleteQlGroup"
     />
+
+    <SettingsDialog
+      ref="settingsRef"
+      :visible="settingsVisible"
+      :theme="currentTheme"
+      :shell="defaultShell"
+      @update:visible="settingsVisible = $event"
+      @theme-change="handleThemeChange"
+      @shell-change="handleShellChange"
+    />
   </div>
 </template>
 
@@ -156,6 +167,7 @@ import { Monitor, Grid, Promotion, SetUp, Close, Plus } from '@element-plus/icon
 import { ElMessage } from 'element-plus'
 import TerminalTab from './components/TerminalTab.vue'
 import QuickLaunchTab from './components/QuickLaunchTab.vue'
+import SettingsDialog from './components/SettingsDialog.vue'
 import ToolsPage from './views/ToolsPage.vue'
 import AppSidebar from './components/AppSidebar.vue'
 import AppDialogs from './components/AppDialogs.vue'
@@ -163,6 +175,7 @@ import { useAppTabs } from './composables/useAppTabs'
 import { useAppService } from './composables/useAppService'
 import { useQuickLaunch } from './composables/useQuickLaunch'
 import { AddHistory } from '../wailsjs/go/main/HistoryService'
+import { GetSetting, SetSetting } from '../wailsjs/go/main/SettingService'
 
 const navItems = [
   { key: 'terminal', label: '终端', icon: Monitor },
@@ -174,6 +187,10 @@ const navItems = [
 const activeNav = ref('terminal')
 const terminalSubTab = ref('shortcuts')
 const quickLaunchTabRef = ref(null)
+const settingsVisible = ref(false)
+const currentTheme = ref('dark')
+const defaultShell = ref('cmd.exe')
+const settingsRef = ref(null)
 
 const {
   tabs, activeTabId, terminalTabs, appTabs, quickLaunchTab, toolTabs,
@@ -292,8 +309,58 @@ const openTool = (toolKey, toolName) => {
   addToolTab(toolKey, toolName)
 }
 
+/**
+ * 应用主题
+ */
+const applyTheme = (theme) => {
+  currentTheme.value = theme
+  const html = document.documentElement
+  html.className = ''
+  if (theme && theme !== 'dark') {
+    html.classList.add(`theme-${theme}`)
+  }
+}
+
+/**
+ * 打开系统设置
+ */
+const openSettings = () => {
+  if (settingsRef.value) settingsRef.value.handleOpen()
+  settingsVisible.value = true
+}
+
+/**
+ * 主题变更回调
+ */
+const handleThemeChange = (theme) => {
+  applyTheme(theme)
+}
+
+/**
+ * 默认终端变更回调
+ */
+const handleShellChange = (shell) => {
+  defaultShell.value = shell
+}
+
+/**
+ * 加载系统设置
+ */
+const loadSettings = async () => {
+  try {
+    const theme = await GetSetting('theme')
+    if (theme) applyTheme(theme)
+
+    const shell = await GetSetting('default_shell')
+    if (shell) defaultShell.value = shell
+  } catch (err) {
+    console.error('加载设置失败:', err)
+  }
+}
+
 onMounted(() => {
-  addTerminalTab()
+  loadSettings()
+  addTerminalTab(defaultShell.value)
   loadApps()
   loadQlGroups()
   loadQlCmds()
@@ -313,7 +380,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: #252526;
+  background-color: var(--bg-secondary);
   min-width: 0;
 }
 
@@ -328,8 +395,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 4px 8px;
-  background-color: #1e1e1e;
-  border-bottom: 1px solid #2d2d2d;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
   gap: 4px;
   flex-shrink: 0;
 }
@@ -346,7 +413,7 @@ onMounted(() => {
 }
 
 .tabs-list::-webkit-scrollbar-thumb {
-  background-color: #555;
+  background-color: var(--scrollbar-thumb);
   border-radius: 2px;
 }
 
@@ -359,21 +426,21 @@ onMounted(() => {
   cursor: pointer;
   white-space: nowrap;
   font-size: 13px;
-  color: #a0a0a0;
-  background-color: #2d2d2d;
+  color: var(--text-muted);
+  background-color: var(--bg-tertiary);
   transition: all 0.15s;
   min-width: 0;
 }
 
 .main-tab-item:hover {
-  background-color: #3d3d3d;
-  color: #e5e5e5;
+  background-color: var(--bg-active);
+  color: var(--text-primary);
 }
 
 .main-tab-item.active {
-  background-color: #3d3d3d;
-  color: #e5e5e5;
-  border-bottom: 2px solid #409eff;
+  background-color: var(--bg-active);
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--accent);
 }
 
 .tab-name {
@@ -393,19 +460,19 @@ onMounted(() => {
 }
 
 .tab-close:hover {
-  background-color: #555;
+  background-color: var(--scrollbar-thumb);
   color: #fff;
 }
 
 .tab-add {
   flex-shrink: 0;
-  background-color: #2d2d2d !important;
-  border-color: #3d3d3d !important;
-  color: #a0a0a0 !important;
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-muted) !important;
 }
 
 .tab-add:hover {
-  color: #409eff !important;
+  color: var(--accent) !important;
 }
 
 .main-tabs-body {

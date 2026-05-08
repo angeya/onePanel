@@ -21,6 +21,7 @@ func main() {
 	appService := NewAppService()
 	shortcutCmdService := NewShortcutCmdService()
 	toolService := NewToolService()
+	settingService := NewSettingService()
 
 	err := wails.Run(&options.App{
 		Title:  "onePanel",
@@ -51,6 +52,7 @@ func main() {
 			appService,
 			shortcutCmdService,
 			toolService,
+			settingService,
 		},
 	})
 

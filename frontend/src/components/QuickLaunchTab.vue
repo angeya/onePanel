@@ -81,7 +81,7 @@ defineExpose({ execute })
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #252526;
+  background-color: var(--bg-secondary);
 }
 
 .empty-state {
@@ -105,27 +105,27 @@ defineExpose({ execute })
 }
 
 .exec-logs::-webkit-scrollbar-thumb {
-  background-color: #555;
+  background-color: var(--scrollbar-thumb);
   border-radius: 2px;
 }
 
 .log-item {
-  background-color: #1e1e1e;
+  background-color: var(--bg-primary);
   border-radius: 8px;
-  border-left: 3px solid #555;
+  border-left: 3px solid var(--text-dimmed);
   overflow: hidden;
 }
 
 .log-item.log-success {
-  border-left-color: #67c23a;
+  border-left-color: var(--success);
 }
 
 .log-item.log-error {
-  border-left-color: #f56c6c;
+  border-left-color: var(--danger);
 }
 
 .log-item.log-running {
-  border-left-color: #e6a23c;
+  border-left-color: var(--warning);
 }
 
 .log-header {
@@ -133,19 +133,19 @@ defineExpose({ execute })
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid #2d2d2d;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .log-name {
   font-size: 14px;
   font-weight: 500;
-  color: #e5e5e5;
+  color: var(--text-primary);
   flex: 1;
 }
 
 .log-time {
   font-size: 11px;
-  color: #666;
+  color: var(--text-faint);
   flex-shrink: 0;
 }
 
@@ -169,7 +169,7 @@ defineExpose({ execute })
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #888;
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -178,12 +178,12 @@ defineExpose({ execute })
 
 .log-commands {
   font-size: 12px;
-  color: #c0c0c0;
+  color: var(--text-secondary);
   font-family: Consolas, 'Courier New', monospace;
   margin: 0;
   white-space: pre-wrap;
   word-break: break-all;
-  background-color: #252526;
+  background-color: var(--bg-secondary);
   border-radius: 4px;
   padding: 8px 10px;
 }
@@ -197,7 +197,7 @@ defineExpose({ execute })
   background-color: rgba(245, 108, 108, 0.1);
   border-radius: 4px;
   font-size: 12px;
-  color: #f56c6c;
+  color: var(--danger);
   font-family: Consolas, 'Courier New', monospace;
   word-break: break-all;
 }
