@@ -2,7 +2,7 @@
   <div class="left-panel">
     <div class="nav-column">
       <div class="nav-logo">
-        <img src="../../assets/logo64x64.png" alt="oneWin" class="logo-icon" />
+        <img src="../assets/images/logo64x64.png" alt="oneWin" class="logo-icon" />
       </div>
       <div class="nav-menu">
         <div
