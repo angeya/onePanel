@@ -2,7 +2,7 @@
   <div class="left-panel">
     <div class="nav-column">
       <div class="nav-logo">
-        <span class="logo-text">onePanel</span>
+        <img src="../../assets/logo64x64.png" alt="oneWin" class="logo-icon" />
       </div>
       <div class="nav-menu">
         <div
@@ -20,7 +20,7 @@
         <div class="nav-settings" title="系统设置" @click="$emit('openSettings')">
           <el-icon :size="18"><Setting /></el-icon>
         </div>
-        <div class="version-info" title="onePanel v0.0.1">v0.0.1</div>
+        <div class="version-info" title="oneWin v0.0.1">v0.0.1</div>
       </div>
     </div>
     <div class="sub-panel">
@@ -263,15 +263,14 @@ const localTerminalSubTab = computed({
   justify-content: center;
   border-bottom: 1px solid var(--border-color);
   width: 100%;
+  gap: 0;
+  flex-direction: column;
 }
 
-.logo-text {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 0.5px;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .nav-menu {

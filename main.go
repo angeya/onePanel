@@ -24,7 +24,7 @@ func main() {
 	settingService := NewSettingService()
 
 	err := wails.Run(&options.App{
-		Title:  "onePanel",
+		Title:  "oneWin",
 		Width:  1280,
 		Height: 800,
 		AssetServer: &assetserver.Options{

@@ -1,4 +1,4 @@
-module onePanel
+module oneWin
 
 go 1.25.0
 

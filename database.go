@@ -16,7 +16,7 @@ var db *sql.DB
  */
 func InitDatabase() error {
 	dataDir := GetDataDir()
-	dbPath := filepath.Join(dataDir, "onepanel.db")
+	dbPath := filepath.Join(dataDir, "onewin.db")
 
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return fmt.Errorf("创建数据目录失败: %w", err)
