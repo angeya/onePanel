@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -43,6 +44,44 @@ func DefaultShell(shell string) string {
 		return "cmd.exe"
 	}
 	return shell
+}
+
+/**
+ * 将 Shell 名称解析为 64 位绝对路径
+ * 解决 32 位进程被 Windows 文件系统重定向导致无法使用 ssh 等命令的问题
+ * 32 位进程通过 Sysnative 虚拟目录访问真正的 64 位 System32
+ */
+func ResolveShellPath(shell string) string {
+	if runtime.GOOS != "windows" {
+		return shell
+	}
+
+	systemRoot := os.Getenv("SystemRoot")
+	if systemRoot == "" {
+		systemRoot = `C:\Windows`
+	}
+
+	// C:\Windows\System32\  →  实际存放的是 64 位程序
+  // C:\Windows\SysWOW64\  →  实际存放的是 32 位程序
+	var systemDir string
+	if runtime.GOARCH == "amd64" {
+		systemDir = filepath.Join(systemRoot, "System32")
+	} else {
+		// 虚拟目录，直接重定向到到System32
+		systemDir = filepath.Join(systemRoot, "Sysnative")
+	}
+
+	switch strings.ToLower(shell) {
+	case "cmd", "cmd.exe":
+		return filepath.Join(systemDir, "cmd.exe")
+	case "powershell", "powershell.exe":
+		return filepath.Join(systemDir, `WindowsPowerShell\v1.0\powershell.exe`)
+	default:
+		if !filepath.IsAbs(shell) {
+			return shell
+		}
+		return shell
+	}
 }
 
 /**

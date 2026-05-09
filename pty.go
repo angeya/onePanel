@@ -46,6 +46,7 @@ func (p *PtyService) Start(req StartRequest) (string, error) {
 	if shell == "" {
 		shell = "cmd.exe"
 	}
+	shell = ResolveShellPath(shell)
 	cols := req.Cols
 	if cols <= 0 {
 		cols = 120
