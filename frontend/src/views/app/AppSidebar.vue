@@ -33,9 +33,6 @@
           <el-tab-pane label="历史" name="history">
             <HistoryPanel @execute-command="$emit('terminalHistoryExec', $event)" />
           </el-tab-pane>
-          <el-tab-pane label="搜索" name="search">
-            <SearchPanel :active-tab-id="activeTabId" />
-          </el-tab-pane>
         </el-tabs>
       </div>
 
@@ -201,7 +198,6 @@ import {
 } from '@element-plus/icons-vue'
 import ShortcutPanel from '../terminal/ShortcutPanel.vue'
 import HistoryPanel from '../terminal/HistoryPanel.vue'
-import SearchPanel from '../terminal/SearchPanel.vue'
 
 const props = defineProps({
   activeNav: { type: String, required: true },

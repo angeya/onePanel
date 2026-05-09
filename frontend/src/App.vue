@@ -69,7 +69,7 @@
             circle
           />
         </div>
-        <div class="main-tabs-body">
+        <div class="main-tabs-body" ref="mainTabsBodyRef">
           <TerminalTab
             v-for="tab in terminalTabs"
             :key="tab.id"
@@ -85,18 +85,30 @@
             v-show="activeTabId === tab.id"
             :src="tab.url"
             class="app-iframe"
+            :data-tab-id="tab.id"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           />
           <QuickLaunchTab
             v-if="quickLaunchTab"
             v-show="activeTabId === quickLaunchTab.id"
             ref="quickLaunchTabRef"
+            :data-tab-id="quickLaunchTab.id"
           />
           <ToolsPage
             v-for="tab in toolTabs"
             :key="tab.id"
             v-show="activeTabId === tab.id"
+            :data-tab-id="tab.id"
             :embedded="true"
+          />
+          <SearchBar
+            ref="searchBarRef"
+            :visible="currentSearchVisible"
+            @update:visible="handleSearchBarVisibleChange"
+            @search="handleSearchInput"
+            @find-next="handleSearchFindNext"
+            @find-prev="handleSearchFindPrev"
+            @close="handleSearchClose"
           />
         </div>
       </template>
@@ -170,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { Monitor, Grid, Promotion, SetUp, Close, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import TerminalTab from './views/terminal/TerminalTab.vue'
@@ -179,6 +191,8 @@ import SettingsDialog from './views/settings/SettingsDialog.vue'
 import ToolsPage from './views/tools/ToolsPage.vue'
 import AppSidebar from './views/app/AppSidebar.vue'
 import AppDialogs from './views/app/AppDialogs.vue'
+import SearchBar from './components/SearchBar.vue'
+import { searchInContainer, findNextInContainer, findPrevInContainer, clearHighlights } from './utils/domSearch'
 import { useAppTabs } from './composables/useAppTabs'
 import { useAppService } from './composables/useAppService'
 import { useQuickLaunch } from './composables/useQuickLaunch'
@@ -330,12 +344,173 @@ const openSettings = () => {
   settingsVisible.value = true
 }
 
+const searchBarRef = ref(null)
+const mainTabsBodyRef = ref(null)
+const searchVisibleMap = reactive({})
+const lastSearchKeyword = reactive({})
+
+const currentSearchVisible = computed(() => !!searchVisibleMap[activeTabId.value])
+
+/**
+ * 获取当前活动 tab 对应的 DOM 可搜索容器
+ * 对于 iframe (app) 类型返回 null（不支持搜索）
+ */
+const getSearchableContainer = () => {
+  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
+  if (!activeTab || !mainTabsBodyRef.value) return null
+  if (activeTab.type === 'app') return null
+  if (activeTab.type === 'terminal') return null
+  return mainTabsBodyRef.value.querySelector(`[data-tab-id="${activeTabId.value}"]`)
+}
+
+/**
+ * Ctrl+F 快捷键处理
+ */
+const handleGlobalKeyDown = (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault()
+    const tabId = activeTabId.value
+    if (!tabId) return
+    if (searchVisibleMap[tabId]) {
+      searchBarRef.value?.focus()
+    } else {
+      searchVisibleMap[tabId] = true
+    }
+  }
+  if (e.key === 'Escape' && searchVisibleMap[activeTabId.value]) {
+    handleSearchClose()
+  }
+}
+
+/**
+ * 搜索栏可见性变化
+ */
+const handleSearchBarVisibleChange = (val) => {
+  searchVisibleMap[activeTabId.value] = val
+  if (!val) {
+    handleSearchCleanup()
+  }
+}
+
+/**
+ * 清理搜索状态（关闭搜索栏时调用）
+ */
+const handleSearchCleanup = () => {
+  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
+  if (activeTab?.type === 'terminal') {
+    const event = new CustomEvent('tab-search-close', {
+      detail: { tabId: activeTabId.value }
+    })
+    window.dispatchEvent(event)
+  } else {
+    const container = getSearchableContainer()
+    if (container) clearHighlights(container)
+  }
+}
+
+/**
+ * 搜索输入
+ */
+const handleSearchInput = (keyword) => {
+  lastSearchKeyword[activeTabId.value] = keyword
+  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
+  if (!activeTab) return
+
+  if (activeTab.type === 'terminal') {
+    const event = new CustomEvent('tab-search', {
+      detail: { tabId: activeTabId.value, action: 'search', keyword }
+    })
+    window.dispatchEvent(event)
+  } else if (activeTab.type === 'app') {
+    if (searchBarRef.value) searchBarRef.value.setUnsupported()
+  } else {
+    const container = getSearchableContainer()
+    if (container) {
+      const result = searchInContainer(container, keyword)
+      if (searchBarRef.value) searchBarRef.value.updateMatchInfo(result.current, result.total)
+    }
+  }
+}
+
+/**
+ * 搜索下一个
+ */
+const handleSearchFindNext = (keyword) => {
+  lastSearchKeyword[activeTabId.value] = keyword
+  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
+  if (!activeTab) return
+
+  if (activeTab.type === 'terminal') {
+    const event = new CustomEvent('tab-search', {
+      detail: { tabId: activeTabId.value, action: 'findNext', keyword }
+    })
+    window.dispatchEvent(event)
+  } else if (activeTab.type === 'app') {
+    // iframe 不支持搜索
+  } else {
+    const container = getSearchableContainer()
+    if (container) {
+      const result = findNextInContainer(container)
+      if (result && searchBarRef.value) searchBarRef.value.updateMatchInfo(result.current, result.total)
+    }
+  }
+}
+
+/**
+ * 搜索上一个
+ */
+const handleSearchFindPrev = (keyword) => {
+  lastSearchKeyword[activeTabId.value] = keyword
+  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
+  if (!activeTab) return
+
+  if (activeTab.type === 'terminal') {
+    const event = new CustomEvent('tab-search', {
+      detail: { tabId: activeTabId.value, action: 'findPrev', keyword }
+    })
+    window.dispatchEvent(event)
+  } else if (activeTab.type === 'app') {
+    // iframe 不支持搜索
+  } else {
+    const container = getSearchableContainer()
+    if (container) {
+      const result = findPrevInContainer(container)
+      if (result && searchBarRef.value) searchBarRef.value.updateMatchInfo(result.current, result.total)
+    }
+  }
+}
+
+/**
+ * 搜索关闭
+ */
+const handleSearchClose = () => {
+  searchVisibleMap[activeTabId.value] = false
+  handleSearchCleanup()
+}
+
+/**
+ * 监听搜索结果事件，更新SearchBar的匹配信息
+ */
+const handleSearchResult = (event) => {
+  const { tabId, resultIndex, resultCount } = event.detail
+  if (tabId === activeTabId.value && searchBarRef.value) {
+    searchBarRef.value.updateMatchInfo(resultIndex, resultCount)
+  }
+}
+
 onMounted(async () => {
   await Promise.all([loadTheme(), loadSettings()])
   addTerminalTab(defaultShell.value)
   loadApps()
   loadQlGroups()
   loadQlCmds()
+  window.addEventListener('keydown', handleGlobalKeyDown, true)
+  window.addEventListener('tab-search-result', handleSearchResult)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeyDown, true)
+  window.removeEventListener('tab-search-result', handleSearchResult)
 })
 </script>
 
