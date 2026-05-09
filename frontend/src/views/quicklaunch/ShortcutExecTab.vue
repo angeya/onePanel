@@ -77,7 +77,7 @@ const doExecute = async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #252526;
+  background-color: var(--bg-secondary);
   padding: 16px 20px;
 }
 
@@ -91,11 +91,11 @@ const doExecute = async () => {
 .exec-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e5e5e5;
+  color: var(--text-primary);
 }
 
 .exec-info {
-  background-color: #1e1e1e;
+  background-color: var(--bg-primary);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
@@ -111,20 +111,20 @@ const doExecute = async () => {
 
 .info-label {
   font-size: 12px;
-  color: #888;
+  color: var(--text-muted);
   display: block;
   margin-bottom: 4px;
 }
 
 .info-value {
   font-size: 13px;
-  color: #c0c0c0;
+  color: var(--text-secondary);
   font-family: Consolas, 'Courier New', monospace;
 }
 
 .command-text {
   font-size: 13px;
-  color: #e5e5e5;
+  color: var(--text-primary);
   font-family: Consolas, 'Courier New', monospace;
   margin: 0;
   white-space: pre-wrap;
@@ -133,7 +133,7 @@ const doExecute = async () => {
 
 .exec-result {
   flex: 1;
-  background-color: #1e1e1e;
+  background-color: var(--bg-primary);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -145,9 +145,9 @@ const doExecute = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid #2d2d2d;
+  border-bottom: 1px solid var(--border-color);
   font-size: 13px;
-  color: #c0c0c0;
+  color: var(--text-secondary);
 }
 
 .result-body {
@@ -166,13 +166,13 @@ const doExecute = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #e6a23c;
+  color: var(--warning);
   font-size: 14px;
 }
 
 .result-message {
   font-size: 13px;
-  color: #c0c0c0;
+  color: var(--text-secondary);
   font-family: Consolas, 'Courier New', monospace;
   text-align: center;
 }

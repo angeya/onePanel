@@ -1,56 +1,42 @@
 package main
 
-import (
-	"fmt"
-	"time"
-)
+/**
+ * SettingService 系统设置服务
+ * 负责系统级配置项的读写操作
+ * 通过依赖注入持有 Database 引用，委托 Database 实现 CRUD
+ */
+type SettingService struct {
+	db *Database
+}
 
-type SettingService struct{}
-
-func NewSettingService() *SettingService {
-	return &SettingService{}
+/**
+ * 创建 SettingService 实例
+ * 注入 Database 依赖
+ */
+func NewSettingService(db *Database) *SettingService {
+	return &SettingService{db: db}
 }
 
 /**
  * 获取设置项
+ * 委托给 Database.GetConfig 实现
  */
 func (s *SettingService) GetSetting(key string) (string, error) {
-	var value string
-	err := db.QueryRow("SELECT config_value FROM app_config WHERE config_key = ?", key).Scan(&value)
-	if err != nil {
-		return "", nil
-	}
-	return value, nil
+	return s.db.GetConfig(key)
 }
 
 /**
  * 设置设置项
+ * 委托给 Database.SetConfig 实现
  */
 func (s *SettingService) SetSetting(key string, value string) error {
-	now := time.Now().Format("2006-01-02 15:04:05")
-	_, err := db.Exec(
-		"INSERT INTO app_config (config_key, config_value, updated_at) VALUES (?, ?, ?) ON CONFLICT(config_key) DO UPDATE SET config_value = ?, updated_at = ?",
-		key, value, now, value, now,
-	)
-	if err != nil {
-		return fmt.Errorf("保存设置失败: %w", err)
-	}
-	return nil
+	return s.db.SetConfig(key, value)
 }
 
 /**
  * 批量获取设置项
+ * 委托给 Database.GetConfigs 实现
  */
 func (s *SettingService) GetSettings(keys []string) (map[string]string, error) {
-	result := make(map[string]string)
-	for _, key := range keys {
-		val, err := s.GetSetting(key)
-		if err != nil {
-			return nil, err
-		}
-		if val != "" {
-			result[key] = val
-		}
-	}
-	return result, nil
+	return s.db.GetConfigs(keys)
 }

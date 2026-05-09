@@ -8,25 +8,22 @@ import (
 	"strings"
 )
 
-type PortInfo struct {
-	Protocol    string `json:"protocol"`
-	LocalAddr   string `json:"localAddr"`
-	LocalPort   int    `json:"localPort"`
-	ForeignAddr string `json:"foreignAddr"`
-	ForeignPort int    `json:"foreignPort"`
-	State       string `json:"state"`
-	Pid         int    `json:"pid"`
-	ProcessName string `json:"processName"`
-}
-
+/**
+ * ToolService 实用工具服务
+ * 提供 Windows 系统级工具功能，如网络端口查询和进程管理
+ */
 type ToolService struct{}
 
+/**
+ * 创建 ToolService 实例
+ */
 func NewToolService() *ToolService {
 	return &ToolService{}
 }
 
 /**
  * 获取所有网络端口与进程信息
+ * 通过 netstat -ano 和 tasklist 命令获取系统端口和进程映射
  */
 func (t *ToolService) GetPortList() ([]PortInfo, error) {
 	output, err := exec.Command("netstat", "-ano").Output()
@@ -85,6 +82,7 @@ func (t *ToolService) GetPortList() ([]PortInfo, error) {
 
 /**
  * 根据端口号查询进程信息
+ * 从全部端口列表中过滤匹配的记录
  */
 func (t *ToolService) GetPortInfo(port int) ([]PortInfo, error) {
 	all, err := t.GetPortList()
@@ -107,6 +105,7 @@ func (t *ToolService) GetPortInfo(port int) ([]PortInfo, error) {
 
 /**
  * 终止指定进程
+ * 使用 taskkill /F 强制终止
  */
 func (t *ToolService) KillProcess(pid int) error {
 	err := exec.Command("taskkill", "/PID", strconv.Itoa(pid), "/F").Run()
@@ -118,6 +117,7 @@ func (t *ToolService) KillProcess(pid int) error {
 
 /**
  * 获取进程名称映射表
+ * 通过 tasklist 命令获取 PID 到进程名称的映射
  */
 func getProcessNameMap() (map[int]string, error) {
 	output, err := exec.Command("tasklist", "/FO", "CSV", "/NH").Output()

@@ -7,6 +7,11 @@ import (
 	"sync"
 )
 
+/**
+ * StaticServer 静态文件服务器
+ * 为子应用提供 HTTP 静态文件服务，支持动态端口分配
+ * 通过依赖注入方式使用，不再依赖全局变量
+ */
 type StaticServer struct {
 	server *http.Server
 	port   int
@@ -14,25 +19,32 @@ type StaticServer struct {
 	mu     sync.Mutex
 }
 
-var staticServer *StaticServer
+/**
+ * 创建静态服务器实例
+ */
+func NewStaticServer() *StaticServer {
+	return &StaticServer{}
+}
 
 /**
  * 获取静态服务器状态信息
+ * 返回运行状态、监听端口和服务目录
  */
 func (s *StaticServer) GetStatus() map[string]interface{} {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	status := map[string]interface{}{
+	return map[string]interface{}{
 		"running": s.server != nil,
 		"port":    s.port,
 		"dir":     s.dir,
 	}
-	return status
 }
 
 /**
  * 启动静态文件服务器
+ * 如果服务器已在运行且目录相同，直接返回当前端口
+ * 如果目录不同，先关闭再重新启动
  */
 func (s *StaticServer) Start(dir string) (int, error) {
 	s.mu.Lock()
@@ -74,6 +86,7 @@ func (s *StaticServer) Start(dir string) (int, error) {
 
 /**
  * 停止静态文件服务器
+ * 释放端口并重置状态
  */
 func (s *StaticServer) Stop() error {
 	s.mu.Lock()
@@ -91,6 +104,7 @@ func (s *StaticServer) Stop() error {
 
 /**
  * 重启静态文件服务器
+ * 先停止再以新目录启动
  */
 func (s *StaticServer) Restart(dir string) (int, error) {
 	if err := s.Stop(); err != nil {
@@ -99,7 +113,21 @@ func (s *StaticServer) Restart(dir string) (int, error) {
 	return s.Start(dir)
 }
 
-func NewStaticServer() *StaticServer {
-	staticServer = &StaticServer{}
-	return staticServer
+/**
+ * 检查服务器是否正在运行
+ */
+func (s *StaticServer) IsRunning() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.server != nil
+}
+
+/**
+ * 获取当前监听端口
+ * 如果服务器未运行，返回 0
+ */
+func (s *StaticServer) Port() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.port
 }

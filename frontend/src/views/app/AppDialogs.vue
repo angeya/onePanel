@@ -220,7 +220,18 @@ defineEmits([
 ])
 
 const iconInputRef = ref(null)
-defineExpose({ iconInputRef })
+
+/**
+ * 触发图标文件选择器
+ * 供父组件通过 ref 调用
+ */
+const triggerIconInput = () => {
+  if (iconInputRef.value) {
+    iconInputRef.value.click()
+  }
+}
+
+defineExpose({ iconInputRef, triggerIconInput })
 </script>
 
 <style scoped>
@@ -250,24 +261,24 @@ defineExpose({ iconInputRef })
   align-items: center;
   padding: 8px 12px;
   border-radius: 4px;
-  color: #e5e5e5;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .group-manage-item:hover {
-  background-color: #2d2d2d;
+  background-color: var(--bg-hover);
 }
 
 .action-icon {
   cursor: pointer;
-  color: #a0a0a0;
+  color: var(--text-muted);
   padding: 2px;
   border-radius: 4px;
   font-size: 14px;
 }
 
 .action-icon:hover {
-  color: #e5e5e5;
-  background-color: #3d3d3d;
+  color: var(--text-primary);
+  background-color: var(--bg-active);
 }
 </style>

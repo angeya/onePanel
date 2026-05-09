@@ -2,37 +2,33 @@ package main
 
 import (
 	"fmt"
-	"time"
 )
 
-type CommandHistory struct {
-	Id         int64  `json:"id"`
-	Command    string `json:"command"`
-	Shell      string `json:"shell"`
-	WorkDir    string `json:"workDir"`
-	ExecutedAt string `json:"executedAt"`
+/**
+ * HistoryService 命令历史服务
+ * 负责命令执行历史的记录、查询、搜索和删除
+ * 通过依赖注入持有 Database 引用
+ */
+type HistoryService struct {
+	db *Database
 }
 
-type HistoryResult struct {
-	Histories []CommandHistory `json:"histories"`
-	Total     int64            `json:"total"`
-}
-
-type HistoryService struct{}
-
-func NewHistoryService() *HistoryService {
-	return &HistoryService{}
+/**
+ * 创建 HistoryService 实例
+ * 注入 Database 依赖
+ */
+func NewHistoryService(db *Database) *HistoryService {
+	return &HistoryService{db: db}
 }
 
 /**
  * 记录命令历史
+ * shell 为空时默认使用 cmd.exe
  */
 func (h *HistoryService) AddHistory(command, shell, workDir string) error {
-	now := time.Now().Format("2006-01-02 15:04:05")
-	if shell == "" {
-		shell = "cmd.exe"
-	}
-	_, err := db.Exec(
+	now := NowFormatted()
+	shell = DefaultShell(shell)
+	_, err := h.db.DB().Exec(
 		"INSERT INTO command_history (command, shell, work_dir, executed_at) VALUES (?, ?, ?, ?)",
 		command, shell, workDir, now,
 	)
@@ -41,16 +37,17 @@ func (h *HistoryService) AddHistory(command, shell, workDir string) error {
 
 /**
  * 获取命令历史列表
+ * 按执行时间倒序分页查询
  */
 func (h *HistoryService) GetHistory(page, pageSize int) (*HistoryResult, error) {
 	var total int64
-	err := db.QueryRow("SELECT COUNT(*) FROM command_history").Scan(&total)
+	err := h.db.DB().QueryRow("SELECT COUNT(*) FROM command_history").Scan(&total)
 	if err != nil {
 		return nil, err
 	}
 
 	offset := (page - 1) * pageSize
-	rows, err := db.Query(
+	rows, err := h.db.DB().Query(
 		"SELECT id, command, shell, work_dir, executed_at FROM command_history ORDER BY executed_at DESC LIMIT ? OFFSET ?",
 		pageSize, offset,
 	)
@@ -80,18 +77,19 @@ func (h *HistoryService) GetHistory(page, pageSize int) (*HistoryResult, error) 
 
 /**
  * 搜索命令历史
+ * 支持按关键字模糊搜索，按执行时间倒序分页
  */
 func (h *HistoryService) SearchHistory(keyword string, page, pageSize int) (*HistoryResult, error) {
 	pattern := fmt.Sprintf("%%%s%%", keyword)
 
 	var total int64
-	err := db.QueryRow("SELECT COUNT(*) FROM command_history WHERE command LIKE ?", pattern).Scan(&total)
+	err := h.db.DB().QueryRow("SELECT COUNT(*) FROM command_history WHERE command LIKE ?", pattern).Scan(&total)
 	if err != nil {
 		return nil, err
 	}
 
 	offset := (page - 1) * pageSize
-	rows, err := db.Query(
+	rows, err := h.db.DB().Query(
 		"SELECT id, command, shell, work_dir, executed_at FROM command_history WHERE command LIKE ? ORDER BY executed_at DESC LIMIT ? OFFSET ?",
 		pattern, pageSize, offset,
 	)
@@ -123,7 +121,7 @@ func (h *HistoryService) SearchHistory(keyword string, page, pageSize int) (*His
  * 清空命令历史
  */
 func (h *HistoryService) ClearHistory() error {
-	_, err := db.Exec("DELETE FROM command_history")
+	_, err := h.db.DB().Exec("DELETE FROM command_history")
 	return err
 }
 
@@ -131,6 +129,6 @@ func (h *HistoryService) ClearHistory() error {
  * 删除单条命令历史
  */
 func (h *HistoryService) DeleteHistory(id int64) error {
-	_, err := db.Exec("DELETE FROM command_history WHERE id = ?", id)
+	_, err := h.db.DB().Exec("DELETE FROM command_history WHERE id = ?", id)
 	return err
 }

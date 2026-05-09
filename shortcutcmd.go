@@ -5,40 +5,31 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
-	"time"
 )
 
-type ShortcutCmd struct {
-	Id        int64  `json:"id"`
-	GroupId   *int64 `json:"groupId"`
-	Name      string `json:"name"`
-	Shell     string `json:"shell"`
-	WorkDir   string `json:"workDir"`
-	Commands  string `json:"commands"`
-	SortOrder int    `json:"sortOrder"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
+/**
+ * ShortcutCmdService 快速启动命令服务
+ * 负责快速启动功能的分组管理、命令 CRUD 和命令执行
+ * 通过依赖注入持有 Database 引用
+ */
+type ShortcutCmdService struct {
+	db *Database
 }
 
-type ShortcutCmdGroup struct {
-	Id        int64  `json:"id"`
-	Name      string `json:"name"`
-	SortOrder int    `json:"sortOrder"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
-}
-
-type ShortcutCmdService struct{}
-
-func NewShortcutCmdService() *ShortcutCmdService {
-	return &ShortcutCmdService{}
+/**
+ * 创建 ShortcutCmdService 实例
+ * 注入 Database 依赖
+ */
+func NewShortcutCmdService(db *Database) *ShortcutCmdService {
+	return &ShortcutCmdService{db: db}
 }
 
 /**
  * 获取所有快捷命令分组
+ * 按排序字段和 ID 升序排列
  */
 func (s *ShortcutCmdService) GetGroups() ([]ShortcutCmdGroup, error) {
-	rows, err := db.Query("SELECT id, name, sort_order, created_at, updated_at FROM shortcut_cmd_group ORDER BY sort_order, id")
+	rows, err := s.db.DB().Query("SELECT id, name, sort_order, created_at, updated_at FROM shortcut_cmd_group ORDER BY sort_order, id")
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +53,8 @@ func (s *ShortcutCmdService) GetGroups() ([]ShortcutCmdGroup, error) {
  * 创建快捷命令分组
  */
 func (s *ShortcutCmdService) CreateGroup(name string, sortOrder int) (*ShortcutCmdGroup, error) {
-	now := time.Now().Format("2006-01-02 15:04:05")
-	result, err := db.Exec(
+	now := NowFormatted()
+	result, err := s.db.DB().Exec(
 		"INSERT INTO shortcut_cmd_group (name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?)",
 		name, sortOrder, now, now,
 	)
@@ -85,8 +76,8 @@ func (s *ShortcutCmdService) CreateGroup(name string, sortOrder int) (*ShortcutC
  * 更新快捷命令分组
  */
 func (s *ShortcutCmdService) UpdateGroup(id int64, name string, sortOrder int) error {
-	now := time.Now().Format("2006-01-02 15:04:05")
-	_, err := db.Exec(
+	now := NowFormatted()
+	_, err := s.db.DB().Exec(
 		"UPDATE shortcut_cmd_group SET name = ?, sort_order = ?, updated_at = ? WHERE id = ?",
 		name, sortOrder, now, id,
 	)
@@ -97,15 +88,16 @@ func (s *ShortcutCmdService) UpdateGroup(id int64, name string, sortOrder int) e
  * 删除快捷命令分组
  */
 func (s *ShortcutCmdService) DeleteGroup(id int64) error {
-	_, err := db.Exec("DELETE FROM shortcut_cmd_group WHERE id = ?", id)
+	_, err := s.db.DB().Exec("DELETE FROM shortcut_cmd_group WHERE id = ?", id)
 	return err
 }
 
 /**
  * 获取所有快捷命令
+ * 按排序字段和 ID 升序排列
  */
 func (s *ShortcutCmdService) GetCommands() ([]ShortcutCmd, error) {
-	rows, err := db.Query(
+	rows, err := s.db.DB().Query(
 		"SELECT id, group_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_cmd ORDER BY sort_order, id",
 	)
 	if err != nil {
@@ -135,7 +127,7 @@ func (s *ShortcutCmdService) GetCommands() ([]ShortcutCmd, error) {
  * 根据分组获取快捷命令
  */
 func (s *ShortcutCmdService) GetCommandsByGroup(groupId int64) ([]ShortcutCmd, error) {
-	rows, err := db.Query(
+	rows, err := s.db.DB().Query(
 		"SELECT id, group_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_cmd WHERE group_id = ? ORDER BY sort_order, id",
 		groupId,
 	)
@@ -164,19 +156,18 @@ func (s *ShortcutCmdService) GetCommandsByGroup(groupId int64) ([]ShortcutCmd, e
 
 /**
  * 创建快捷命令
+ * shell 为空时默认使用 cmd.exe
  */
 func (s *ShortcutCmdService) CreateCommand(groupId *int64, name, shell, workDir, commands string, sortOrder int) (*ShortcutCmd, error) {
-	now := time.Now().Format("2006-01-02 15:04:05")
-	if shell == "" {
-		shell = "cmd.exe"
-	}
+	now := NowFormatted()
+	shell = DefaultShell(shell)
 
 	var gId sql.NullInt64
 	if groupId != nil {
 		gId = sql.NullInt64{Int64: *groupId, Valid: true}
 	}
 
-	result, err := db.Exec(
+	result, err := s.db.DB().Exec(
 		"INSERT INTO shortcut_cmd (group_id, name, shell, work_dir, commands, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 		gId, name, shell, workDir, commands, sortOrder, now, now,
 	)
@@ -202,17 +193,15 @@ func (s *ShortcutCmdService) CreateCommand(groupId *int64, name, shell, workDir,
  * 更新快捷命令
  */
 func (s *ShortcutCmdService) UpdateCommand(id int64, groupId *int64, name, shell, workDir, commands string, sortOrder int) error {
-	now := time.Now().Format("2006-01-02 15:04:05")
-	if shell == "" {
-		shell = "cmd.exe"
-	}
+	now := NowFormatted()
+	shell = DefaultShell(shell)
 
 	var gId sql.NullInt64
 	if groupId != nil {
 		gId = sql.NullInt64{Int64: *groupId, Valid: true}
 	}
 
-	_, err := db.Exec(
+	_, err := s.db.DB().Exec(
 		"UPDATE shortcut_cmd SET group_id = ?, name = ?, shell = ?, work_dir = ?, commands = ?, sort_order = ?, updated_at = ? WHERE id = ?",
 		gId, name, shell, workDir, commands, sortOrder, now, id,
 	)
@@ -223,17 +212,18 @@ func (s *ShortcutCmdService) UpdateCommand(id int64, groupId *int64, name, shell
  * 删除快捷命令
  */
 func (s *ShortcutCmdService) DeleteCommand(id int64) error {
-	_, err := db.Exec("DELETE FROM shortcut_cmd WHERE id = ?", id)
+	_, err := s.db.DB().Exec("DELETE FROM shortcut_cmd WHERE id = ?", id)
 	return err
 }
 
 /**
  * 执行快捷命令
+ * 从数据库读取命令信息，根据 shell 类型启动对应终端进程
  */
 func (s *ShortcutCmdService) ExecuteCommand(id int64) error {
 	var cmd ShortcutCmd
 	var groupId sql.NullInt64
-	err := db.QueryRow(
+	err := s.db.DB().QueryRow(
 		"SELECT id, group_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_cmd WHERE id = ?",
 		id,
 	).Scan(&cmd.Id, &groupId, &cmd.Name, &cmd.Shell, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt)
@@ -246,11 +236,10 @@ func (s *ShortcutCmdService) ExecuteCommand(id int64) error {
 
 /**
  * 执行 shell 命令列表
+ * 根据 shell 类型使用 cmd /k 或 powershell -NoExit -Command 启动新终端窗口
  */
 func executeShellCommands(shell, workDir, commands string) error {
-	if shell == "" {
-		shell = "cmd.exe"
-	}
+	shell = DefaultShell(shell)
 
 	var cmd *exec.Cmd
 	if shell == "powershell" || shell == "powershell.exe" {

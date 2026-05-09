@@ -12,7 +12,7 @@ import { OpenDirectoryDialog, OpenFileDialog } from '../../wailsjs/go/main/App'
  * 我的应用服务组合式函数
  * 负责应用列表、静态服务器、导入导出等逻辑
  */
-export function useAppService(closeAppTab) {
+export function useAppService(closeAppTab, appDialogsRef) {
   const apps = ref([])
   const appsLoading = ref(false)
   const serverStatus = ref({ running: false, port: 0, dir: '' })
@@ -34,7 +34,6 @@ export function useAppService(closeAppTab) {
   const appRenameDirValue = ref('')
   const renamingAppId = ref(null)
 
-  const iconInputRef = ref(null)
   const iconUploadingAppId = ref(null)
 
   const webAppDialogVisible = ref(false)
@@ -284,7 +283,9 @@ export function useAppService(closeAppTab) {
         break
       case 'icon':
         iconUploadingAppId.value = app.id
-        iconInputRef.value?.click()
+        if (appDialogsRef && appDialogsRef.value) {
+          appDialogsRef.value.triggerIconInput()
+        }
         break
       case 'export':
         doExportApp(app)
@@ -397,7 +398,6 @@ export function useAppService(closeAppTab) {
     appEditNameValue,
     appRenameDirVisible,
     appRenameDirValue,
-    iconInputRef,
     webAppDialogVisible,
     isEditingWebApp,
     webAppForm,

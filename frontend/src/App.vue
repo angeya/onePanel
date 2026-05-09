@@ -103,6 +103,7 @@
     </div>
 
     <AppDialogs
+      ref="appDialogsRef"
       :app-settings-visible="appSettingsVisible"
       :static-dir="staticDir"
       :app-import-visible="appImportVisible"
@@ -162,8 +163,8 @@
       :theme="currentTheme"
       :shell="defaultShell"
       @update:visible="settingsVisible = $event"
-      @theme-change="handleThemeChange"
-      @shell-change="handleShellChange"
+      @theme-change="changeTheme"
+      @shell-change="changeDefaultShell"
     />
   </div>
 </template>
@@ -181,8 +182,9 @@ import AppDialogs from './views/app/AppDialogs.vue'
 import { useAppTabs } from './composables/useAppTabs'
 import { useAppService } from './composables/useAppService'
 import { useQuickLaunch } from './composables/useQuickLaunch'
-import { AddHistory } from '../wailsjs/go/main/HistoryService'
-import { GetSetting, SetSetting } from '../wailsjs/go/main/SettingService'
+import { useTheme } from './composables/useTheme'
+import { useSettings } from './composables/useSettings'
+import { useTerminalEvent } from './composables/useTerminalEvent'
 
 const navItems = [
   { key: 'terminal', label: '终端', icon: Monitor },
@@ -194,10 +196,13 @@ const navItems = [
 const activeNav = ref('terminal')
 const terminalSubTab = ref('shortcuts')
 const quickLaunchTabRef = ref(null)
+const appDialogsRef = ref(null)
 const settingsVisible = ref(false)
-const currentTheme = ref('dark')
-const defaultShell = ref('cmd.exe')
 const settingsRef = ref(null)
+
+const { currentTheme, changeTheme, loadTheme } = useTheme()
+const { defaultShell, changeDefaultShell, loadSettings } = useSettings()
+const { sendCommand, recordHistory } = useTerminalEvent()
 
 const {
   tabs, activeTabId, terminalTabs, appTabs, quickLaunchTab, toolTabs,
@@ -211,7 +216,6 @@ const {
   appImportVisible, appImportTab, importZipPath, importDirPath, importAppName,
   appEditNameVisible, appEditNameValue,
   appRenameDirVisible, appRenameDirValue,
-  iconInputRef,
   webAppDialogVisible, isEditingWebApp, webAppForm,
   loadApps, refreshApps, loadServerStatus,
   getAppIconUrl, openApp,
@@ -220,11 +224,7 @@ const {
   doImportZip, doImportDir,
   showAddWebAppDialog, saveWebApp, updateWebAppForm,
   handleAppCmd, saveAppDisplayName, saveAppDirName, handleIconUpload
-} = useAppService(closeAppTab)
-
-const openAppHandler = (app) => {
-  openApp(app, addAppTab)
-}
+} = useAppService(closeAppTab, appDialogsRef)
 
 const {
   qlGroups, qlCmds, expandedQlGroups,
@@ -260,7 +260,7 @@ const handleTerminalQlExec = (command) => {
   if (terminalTabs.value.length === 0) {
     addTerminalTab(defaultShell.value)
   }
-  handleSendCommand(activeTabId.value, command)
+  sendCommand(activeTabId.value, command)
 }
 
 /**
@@ -270,15 +270,15 @@ const handleTerminalHistoryExec = (command) => {
   if (terminalTabs.value.length === 0) {
     addTerminalTab(defaultShell.value)
   }
-  handleSendCommand(activeTabId.value, command)
+  sendCommand(activeTabId.value, command)
 }
 
 /**
- * 命令执行完成
+ * 命令执行完成回调
  */
 const handleCommandExecuted = (data) => {
   if (data && data.command) {
-    AddHistory(data.command, 'cmd.exe', '').catch(() => {})
+    recordHistory(data.command)
   }
 }
 
@@ -286,14 +286,11 @@ const handleCommandExecuted = (data) => {
  * 向终端发送命令
  */
 const handleSendCommand = (tabId, command) => {
-  const event = new CustomEvent('terminal-send-command', {
-    detail: { tabId, command }
-  })
-  window.dispatchEvent(event)
+  sendCommand(tabId, command)
 }
 
 /**
- * 加载快捷面板数据
+ * 加载快捷面板数据（预留接口）
  */
 const loadQlPanelData = () => {}
 
@@ -319,15 +316,10 @@ const openTool = (toolKey, toolName) => {
 }
 
 /**
- * 应用主题
+ * 打开应用
  */
-const applyTheme = (theme) => {
-  currentTheme.value = theme
-  const html = document.documentElement
-  html.className = ''
-  if (theme && theme !== 'dark') {
-    html.classList.add(`theme-${theme}`)
-  }
+const openAppHandler = (app) => {
+  openApp(app, addAppTab)
 }
 
 /**
@@ -338,37 +330,8 @@ const openSettings = () => {
   settingsVisible.value = true
 }
 
-/**
- * 主题变更回调
- */
-const handleThemeChange = (theme) => {
-  applyTheme(theme)
-}
-
-/**
- * 默认终端变更回调
- */
-const handleShellChange = (shell) => {
-  defaultShell.value = shell
-}
-
-/**
- * 加载系统设置
- */
-const loadSettings = async () => {
-  try {
-    const theme = await GetSetting('theme')
-    if (theme) applyTheme(theme)
-
-    const shell = await GetSetting('default_shell')
-    if (shell) defaultShell.value = shell
-  } catch (err) {
-    console.error('加载设置失败:', err)
-  }
-}
-
 onMounted(async () => {
-  await loadSettings()
+  await Promise.all([loadTheme(), loadSettings()])
   addTerminalTab(defaultShell.value)
   loadApps()
   loadQlGroups()

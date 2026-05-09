@@ -25,12 +25,6 @@ type PtyService struct {
 	idCounter atomic.Int64
 }
 
-type StartRequest struct {
-	Shell string `json:"shell"`
-	Cols  int    `json:"cols"`
-	Rows  int    `json:"rows"`
-}
-
 func NewPtyService() *PtyService {
 	return &PtyService{
 		instances: make(map[string]*ptyInstance),

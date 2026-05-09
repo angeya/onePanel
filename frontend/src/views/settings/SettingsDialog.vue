@@ -187,9 +187,9 @@ defineExpose({ loadSettings, handleOpen })
 .section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #e5e5e5;
+  color: var(--text-primary);
   padding-bottom: 4px;
-  border-bottom: 1px solid #3d3d3d;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .theme-grid {
@@ -215,7 +215,7 @@ defineExpose({ loadSettings, handleOpen })
 }
 
 .theme-card.active {
-  border-color: #409eff;
+  border-color: var(--accent);
   background-color: rgba(64, 158, 255, 0.1);
 }
 
@@ -263,12 +263,12 @@ defineExpose({ loadSettings, handleOpen })
 
 .theme-name {
   font-size: 11px;
-  color: #a0a0a0;
+  color: var(--text-muted);
   text-align: center;
 }
 
 .theme-card.active .theme-name {
-  color: #409eff;
+  color: var(--accent);
 }
 
 .info-row {
@@ -279,17 +279,17 @@ defineExpose({ loadSettings, handleOpen })
 
 .info-label {
   font-size: 13px;
-  color: #a0a0a0;
+  color: var(--text-muted);
 }
 
 .info-value {
   font-size: 13px;
-  color: #e5e5e5;
+  color: var(--text-primary);
 }
 
 .email {
   cursor: pointer;
-  color: #409eff;
+  color: var(--accent);
 }
 
 .email:hover {

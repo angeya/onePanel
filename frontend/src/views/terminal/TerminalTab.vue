@@ -247,7 +247,7 @@ defineExpose({})
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #1e1e1e;
+  background-color: var(--bg-primary);
 }
 
 .terminal-content {
