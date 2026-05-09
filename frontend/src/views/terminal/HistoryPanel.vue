@@ -169,6 +169,7 @@ onMounted(() => {
 .panel-header {
   display: flex;
   gap: 6px;
+  padding: 8px 8px 0;
   margin-bottom: 8px;
   flex-shrink: 0;
 }
