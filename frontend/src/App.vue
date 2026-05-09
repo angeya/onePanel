@@ -364,11 +364,13 @@ const getSearchableContainer = () => {
 }
 
 /**
- * Ctrl+F 快捷键处理
+ * 全局按键处理
  */
 const handleGlobalKeyDown = (e) => {
+  // Ctrl+F 快捷键防止默认事件
   if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
     e.preventDefault()
+    e.stopPropagation()
     const tabId = activeTabId.value
     if (!tabId) return
     if (searchVisibleMap[tabId]) {
@@ -376,8 +378,10 @@ const handleGlobalKeyDown = (e) => {
     } else {
       searchVisibleMap[tabId] = true
     }
+    return
   }
   if (e.key === 'Escape' && searchVisibleMap[activeTabId.value]) {
+    e.stopPropagation()
     handleSearchClose()
   }
 }

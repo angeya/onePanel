@@ -47,6 +47,13 @@ let resizeObserver = null
 const initTerminal = () => {
   terminal = new Terminal({
     allowProposedApi: true,
+    customKeyEventHandler: (event) => {
+      // ctr + f是搜索快捷键，不会键入终端
+      if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+        return false
+      }
+      return true
+    },
     fontFamily: 'Consolas, "Courier New", monospace',
     fontSize: 14,
     lineHeight: 1.2,
