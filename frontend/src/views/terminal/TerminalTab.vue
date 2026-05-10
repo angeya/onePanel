@@ -36,6 +36,7 @@ let fitAddon = null
 let searchAddon = null
 let onDataDisposable = null
 let onResizeDisposable = null
+let searchResultsDisposable = null
 let ptyId = ''
 let currentLine = ''
 let resizeObserver = null
@@ -46,6 +47,13 @@ let resizeObserver = null
 const initTerminal = () => {
   terminal = new Terminal({
     allowProposedApi: true,
+    customKeyEventHandler: (event) => {
+      // ctr + f是搜索快捷键，不会键入终端
+      if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+        return false
+      }
+      return true
+    },
     fontFamily: 'Consolas, "Courier New", monospace',
     fontSize: 14,
     lineHeight: 1.2,
@@ -84,6 +92,17 @@ const initTerminal = () => {
   terminal.loadAddon(fitAddon)
   terminal.loadAddon(searchAddon)
   terminal.loadAddon(new WebLinksAddon())
+
+  searchResultsDisposable = searchAddon.onDidChangeResults(({ resultIndex, resultCount }) => {
+    const event = new CustomEvent('tab-search-result', {
+      detail: {
+        tabId: props.tabId,
+        resultIndex: resultIndex >= 0 ? resultIndex + 1 : 0,
+        resultCount
+      }
+    })
+    window.dispatchEvent(event)
+  })
 
   terminal.open(terminalRef.value)
 
@@ -178,39 +197,51 @@ const handleSendCommandEvent = (event) => {
 }
 
 /**
- * 监听搜索事件（从侧栏搜索面板发出）
+ * 监听搜索事件（从SearchBar发出）
  */
 const handleSearchEvent = (event) => {
   if (event.detail.tabId !== props.tabId || !searchAddon) return
   const { action, keyword } = event.detail
   switch (action) {
-    case 'findNext':
+    case 'search':
       if (keyword) {
-        searchAddon.findNext(keyword, { decorations: SEARCH_DECORATIONS })
+        searchAddon.findNext(keyword, { decorations: SEARCH_DECORATIONS, incremental: true })
       } else {
         searchAddon.clearDecorations()
       }
       break
-    case 'findPrevious':
+    case 'findNext':
+      if (keyword) {
+        searchAddon.findNext(keyword, { decorations: SEARCH_DECORATIONS })
+      }
+      break
+    case 'findPrev':
       if (keyword) {
         searchAddon.findPrevious(keyword, { decorations: SEARCH_DECORATIONS })
       }
       break
-    case 'clearDecorations':
-      searchAddon.clearDecorations()
-      break
   }
+}
+
+/**
+ * 监听搜索关闭事件
+ */
+const handleSearchCloseEvent = (event) => {
+  if (event.detail.tabId !== props.tabId || !searchAddon) return
+  searchAddon.clearDecorations()
 }
 
 onMounted(() => {
   initTerminal()
   window.addEventListener('terminal-send-command', handleSendCommandEvent)
-  window.addEventListener('terminal-search', handleSearchEvent)
+  window.addEventListener('tab-search', handleSearchEvent)
+  window.addEventListener('tab-search-close', handleSearchCloseEvent)
 })
 
 onUnmounted(() => {
   window.removeEventListener('terminal-send-command', handleSendCommandEvent)
-  window.removeEventListener('terminal-search', handleSearchEvent)
+  window.removeEventListener('tab-search', handleSearchEvent)
+  window.removeEventListener('tab-search-close', handleSearchCloseEvent)
 
   if (ptyId) {
     EventsOff('pty-output-' + ptyId)
@@ -232,6 +263,10 @@ onUnmounted(() => {
 
   if (onDataDisposable) {
     onDataDisposable.dispose()
+  }
+
+  if (searchResultsDisposable) {
+    searchResultsDisposable.dispose()
   }
 
   if (terminal) {

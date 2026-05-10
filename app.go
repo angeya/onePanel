@@ -39,7 +39,7 @@ if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
     Write-Output ""
 }`, title)
 
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psScript)
+	cmd := exec.Command(ResolveShellPath("powershell"), "-NoProfile", "-NonInteractive", "-Command", psScript)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -82,7 +82,7 @@ if ($openFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
     Write-Output ""
 }`, title, filterStr)
 
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psScript)
+	cmd := exec.Command(ResolveShellPath("powershell"), "-NoProfile", "-NonInteractive", "-Command", psScript)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout

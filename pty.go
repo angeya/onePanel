@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/UserExistsError/conpty"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -46,6 +48,7 @@ func (p *PtyService) Start(req StartRequest) (string, error) {
 	if shell == "" {
 		shell = "cmd.exe"
 	}
+	shell = ResolveShellPath(shell)
 	cols := req.Cols
 	if cols <= 0 {
 		cols = 120
@@ -78,10 +81,37 @@ func (p *PtyService) Start(req StartRequest) (string, error) {
 
 /**
  * 读取伪终端输出并通过事件发送到前端
+ * 使用读 goroutine 与 flush goroutine 分离的架构：
+ * 读 goroutine 负责持续读取 PTY 输出并写入缓冲区
+ * flush goroutine 以约 60fps 的频率将缓冲区内容批量发送到前端
+ * 这种设计既避免 EventsEmit 过于频繁导致 Wails WebView2 崩溃，也保证输出延迟可控
  */
 func (p *PtyService) readOutput(inst *ptyInstance, ctx context.Context) {
-	buf := make([]byte, 8192)
+	var outputBuf strings.Builder
+	var bufMu sync.Mutex
 
+	go func() {
+		ticker := time.NewTicker(16 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				bufMu.Lock()
+				if outputBuf.Len() > 0 {
+					data := outputBuf.String()
+					outputBuf.Reset()
+					bufMu.Unlock()
+					p.safeEventsEmit("pty-output-"+inst.id, data)
+				} else {
+					bufMu.Unlock()
+				}
+			}
+		}
+	}()
+
+	readBuf := make([]byte, 8192)
 	for {
 		select {
 		case <-ctx.Done():
@@ -97,23 +127,51 @@ func (p *PtyService) readOutput(inst *ptyInstance, ctx context.Context) {
 			break
 		}
 
-		n, err := cpty.Read(buf)
+		n, err := cpty.Read(readBuf)
 		if err != nil {
 			if err != io.EOF {
-				runtime.EventsEmit(p.ctx, "pty-output-"+inst.id, fmt.Sprintf("\r\n\x1b[31m读取错误: %v\x1b[0m", err))
+				bufMu.Lock()
+				if outputBuf.Len() > 0 {
+					p.safeEventsEmit("pty-output-"+inst.id, outputBuf.String())
+					outputBuf.Reset()
+				}
+				bufMu.Unlock()
+				p.safeEventsEmit("pty-output-"+inst.id, fmt.Sprintf("\r\n\x1b[31m读取错误: %v\x1b[0m", err))
 			}
 			p.mu.Lock()
 			inst.running = false
 			p.mu.Unlock()
-			runtime.EventsEmit(p.ctx, "pty-exit-"+inst.id, nil)
+			p.safeEventsEmit("pty-exit-"+inst.id, nil)
 			break
 		}
 
 		if n > 0 {
-			output := string(buf[:n])
-			runtime.EventsEmit(p.ctx, "pty-output-"+inst.id, output)
+			bufMu.Lock()
+			outputBuf.Write(readBuf[:n])
+			if outputBuf.Len() >= 65536 {
+				data := outputBuf.String()
+				outputBuf.Reset()
+				bufMu.Unlock()
+				p.safeEventsEmit("pty-output-"+inst.id, data)
+			} else {
+				bufMu.Unlock()
+			}
 		}
 	}
+}
+
+/**
+ * 安全的事件发射封装
+ * 捕获 EventsEmit 可能产生的 panic，防止 Wails WebView2 控件异常时导致程序崩溃
+ */
+func (p *PtyService) safeEventsEmit(event string, data ...interface{}) {
+	defer func() {
+		recover()
+	}()
+	if p.ctx == nil {
+		return
+	}
+	runtime.EventsEmit(p.ctx, event, data...)
 }
 
 /**

@@ -240,12 +240,13 @@ func (s *ShortcutCmdService) ExecuteCommand(id int64) error {
  */
 func executeShellCommands(shell, workDir, commands string) error {
 	shell = DefaultShell(shell)
+	shellPath := ResolveShellPath(shell)
 
 	var cmd *exec.Cmd
 	if shell == "powershell" || shell == "powershell.exe" {
-		cmd = exec.Command("powershell", "-NoExit", "-Command", commands)
+		cmd = exec.Command(shellPath, "-NoExit", "-Command", commands)
 	} else {
-		cmd = exec.Command("cmd.exe", "/k", commands)
+		cmd = exec.Command(shellPath, "/k", commands)
 	}
 
 	if workDir != "" {

@@ -2,8 +2,7 @@ import { AddHistory } from '../../wailsjs/go/main/HistoryService'
 
 /**
  * 终端事件管理组合式函数
- * 负责终端间命令传递和搜索事件的全局事件总线
- * 替代直接使用 window.dispatchEvent 的原始方式，提供类型安全和集中管理
+ * 负责终端间命令传递的全局事件总线
  */
 export function useTerminalEvent() {
   /**
@@ -27,19 +26,8 @@ export function useTerminalEvent() {
     }
   }
 
-  /**
-   * 发送搜索事件到当前激活的终端
-   */
-  const dispatchSearch = (tabId, action, keyword) => {
-    const event = new CustomEvent('terminal-search', {
-      detail: { tabId, action, keyword }
-    })
-    window.dispatchEvent(event)
-  }
-
   return {
     sendCommand,
-    recordHistory,
-    dispatchSearch
+    recordHistory
   }
 }

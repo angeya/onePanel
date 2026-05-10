@@ -167,3 +167,15 @@ body {
     --el-messagebox-title-color: var(--text-primary);
     --el-messagebox-content-color: var(--text-secondary);
 }
+
+.search-highlight {
+    background-color: #FFC800;
+    color: #000;
+    border-radius: 2px;
+}
+
+.search-highlight-active {
+    background-color: #FFA000;
+    color: #000;
+    border-radius: 2px;
+}
