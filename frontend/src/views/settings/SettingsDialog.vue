@@ -39,6 +39,16 @@
       </div>
 
       <div class="setting-section">
+        <div class="section-title">自定义应用目录</div>
+        <div class="app-dir-row">
+          <el-input v-model="customAppDir" placeholder="留空则使用默认目录（exe同级apps目录）" clearable />
+          <el-button @click="$emit('selectAppDir')">选择</el-button>
+          <el-button type="primary" @click="$emit('saveAppDir')">保存</el-button>
+        </div>
+        <div class="app-dir-hint">不配置则使用当前目录下的 apps 目录</div>
+      </div>
+
+      <div class="setting-section">
         <div class="section-title">版本信息</div>
         <div class="info-row">
           <span class="info-label">当前版本</span>
@@ -65,13 +75,15 @@ import { GetSetting, SetSetting } from '../../../wailsjs/go/main/SettingService'
 const props = defineProps({
   visible: { type: Boolean, default: false },
   theme: { type: String, default: 'dark' },
-  shell: { type: String, default: 'cmd.exe' }
+  shell: { type: String, default: 'cmd.exe' },
+  appDir: { type: String, default: '' }
 })
 
-const emit = defineEmits(['update:visible', 'themeChange', 'shellChange'])
+const emit = defineEmits(['update:visible', 'themeChange', 'shellChange', 'selectAppDir', 'saveAppDir'])
 
 const currentTheme = ref(props.theme)
 const defaultShell = ref(props.shell)
+const customAppDir = ref(props.appDir)
 
 const themes = [
   {
@@ -161,11 +173,12 @@ const loadSettings = async () => {
 }
 
 /**
- * 打开时加载设置
+ * 打开时同步最新设置
  */
 const handleOpen = () => {
   currentTheme.value = props.theme
   defaultShell.value = props.shell
+  customAppDir.value = props.appDir
 }
 
 defineExpose({ loadSettings, handleOpen })
@@ -294,5 +307,19 @@ defineExpose({ loadSettings, handleOpen })
 
 .email:hover {
   text-decoration: underline;
+}
+
+.app-dir-row {
+  display: flex;
+  gap: 8px;
+}
+
+.app-dir-row .el-input {
+  flex: 1;
+}
+
+.app-dir-hint {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 </style>

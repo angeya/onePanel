@@ -1,20 +1,5 @@
 <template>
   <div>
-    <el-dialog :model-value="appSettingsVisible" @update:model-value="$emit('update:appSettingsVisible', $event)" title="应用设置" width="500px" :close-on-click-modal="false">
-      <el-form label-width="100px">
-        <el-form-item label="静态目录">
-          <div style="display: flex; gap: 8px; width: 100%">
-            <el-input :model-value="staticDir" @update:model-value="$emit('update:staticDir', $event)" placeholder="选择静态文件目录或手动输入路径" />
-            <el-button @click="$emit('selectDirectory')">选择</el-button>
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="$emit('update:appSettingsVisible', false)">关闭</el-button>
-        <el-button type="primary" @click="$emit('saveStaticDir')">保存</el-button>
-      </template>
-    </el-dialog>
-
     <el-dialog :model-value="appImportVisible" @update:model-value="$emit('update:appImportVisible', $event)" title="导入应用" width="500px" :close-on-click-modal="false">
       <el-tabs :model-value="appImportTab" @update:model-value="$emit('update:appImportTab', $event)">
         <el-tab-pane label="导入 ZIP" name="zip">
@@ -163,8 +148,6 @@ import { ref } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
 
 defineProps({
-  appSettingsVisible: { type: Boolean, default: false },
-  staticDir: { type: String, default: '' },
   appImportVisible: { type: Boolean, default: false },
   appImportTab: { type: String, default: 'zip' },
   importZipPath: { type: String, default: '' },
@@ -186,8 +169,6 @@ defineProps({
 })
 
 defineEmits([
-  'update:appSettingsVisible',
-  'update:staticDir',
   'update:appImportVisible',
   'update:appImportTab',
   'update:importZipPath',
@@ -204,8 +185,6 @@ defineEmits([
   'update:qlGroupDialogVisible',
   'update:newGroupName',
   'updateQlCmdForm',
-  'selectDirectory',
-  'saveStaticDir',
   'selectZipFile',
   'selectImportDir',
   'doImportZip',

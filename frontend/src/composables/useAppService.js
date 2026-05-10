@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  GetStaticDir, SetStaticDir, GetServerStatus,
+  GetServerStatus,
   GetApps, ScanApps, UpdateDisplayName, UpdateDirName, UploadIcon,
   DeleteApp, ExportApp, ImportZip, ImportDir, OpenApp as OpenAppService,
   CreateWebApp, UpdateWebApp
@@ -16,9 +16,6 @@ export function useAppService(closeAppTab, appDialogsRef) {
   const apps = ref([])
   const appsLoading = ref(false)
   const serverStatus = ref({ running: false, port: 0, dir: '' })
-
-  const appSettingsVisible = ref(false)
-  const staticDir = ref('')
 
   const appImportVisible = ref(false)
   const appImportTab = ref('zip')
@@ -100,46 +97,6 @@ export function useAppService(closeAppTab, appDialogsRef) {
       addAppTab(app.id, result.name, result.url)
     } catch (err) {
       ElMessage.error('打开应用失败: ' + err)
-    }
-  }
-
-  /**
-   * 显示应用设置
-   */
-  const showAppSettings = async () => {
-    try {
-      staticDir.value = await GetStaticDir() || ''
-    } catch (err) {
-      staticDir.value = ''
-    }
-    await loadServerStatus()
-    appSettingsVisible.value = true
-  }
-
-  /**
-   * 选择目录
-   */
-  const selectDirectory = async () => {
-    try {
-      const dir = await OpenDirectoryDialog('选择静态文件目录')
-      if (dir) staticDir.value = dir
-    } catch (err) {
-      console.error('选择目录失败:', err)
-      ElMessage.warning('目录选择对话框打开失败，请手动输入路径')
-    }
-  }
-
-  /**
-   * 保存静态目录
-   */
-  const saveStaticDir = async () => {
-    try {
-      await SetStaticDir(staticDir.value)
-      ElMessage.success('保存成功')
-      if (staticDir.value) await refreshApps()
-      appSettingsVisible.value = false
-    } catch (err) {
-      ElMessage.error('保存失败: ' + err)
     }
   }
 
@@ -387,8 +344,6 @@ export function useAppService(closeAppTab, appDialogsRef) {
     apps,
     appsLoading,
     serverStatus,
-    appSettingsVisible,
-    staticDir,
     appImportVisible,
     appImportTab,
     importZipPath,
@@ -406,9 +361,6 @@ export function useAppService(closeAppTab, appDialogsRef) {
     loadServerStatus,
     getAppIconUrl,
     openApp,
-    showAppSettings,
-    selectDirectory,
-    saveStaticDir,
     showAppImport,
     selectZipFile,
     selectImportDir,

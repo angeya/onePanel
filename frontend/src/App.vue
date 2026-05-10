@@ -18,7 +18,6 @@
       @switch-nav="switchNav"
       @terminal-ql-exec="handleTerminalQlExec"
       @terminal-history-exec="handleTerminalHistoryExec"
-      @show-app-settings="showAppSettings"
       @show-app-import="showAppImport"
       @show-add-web-app="showAddWebAppDialog"
       @refresh-apps="refreshApps"
@@ -104,8 +103,6 @@
 
     <AppDialogs
       ref="appDialogsRef"
-      :app-settings-visible="appSettingsVisible"
-      :static-dir="staticDir"
       :app-import-visible="appImportVisible"
       :app-import-tab="appImportTab"
       :import-zip-path="importZipPath"
@@ -124,8 +121,6 @@
       :ql-groups="qlGroups"
       :ql-group-dialog-visible="qlGroupDialogVisible"
       :new-group-name="newGroupName"
-      @update:app-settings-visible="appSettingsVisible = $event"
-      @update:static-dir="staticDir = $event"
       @update:app-import-visible="appImportVisible = $event"
       @update:app-import-tab="appImportTab = $event"
       @update:import-zip-path="importZipPath = $event"
@@ -142,8 +137,6 @@
       @update:ql-group-dialog-visible="qlGroupDialogVisible = $event"
       @update:new-group-name="newGroupName = $event"
       @update-ql-cmd-form="handleUpdateQlCmdForm"
-      @select-directory="selectDirectory"
-      @save-static-dir="saveStaticDir"
       @select-zip-file="selectZipFile"
       @select-import-dir="selectImportDir"
       @do-import-zip="doImportZip"
@@ -162,9 +155,12 @@
       :visible="settingsVisible"
       :theme="currentTheme"
       :shell="defaultShell"
+      :app-dir="customAppDir"
       @update:visible="settingsVisible = $event"
       @theme-change="changeTheme"
       @shell-change="changeDefaultShell"
+      @select-app-dir="selectAppDir"
+      @save-app-dir="handleSaveAppDir"
     />
   </div>
 </template>
@@ -201,7 +197,7 @@ const settingsVisible = ref(false)
 const settingsRef = ref(null)
 
 const { currentTheme, changeTheme, loadTheme } = useTheme()
-const { defaultShell, changeDefaultShell, loadSettings } = useSettings()
+const { defaultShell, customAppDir, changeDefaultShell, selectAppDir, saveAppDir, loadSettings, loadAppDir } = useSettings()
 const { sendCommand, recordHistory } = useTerminalEvent()
 
 const {
@@ -212,14 +208,12 @@ const {
 
 const {
   apps, appsLoading, serverStatus,
-  appSettingsVisible, staticDir,
   appImportVisible, appImportTab, importZipPath, importDirPath, importAppName,
   appEditNameVisible, appEditNameValue,
   appRenameDirVisible, appRenameDirValue,
   webAppDialogVisible, isEditingWebApp, webAppForm,
   loadApps, refreshApps, loadServerStatus,
   getAppIconUrl, openApp,
-  showAppSettings, selectDirectory, saveStaticDir,
   showAppImport, selectZipFile, selectImportDir,
   doImportZip, doImportDir,
   showAddWebAppDialog, saveWebApp, updateWebAppForm,
@@ -325,9 +319,18 @@ const openAppHandler = (app) => {
 /**
  * 打开系统设置
  */
-const openSettings = () => {
+const openSettings = async () => {
+  await loadAppDir()
   if (settingsRef.value) settingsRef.value.handleOpen()
   settingsVisible.value = true
+}
+
+/**
+ * 保存自定义应用目录并刷新应用列表
+ */
+const handleSaveAppDir = async () => {
+  await saveAppDir()
+  await refreshApps()
 }
 
 onMounted(async () => {

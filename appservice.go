@@ -29,21 +29,34 @@ func NewAppService(db *Database, server *StaticServer) *AppService {
 
 /**
  * 获取静态目录配置
+ * 如果未配置自定义目录，则使用可执行文件同级目录下的 apps 目录作为默认值
  */
 func (a *AppService) GetStaticDir() (string, error) {
-	return a.db.GetConfig("static_dir")
+	dir, err := a.db.GetConfig("static_dir")
+	if err != nil {
+		return "", err
+	}
+	if dir != "" {
+		return dir, nil
+	}
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(filepath.Dir(exePath), "apps"), nil
 }
 
 /**
- * 设置静态目录配置
- * 如果清空了目录，自动停止静态服务器
+ * 设置自定义应用目录
+ * 清空目录表示恢复使用默认目录（exe 同级 apps 目录）
+ * 如果目录发生变化，自动停止静态服务器以便下次使用新目录启动
  */
 func (a *AppService) SetStaticDir(dir string) error {
 	if err := a.db.SetConfig("static_dir", dir); err != nil {
 		return fmt.Errorf("保存静态目录配置失败: %w", err)
 	}
 
-	if a.server != nil && dir == "" {
+	if a.server != nil {
 		a.server.Stop()
 	}
 
@@ -74,7 +87,7 @@ func (a *AppService) StartServer() (int, error) {
 		return 0, err
 	}
 	if dir == "" {
-		return 0, fmt.Errorf("请先设置静态目录")
+		return 0, fmt.Errorf("获取应用目录失败")
 	}
 	if a.server == nil {
 		return 0, fmt.Errorf("静态服务器未初始化")
@@ -117,7 +130,7 @@ func (a *AppService) OpenApp(appId int64) (map[string]interface{}, error) {
 
 	staticDir, err := a.GetStaticDir()
 	if err != nil || staticDir == "" {
-		return nil, fmt.Errorf("请先设置静态目录")
+		return nil, fmt.Errorf("获取应用目录失败")
 	}
 
 	appDir := filepath.Join(staticDir, app.DirName)
@@ -170,7 +183,7 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 		return nil, err
 	}
 	if dir == "" {
-		return nil, fmt.Errorf("请先设置静态目录")
+		return nil, fmt.Errorf("获取应用目录失败")
 	}
 
 	entries, err := os.ReadDir(dir)
@@ -390,7 +403,7 @@ func (a *AppService) UpdateDirName(id int64, newDirName string) error {
 		return err
 	}
 	if staticDir == "" {
-		return fmt.Errorf("静态目录未设置")
+		return fmt.Errorf("获取应用目录失败")
 	}
 
 	oldPath := filepath.Join(staticDir, oldDirName)
@@ -437,7 +450,7 @@ func (a *AppService) UploadIcon(id int64, iconData []byte) error {
 		return err
 	}
 	if staticDir == "" {
-		return fmt.Errorf("静态目录未设置")
+		return fmt.Errorf("获取应用目录失败")
 	}
 
 	iconPath := filepath.Join(staticDir, dirName, "icon.png")
@@ -493,7 +506,7 @@ func (a *AppService) ExportApp(id int64) (string, error) {
 		return "", err
 	}
 	if staticDir == "" {
-		return "", fmt.Errorf("静态目录未设置")
+		return "", fmt.Errorf("获取应用目录失败")
 	}
 
 	appDir := filepath.Join(staticDir, dirName)
@@ -521,7 +534,7 @@ func (a *AppService) ImportZip(zipPath string) error {
 		return err
 	}
 	if staticDir == "" {
-		return fmt.Errorf("请先设置静态目录")
+		return fmt.Errorf("获取应用目录失败")
 	}
 
 	if err := a.extractZipToStaticDir(zipPath, staticDir); err != nil {
@@ -542,7 +555,7 @@ func (a *AppService) ImportDir(srcDir string, appName string) error {
 		return err
 	}
 	if staticDir == "" {
-		return fmt.Errorf("请先设置静态目录")
+		return fmt.Errorf("获取应用目录失败")
 	}
 
 	dirName := appName

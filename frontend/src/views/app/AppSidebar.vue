@@ -42,9 +42,6 @@
       <div v-if="activeNav === 'apps'" class="sub-panel-content">
         <div class="sub-panel-header">
           <span class="sub-panel-title">我的应用</span>
-          <el-button size="small" @click="$emit('showAppSettings')" plain>
-            <el-icon><Setting /></el-icon>
-          </el-button>
         </div>
         <div class="sub-panel-toolbar">
           <el-button size="small" @click="$emit('showAddWebApp')" plain>
@@ -212,7 +209,6 @@ const emit = defineEmits([
   'switchNav',
   'terminalQlExec',
   'terminalHistoryExec',
-  'showAppSettings',
   'showAppImport',
   'showAddWebApp',
   'refreshApps',
