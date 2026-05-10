@@ -243,7 +243,12 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 	if apps == nil {
 		apps = []SubApp{}
 	}
-	return apps, nil
+
+	allApps, err := a.GetApps()
+	if err != nil {
+		return apps, nil
+	}
+	return allApps, nil
 }
 
 /**

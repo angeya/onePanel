@@ -62,7 +62,6 @@ export function useAppService(closeAppTab) {
     appsLoading.value = true
     try {
       apps.value = await ScanApps()
-      ElMessage.success('刷新成功')
     } catch (err) {
       ElMessage.error('刷新失败: ' + err)
     } finally {
