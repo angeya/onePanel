@@ -40,31 +40,19 @@
         </div>
       </div>
 
-      <div v-if="uncategorizedCommands.length > 0" class="category-group">
-        <div class="category-header" @click="toggleCategory('none')">
-          <el-icon>
-            <ArrowDown v-if="expandedCategories.has('none')" />
-            <ArrowRight v-else />
-          </el-icon>
-          <span class="category-name">未分类</span>
-          <span class="category-count">({{ uncategorizedCommands.length }})</span>
+      <div
+        v-for="cmd in uncategorizedCommands"
+        :key="cmd.id"
+        class="command-item"
+        @dblclick="executeCommand(cmd)"
+      >
+        <div class="command-info">
+          <span class="command-name">{{ cmd.name }}</span>
+          <span class="command-text">{{ cmd.commands }}</span>
         </div>
-        <div v-show="expandedCategories.has('none')" class="category-commands">
-          <div
-            v-for="cmd in uncategorizedCommands"
-            :key="cmd.id"
-            class="command-item"
-            @dblclick="executeCommand(cmd)"
-          >
-            <div class="command-info">
-              <span class="command-name">{{ cmd.name }}</span>
-              <span class="command-text">{{ cmd.commands }}</span>
-            </div>
-            <div class="command-actions">
-              <el-icon class="action-icon" @click.stop="showEditDialog(cmd)"><Edit /></el-icon>
-              <el-icon class="action-icon" @click.stop="deleteCommand(cmd.id)"><Delete /></el-icon>
-            </div>
-          </div>
+        <div class="command-actions">
+          <el-icon class="action-icon" @click.stop="showEditDialog(cmd)"><Edit /></el-icon>
+          <el-icon class="action-icon" @click.stop="deleteCommand(cmd.id)"><Delete /></el-icon>
         </div>
       </div>
 
@@ -157,7 +145,7 @@ const emit = defineEmits(['executeCommand'])
 
 const categories = ref([])
 const commands = ref([])
-const expandedCategories = ref(new Set(['none']))
+const expandedCategories = ref(new Set())
 const commandDialogVisible = ref(false)
 const categoryDialogVisible = ref(false)
 const isEditing = ref(false)

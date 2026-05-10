@@ -141,35 +141,23 @@
             </div>
           </div>
 
-          <div v-if="ungroupedQlCmds.length > 0" class="ql-sidebar-group">
-            <div class="ql-group-header" @click="$emit('toggleQlGroup', 'none')">
-              <el-icon>
-                <ArrowDown v-if="expandedQlGroups.has('none')" />
-                <ArrowRight v-else />
-              </el-icon>
-              <span class="group-name">未分组</span>
-              <span class="group-count">({{ ungroupedQlCmds.length }})</span>
+          <div
+            v-for="cmd in ungroupedQlCmds"
+            :key="cmd.id"
+            class="ql-sidebar-item"
+            @dblclick="$emit('executeQlCmd', cmd)"
+          >
+            <el-icon :size="16" :color="cmd.shell === 'powershell.exe' ? '#012456' : '#4cc2ff'">
+              <Monitor />
+            </el-icon>
+            <div class="ql-item-info">
+              <div class="ql-item-name">{{ cmd.name }}</div>
+              <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
             </div>
-            <div v-show="expandedQlGroups.has('none')" class="ql-group-items">
-              <div
-                v-for="cmd in ungroupedQlCmds"
-                :key="cmd.id"
-                class="ql-sidebar-item"
-                @dblclick="$emit('executeQlCmd', cmd)"
-              >
-                <el-icon :size="16" :color="cmd.shell === 'powershell.exe' ? '#012456' : '#4cc2ff'">
-                  <Monitor />
-                </el-icon>
-                <div class="ql-item-info">
-                  <div class="ql-item-name">{{ cmd.name }}</div>
-                  <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
-                </div>
-                <div class="ql-item-actions" @click.stop>
-                  <el-icon class="action-icon" @click="$emit('executeQlCmd', cmd)"><VideoPlay /></el-icon>
-                  <el-icon class="action-icon" @click="$emit('editQlCmd', cmd)"><Edit /></el-icon>
-                  <el-icon class="action-icon" @click="$emit('deleteQlCmd', cmd)"><Delete /></el-icon>
-                </div>
-              </div>
+            <div class="ql-item-actions" @click.stop>
+              <el-icon class="action-icon" @click="$emit('executeQlCmd', cmd)"><VideoPlay /></el-icon>
+              <el-icon class="action-icon" @click="$emit('editQlCmd', cmd)"><Edit /></el-icon>
+              <el-icon class="action-icon" @click="$emit('deleteQlCmd', cmd)"><Delete /></el-icon>
             </div>
           </div>
 

@@ -15,7 +15,7 @@ import {
 export function useQuickLaunch(addQuickLaunchTab) {
   const qlGroups = ref([])
   const qlCmds = ref([])
-  const expandedQlGroups = ref(new Set(['none']))
+  const expandedQlGroups = ref(new Set())
 
   const qlCmdDialogVisible = ref(false)
   const isEditingQlCmd = ref(false)
