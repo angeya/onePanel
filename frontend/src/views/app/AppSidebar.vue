@@ -78,9 +78,6 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">{{ app.appType === 'web' ? '编辑' : '编辑名称' }}</el-dropdown-item>
-                  <template v-if="app.appType !== 'web'">
-                    <el-dropdown-item command="rename">修改目录名</el-dropdown-item>
-                  </template>
                   <el-dropdown-item command="export">导出</el-dropdown-item>
                   <el-dropdown-item command="delete" divided>
                     <span style="color: #f56c6c">删除</span>

@@ -126,8 +126,6 @@
       :import-html-name="importHtmlName"
       :app-edit-name-visible="appEditNameVisible"
       :app-edit-name-value="appEditNameValue"
-      :app-rename-dir-visible="appRenameDirVisible"
-      :app-rename-dir-value="appRenameDirValue"
       :web-app-dialog-visible="webAppDialogVisible"
       :is-editing-web-app="isEditingWebApp"
       :web-app-form="webAppForm"
@@ -148,8 +146,6 @@
       @update:import-html-name="importHtmlName = $event"
       @update:app-edit-name-visible="appEditNameVisible = $event"
       @update:app-edit-name-value="appEditNameValue = $event"
-      @update:app-rename-dir-visible="appRenameDirVisible = $event"
-      @update:app-rename-dir-value="appRenameDirValue = $event"
       @update:web-app-dialog-visible="webAppDialogVisible = $event"
       @update-web-app-form="updateWebAppForm"
       @save-web-app="saveWebApp"
@@ -168,7 +164,6 @@
       @do-import-dir="doImportDir"
       @do-import-html="doImportHtml"
       @save-app-display-name="saveAppDisplayName"
-      @save-app-dir-name="saveAppDirName"
       @select-work-dir="selectWorkDir"
       @save-ql-cmd="saveQlCmd"
       @add-ql-group="addQlGroup"
@@ -238,7 +233,6 @@ const {
   appImportVisible, appImportTab, importZipPath, importDirPath, importDirName,
   importHtmlPath, importHtmlName,
   appEditNameVisible, appEditNameValue,
-  appRenameDirVisible, appRenameDirValue,
   webAppDialogVisible, isEditingWebApp, webAppForm,
   batchExportVisible, batchExportSelected,
   loadApps, refreshApps, loadServerStatus,
@@ -246,7 +240,7 @@ const {
   showAppImport, selectZipFile, selectImportDir, selectHtmlFile,
   doImportZip, doImportDir, doImportHtml,
   showAddWebAppDialog, saveWebApp, updateWebAppForm,
-  handleAppCmd, saveAppDisplayName, saveAppDirName,
+  handleAppCmd, saveAppDisplayName,
   showBatchExport, doBatchExport, toggleBatchExportItem, toggleBatchExportAll
 } = useAppService(closeAppTab)
 

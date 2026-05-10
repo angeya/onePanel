@@ -62,18 +62,6 @@
       </template>
     </el-dialog>
 
-    <el-dialog :model-value="appRenameDirVisible" @update:model-value="$emit('update:appRenameDirVisible', $event)" title="修改目录名称" width="400px" :close-on-click-modal="false">
-      <el-form label-width="80px">
-        <el-form-item label="目录名称">
-          <el-input :model-value="appRenameDirValue" @update:model-value="$emit('update:appRenameDirValue', $event)" placeholder="请输入新的目录名称" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="$emit('update:appRenameDirVisible', false)">取消</el-button>
-        <el-button type="primary" @click="$emit('saveAppDirName')">保存</el-button>
-      </template>
-    </el-dialog>
-
     <el-dialog
       :model-value="webAppDialogVisible"
       @update:model-value="$emit('update:webAppDialogVisible', $event)"
@@ -215,8 +203,6 @@ const props = defineProps({
   importHtmlName: { type: String, default: '' },
   appEditNameVisible: { type: Boolean, default: false },
   appEditNameValue: { type: String, default: '' },
-  appRenameDirVisible: { type: Boolean, default: false },
-  appRenameDirValue: { type: String, default: '' },
   webAppDialogVisible: { type: Boolean, default: false },
   isEditingWebApp: { type: Boolean, default: false },
   webAppForm: { type: Object, default: () => ({ name: '', url: '' }) },
@@ -240,8 +226,6 @@ defineEmits([
   'update:importHtmlName',
   'update:appEditNameVisible',
   'update:appEditNameValue',
-  'update:appRenameDirVisible',
-  'update:appRenameDirValue',
   'update:webAppDialogVisible',
   'updateWebAppForm',
   'saveWebApp',
@@ -260,7 +244,6 @@ defineEmits([
   'doImportDir',
   'doImportHtml',
   'saveAppDisplayName',
-  'saveAppDirName',
   'selectWorkDir',
   'saveQlCmd',
   'addQlGroup',

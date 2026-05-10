@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   GetServerStatus,
-  GetApps, ScanApps, UpdateDisplayName, UpdateDirName,
+  GetApps, ScanApps, UpdateDisplayName,
   DeleteApp, ExportApp, ImportZip, ImportDir, ImportHtml, OpenApp as OpenAppService,
   BatchExportApps, CreateWebApp, UpdateWebApp
 } from '../../wailsjs/go/main/AppService'
@@ -28,10 +28,6 @@ export function useAppService(closeAppTab) {
   const appEditNameVisible = ref(false)
   const appEditNameValue = ref('')
   const editingAppId = ref(null)
-
-  const appRenameDirVisible = ref(false)
-  const appRenameDirValue = ref('')
-  const renamingAppId = ref(null)
 
   const webAppDialogVisible = ref(false)
   const isEditingWebApp = ref(false)
@@ -284,11 +280,6 @@ export function useAppService(closeAppTab) {
           appEditNameVisible.value = true
         }
         break
-      case 'rename':
-        renamingAppId.value = app.id
-        appRenameDirValue.value = app.dirName
-        appRenameDirVisible.value = true
-        break
       case 'export':
         doExportApp(app)
         break
@@ -306,20 +297,6 @@ export function useAppService(closeAppTab) {
       await UpdateDisplayName(editingAppId.value, appEditNameValue.value)
       ElMessage.success('修改成功')
       appEditNameVisible.value = false
-      await loadApps()
-    } catch (err) {
-      ElMessage.error('修改失败: ' + err)
-    }
-  }
-
-  /**
-   * 保存应用目录名称
-   */
-  const saveAppDirName = async () => {
-    try {
-      await UpdateDirName(renamingAppId.value, appRenameDirValue.value)
-      ElMessage.success('修改成功')
-      appRenameDirVisible.value = false
       await loadApps()
     } catch (err) {
       ElMessage.error('修改失败: ' + err)
@@ -441,8 +418,6 @@ export function useAppService(closeAppTab) {
     importHtmlName,
     appEditNameVisible,
     appEditNameValue,
-    appRenameDirVisible,
-    appRenameDirValue,
     webAppDialogVisible,
     isEditingWebApp,
     webAppForm,
@@ -466,7 +441,6 @@ export function useAppService(closeAppTab) {
     updateWebAppForm,
     handleAppCmd,
     saveAppDisplayName,
-    saveAppDirName,
     doExportApp,
     showBatchExport,
     doBatchExport,

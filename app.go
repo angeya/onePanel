@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"os/exec"
-	"strings"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
@@ -21,126 +19,109 @@ func (a *App) startup(ctx context.Context) {
 }
 
 /**
- * 构建 PowerShell 命令并执行，统一处理 UTF-8 编码输出
- * 解决中文 Windows 下 PowerShell 默认使用 GBK 编码导致中文路径乱码的问题
- */
-func (a *App) runPowerShell(psScript string) (string, error) {
-	fullScript := "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; " + psScript
-
-	cmd := exec.Command(ResolveShellPath("powershell"), "-NoProfile", "-NonInteractive", "-Command", fullScript)
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	if err != nil {
-		return "", fmt.Errorf("%w, stderr: %s", err, stderr.String())
-	}
-
-	result := strings.TrimSpace(stdout.String())
-	return result, nil
-}
-
-/**
- * 打开选择目录对话框（使用 PowerShell 实现，避免 Wails COM 对话框崩溃问题）
+ * 打开选择目录对话框
+ * 使用 Wails Runtime 原生 API，直接调用操作系统对话框
  */
 func (a *App) OpenDirectoryDialog(title string) (string, error) {
 	if title == "" {
 		title = "选择目录"
 	}
 
-	psScript := fmt.Sprintf(`
-Add-Type -AssemblyName System.Windows.Forms
-$folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
-$folderBrowser.Description = '%s'
-$folderBrowser.ShowNewFolderButton = $true
-if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-    Write-Output $folderBrowser.SelectedPath
-} else {
-    Write-Output ""
-}`, title)
-
-	result, err := a.runPowerShell(psScript)
+	result, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: title,
+	})
 	if err != nil {
-		return "", fmt.Errorf("打开目录对话框失败: %w", err)
-	}
-	if result == "" {
-		return "", nil
+		return "", err
 	}
 	return result, nil
 }
 
 /**
- * 打开保存文件对话框（使用 PowerShell 实现）
+ * 打开保存文件对话框
  * 让用户选择导出文件的保存路径
- * filter 参数应为 Windows Forms 标准格式: "显示名称|文件模式"，如 "ZIP 文件 (*.zip)|*.zip"
+ * filter 参数格式: "显示名称|文件模式"，如 "ZIP 文件 (*.zip)|*.zip"
+ * 多个过滤器用 "|" 分隔: "ZIP 文件|*.zip|所有文件|*.*"
  */
 func (a *App) SaveFileDialog(title string, defaultName string, filter string) (string, error) {
 	if title == "" {
 		title = "保存文件"
 	}
 
-	filterStr := "所有文件 (*.*)|*.*"
-	if filter != "" {
-		filterStr = filter
-	}
+	filters := parseFilters(filter)
 
-	psScript := fmt.Sprintf(`
-Add-Type -AssemblyName System.Windows.Forms
-$saveFileDialog = New-Object System.Windows.Forms.SaveFileDialog
-$saveFileDialog.Title = '%s'
-$saveFileDialog.FileName = '%s'
-$saveFileDialog.Filter = '%s'
-$saveFileDialog.OverwritePrompt = $true
-if ($saveFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-    Write-Output $saveFileDialog.FileName
-} else {
-    Write-Output ""
-}`, title, defaultName, filterStr)
-
-	result, err := a.runPowerShell(psScript)
+	result, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           title,
+		DefaultFilename: defaultName,
+		Filters:         filters,
+	})
 	if err != nil {
-		return "", fmt.Errorf("打开保存文件对话框失败: %w", err)
-	}
-	if result == "" {
-		return "", nil
+		return "", err
 	}
 	return result, nil
 }
 
 /**
- * 打开选择文件对话框（使用 PowerShell 实现，避免 Wails COM 对话框崩溃问题）
- * filter 参数应为 Windows Forms 标准格式: "显示名称|文件模式"，如 "ZIP 文件 (*.zip)|*.zip"
+ * 打开选择文件对话框
+ * filter 参数格式: "显示名称|文件模式"，如 "HTML 文件 (*.html;*.htm)|*.html;*.htm"
+ * 多个过滤器用 "|" 分隔: "HTML 文件|*.html;*.htm|所有文件|*.*"
  */
 func (a *App) OpenFileDialog(title string, filter string) (string, error) {
 	if title == "" {
 		title = "选择文件"
 	}
 
-	filterStr := "所有文件 (*.*)|*.*"
-	if filter != "" {
-		filterStr = filter
-	}
+	filters := parseFilters(filter)
 
-	psScript := fmt.Sprintf(`
-Add-Type -AssemblyName System.Windows.Forms
-$openFileDialog = New-Object System.Windows.Forms.OpenFileDialog
-$openFileDialog.Title = '%s'
-$openFileDialog.Filter = '%s'
-$openFileDialog.Multiselect = $false
-if ($openFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-    Write-Output $openFileDialog.FileName
-} else {
-    Write-Output ""
-}`, title, filterStr)
-
-	result, err := a.runPowerShell(psScript)
+	result, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title:   title,
+		Filters: filters,
+	})
 	if err != nil {
-		return "", fmt.Errorf("打开文件对话框失败: %w", err)
-	}
-	if result == "" {
-		return "", nil
+		return "", err
 	}
 	return result, nil
+}
+
+/**
+ * 将 Windows Forms 格式的过滤器字符串解析为 Wails Runtime 的 FileFilter 切片
+ * 输入格式: "显示名称1|模式1|显示名称2|模式2"
+ * 如: "ZIP 文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
+ */
+func parseFilters(filter string) []runtime.FileFilter {
+	if filter == "" {
+		return nil
+	}
+
+	parts := splitFilterParts(filter)
+	if len(parts) < 2 {
+		return nil
+	}
+
+	var filters []runtime.FileFilter
+	for i := 0; i+1 < len(parts); i += 2 {
+		filters = append(filters, runtime.FileFilter{
+			DisplayName: parts[i],
+			Pattern:     parts[i+1],
+		})
+	}
+	return filters
+}
+
+/**
+ * 按管道符拆分过滤器字符串
+ * 处理过滤器中可能出现的管道符转义
+ */
+func splitFilterParts(filter string) []string {
+	var parts []string
+	start := 0
+	for i := 0; i < len(filter); i++ {
+		if filter[i] == '|' {
+			parts = append(parts, filter[start:i])
+			start = i + 1
+		}
+	}
+	if start < len(filter) {
+		parts = append(parts, filter[start:])
+	}
+	return parts
 }

@@ -394,58 +394,66 @@ func (a *AppService) UpdateWebApp(id int64, name string, url string) error {
 
 /**
  * 更新应用显示名称
+ * 对于静态应用，同时重命名文件系统中的目录，并更新目录名、图标路径和入口 URL
+ * 对于网页应用，仅更新显示名称
  */
 func (a *AppService) UpdateDisplayName(id int64, name string) error {
-	now := NowFormatted()
-	_, err := a.db.DB().Exec("UPDATE sub_app SET display_name = ?, updated_at = ? WHERE id = ?", name, now, id)
-	return err
-}
+	if name == "" {
+		return fmt.Errorf("应用名称不能为空")
+	}
 
-/**
- * 更新应用目录名称
- * 同时重命名文件系统中的目录，并更新图标路径和入口 URL
- */
-func (a *AppService) UpdateDirName(id int64, newDirName string) error {
+	var appType string
 	var oldDirName string
 	var iconPath string
-	err := a.db.DB().QueryRow("SELECT dir_name, icon_path FROM sub_app WHERE id = ?", id).Scan(&oldDirName, &iconPath)
+	err := a.db.DB().QueryRow("SELECT app_type, dir_name, icon_path FROM sub_app WHERE id = ?", id).Scan(&appType, &oldDirName, &iconPath)
 	if err != nil {
-		return err
-	}
-
-	staticDir, err := a.GetStaticDir()
-	if err != nil {
-		return err
-	}
-	if staticDir == "" {
-		return fmt.Errorf("获取应用目录失败")
-	}
-
-	oldPath := filepath.Join(staticDir, oldDirName)
-	newPath := filepath.Join(staticDir, newDirName)
-
-	if oldPath != newPath {
-		if _, err := os.Stat(newPath); err == nil {
-			return fmt.Errorf("目录 %s 已存在", newDirName)
-		}
-		if err := os.Rename(oldPath, newPath); err != nil {
-			return fmt.Errorf("重命名目录失败: %w", err)
-		}
-
-		if iconPath != "" {
-			newIconPath := filepath.Join(newPath, "icon.png")
-			if _, err := os.Stat(newIconPath); err == nil {
-				iconPath = newIconPath
-			}
-		}
+		return fmt.Errorf("应用不存在")
 	}
 
 	now := NowFormatted()
-	entryUrl := fmt.Sprintf("/%s/index.html", newDirName)
-	_, err = a.db.DB().Exec(
-		"UPDATE sub_app SET dir_name = ?, entry_url = ?, icon_path = ?, updated_at = ? WHERE id = ?",
-		newDirName, entryUrl, iconPath, now, id,
-	)
+
+	if appType == "static" {
+		newDirName := SanitizeDirName(name)
+		if newDirName == "" {
+			return fmt.Errorf("应用名称无效")
+		}
+
+		staticDir, err := a.GetStaticDir()
+		if err != nil {
+			return err
+		}
+		if staticDir == "" {
+			return fmt.Errorf("获取应用目录失败")
+		}
+
+		oldPath := filepath.Join(staticDir, oldDirName)
+		newPath := filepath.Join(staticDir, newDirName)
+
+		if oldPath != newPath {
+			if _, err := os.Stat(newPath); err == nil {
+				return fmt.Errorf("目录 %s 已存在", newDirName)
+			}
+			if err := os.Rename(oldPath, newPath); err != nil {
+				return fmt.Errorf("重命名目录失败: %w", err)
+			}
+
+			if iconPath != "" {
+				newIconPath := filepath.Join(newPath, "icon.png")
+				if _, err := os.Stat(newIconPath); err == nil {
+					iconPath = newIconPath
+				}
+			}
+		}
+
+		entryUrl := fmt.Sprintf("/%s/index.html", newDirName)
+		_, err = a.db.DB().Exec(
+			"UPDATE sub_app SET display_name = ?, dir_name = ?, entry_url = ?, icon_path = ?, updated_at = ? WHERE id = ?",
+			name, newDirName, entryUrl, iconPath, now, id,
+		)
+		return err
+	}
+
+	_, err = a.db.DB().Exec("UPDATE sub_app SET display_name = ?, updated_at = ? WHERE id = ?", name, now, id)
 	return err
 }
 
