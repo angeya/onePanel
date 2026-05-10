@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON 格式化</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      padding: 12px 20px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header h1 { font-size: 16px; font-weight: 600; }
+    .header .actions { margin-left: auto; display: flex; gap: 8px; }
+    .header button {
+      padding: 6px 14px;
+      border: 1px solid #45475a;
+      border-radius: 6px;
+      background: #313244;
+      color: #cdd6f4;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    .header button:hover { background: #45475a; }
+    .header button.primary { background: #89b4fa; color: #1e1e2e; border-color: #89b4fa; }
+    .header button.primary:hover { background: #74c7ec; }
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #313244;
+    }
+    .panel:last-child { border-right: none; }
+    .panel-header {
+      padding: 8px 16px;
+      background: #181825;
+      font-size: 13px;
+      font-weight: 500;
+      color: #a6adc8;
+      border-bottom: 1px solid #313244;
+    }
+    .panel textarea {
+      flex: 1;
+      width: 100%;
+      padding: 16px;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      tab-size: 2;
+    }
+    .panel textarea::placeholder { color: #585b70; }
+    .panel textarea.error { color: #f38ba8; }
+    .status {
+      padding: 4px 16px;
+      font-size: 12px;
+      color: #a6adc8;
+      background: #181825;
+      border-top: 1px solid #313244;
+    }
+    .status.error { color: #f38ba8; }
+    .status.success { color: #a6e3a1; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>JSON 格式化</h1>
+    <div class="actions">
+      <button onclick="compress()">压缩</button>
+      <button class="primary" onclick="format()">格式化</button>
+      <button onclick="clearAll()">清空</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="panel">
+      <div class="panel-header">原始内容</div>
+      <textarea id="input" placeholder="在此粘贴 JSON 内容..." spellcheck="false"></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-header">格式化结果</div>
+      <textarea id="output" readonly placeholder="格式化后的结果将显示在这里..." spellcheck="false"></textarea>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <script>
+    var inputEl = document.getElementById('input');
+    var outputEl = document.getElementById('output');
+    var statusEl = document.getElementById('status');
+
+    inputEl.addEventListener('input', function() {
+      if (!inputEl.value.trim()) {
+        outputEl.value = '';
+        outputEl.classList.remove('error');
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+        return;
+      }
+      formatJson(2);
+    });
+
+    function formatJson(indent) {
+      var raw = inputEl.value.trim();
+      if (!raw) return;
+      try {
+        var parsed = JSON.parse(raw);
+        outputEl.value = JSON.stringify(parsed, null, indent || 2);
+        outputEl.classList.remove('error');
+        statusEl.textContent = '✓ 有效的 JSON';
+        statusEl.className = 'status success';
+      } catch (err) {
+        outputEl.value = err.message;
+        outputEl.classList.add('error');
+        statusEl.textContent = '✗ ' + err.message;
+        statusEl.className = 'status error';
+      }
+    }
+
+    function format() { formatJson(2); }
+
+    function compress() {
+      var raw = inputEl.value.trim();
+      if (!raw) return;
+      try {
+        var parsed = JSON.parse(raw);
+        outputEl.value = JSON.stringify(parsed);
+        outputEl.classList.remove('error');
+        statusEl.textContent = '✓ 压缩成功';
+        statusEl.className = 'status success';
+      } catch (err) {
+        outputEl.value = err.message;
+        outputEl.classList.add('error');
+        statusEl.textContent = '✗ ' + err.message;
+        statusEl.className = 'status error';
+      }
+    }
+
+    function clearAll() {
+      inputEl.value = '';
+      outputEl.value = '';
+      outputEl.classList.remove('error');
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+      inputEl.focus();
+    }
+  </script>
+</body>
+</html>

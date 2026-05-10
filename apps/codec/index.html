@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>编解码</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      padding: 12px 20px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      align-items: center;
+    }
+    .header h1 { font-size: 16px; font-weight: 600; }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid #313244;
+    }
+    .section:last-child { border-bottom: none; }
+    .section-header {
+      padding: 8px 20px;
+      background: #181825;
+      font-size: 14px;
+      font-weight: 500;
+      color: #89b4fa;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-header .actions { margin-left: auto; display: flex; gap: 6px; }
+    .section-header button {
+      padding: 4px 10px;
+      border: 1px solid #45475a;
+      border-radius: 4px;
+      background: #313244;
+      color: #cdd6f4;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+    .section-header button:hover { background: #45475a; }
+    .section-header button.active { background: #89b4fa; color: #1e1e2e; border-color: #89b4fa; }
+    .section-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #313244;
+    }
+    .panel:last-child { border-right: none; }
+    .panel-label {
+      padding: 6px 16px;
+      font-size: 12px;
+      color: #a6adc8;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+    }
+    .panel textarea {
+      flex: 1;
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      background: #1e1e2e;
+      color: #cdd6f4;
+    }
+    .panel textarea::placeholder { color: #585b70; }
+    .panel textarea.error { color: #f38ba8; }
+    .panel .error-msg {
+      padding: 4px 16px;
+      font-size: 11px;
+      color: #f38ba8;
+      background: #181825;
+      border-top: 1px solid #313244;
+      min-height: 22px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>编解码</h1>
+  </div>
+  <div class="main">
+    <div class="section">
+      <div class="section-header">
+        URI 编解码
+        <div class="actions">
+          <button onclick="swapUri()">交换</button>
+          <button onclick="clearUri()">清空</button>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="panel">
+          <div class="panel-label">编码后</div>
+          <textarea id="uri-encoded" placeholder="输入 URI 编码后的字符串..." spellcheck="false"></textarea>
+          <div class="error-msg" id="uri-encoded-err"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-label">解码后</div>
+          <textarea id="uri-decoded" placeholder="输入原始字符串..." spellcheck="false"></textarea>
+          <div class="error-msg" id="uri-decoded-err"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        Base64 编解码
+        <div class="actions">
+          <button onclick="swapBase64()">交换</button>
+          <button onclick="clearBase64()">清空</button>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="panel">
+          <div class="panel-label">编码后</div>
+          <textarea id="base64-encoded" placeholder="输入 Base64 编码后的字符串..." spellcheck="false"></textarea>
+          <div class="error-msg" id="base64-encoded-err"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-label">解码后</div>
+          <textarea id="base64-decoded" placeholder="输入原始字符串..." spellcheck="false"></textarea>
+          <div class="error-msg" id="base64-decoded-err"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var uriEncodedEl = document.getElementById('uri-encoded');
+    var uriDecodedEl = document.getElementById('uri-decoded');
+    var uriEncodedErr = document.getElementById('uri-encoded-err');
+    var uriDecodedErr = document.getElementById('uri-decoded-err');
+
+    var base64EncodedEl = document.getElementById('base64-encoded');
+    var base64DecodedEl = document.getElementById('base64-decoded');
+    var base64EncodedErr = document.getElementById('base64-encoded-err');
+    var base64DecodedErr = document.getElementById('base64-decoded-err');
+
+    var uriFromEncoded = false;
+    var uriFromDecoded = false;
+    var base64FromEncoded = false;
+    var base64FromDecoded = false;
+
+    uriEncodedEl.addEventListener('input', function() {
+      if (uriFromDecoded) { uriFromDecoded = false; return; }
+      var val = uriEncodedEl.value;
+      if (!val) { uriDecodedEl.value = ''; uriEncodedErr.textContent = ''; return; }
+      uriFromEncoded = true;
+      try {
+        uriDecodedEl.value = decodeURIComponent(val);
+        uriEncodedErr.textContent = '';
+      } catch (err) {
+        uriEncodedErr.textContent = '解码失败: ' + err.message;
+      }
+    });
+
+    uriDecodedEl.addEventListener('input', function() {
+      if (uriFromEncoded) { uriFromEncoded = false; return; }
+      var val = uriDecodedEl.value;
+      if (!val) { uriEncodedEl.value = ''; uriDecodedErr.textContent = ''; return; }
+      uriFromDecoded = true;
+      try {
+        uriEncodedEl.value = encodeURIComponent(val);
+        uriDecodedErr.textContent = '';
+      } catch (err) {
+        uriDecodedErr.textContent = '编码失败: ' + err.message;
+      }
+    });
+
+    base64EncodedEl.addEventListener('input', function() {
+      if (base64FromDecoded) { base64FromDecoded = false; return; }
+      var val = base64EncodedEl.value.trim();
+      if (!val) { base64DecodedEl.value = ''; base64EncodedErr.textContent = ''; return; }
+      base64FromEncoded = true;
+      try {
+        base64DecodedEl.value = atob(val);
+        base64EncodedErr.textContent = '';
+      } catch (err) {
+        base64EncodedErr.textContent = '解码失败: 无效的 Base64 字符串';
+      }
+    });
+
+    base64DecodedEl.addEventListener('input', function() {
+      if (base64FromEncoded) { base64FromEncoded = false; return; }
+      var val = base64DecodedEl.value;
+      if (!val) { base64EncodedEl.value = ''; base64DecodedErr.textContent = ''; return; }
+      base64FromDecoded = true;
+      try {
+        base64EncodedEl.value = btoa(val);
+        base64DecodedErr.textContent = '';
+      } catch (err) {
+        base64DecodedErr.textContent = '编码失败: 包含非 Latin1 字符，请先使用 URI 编码';
+      }
+    });
+
+    function swapUri() {
+      var tmp = uriEncodedEl.value;
+      uriEncodedEl.value = uriDecodedEl.value;
+      uriDecodedEl.value = tmp;
+      uriEncodedErr.textContent = '';
+      uriDecodedErr.textContent = '';
+    }
+
+    function clearUri() {
+      uriEncodedEl.value = '';
+      uriDecodedEl.value = '';
+      uriEncodedErr.textContent = '';
+      uriDecodedErr.textContent = '';
+    }
+
+    function swapBase64() {
+      var tmp = base64EncodedEl.value;
+      base64EncodedEl.value = base64DecodedEl.value;
+      base64DecodedEl.value = tmp;
+      base64EncodedErr.textContent = '';
+      base64DecodedErr.textContent = '';
+    }
+
+    function clearBase64() {
+      base64EncodedEl.value = '';
+      base64DecodedEl.value = '';
+      base64EncodedErr.textContent = '';
+      base64DecodedErr.textContent = '';
+    }
+  </script>
+</body>
+</html>
