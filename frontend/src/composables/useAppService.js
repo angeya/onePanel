@@ -2,17 +2,17 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   GetServerStatus,
-  GetApps, ScanApps, UpdateDisplayName, UpdateDirName, UploadIcon,
-  DeleteApp, ExportApp, ImportZip, ImportDir, OpenApp as OpenAppService,
-  CreateWebApp, UpdateWebApp
+  GetApps, ScanApps, UpdateDisplayName, UpdateDirName,
+  DeleteApp, ExportApp, ImportZip, ImportDir, ImportHtml, OpenApp as OpenAppService,
+  BatchExportApps, CreateWebApp, UpdateWebApp
 } from '../../wailsjs/go/main/AppService'
-import { OpenDirectoryDialog, OpenFileDialog } from '../../wailsjs/go/main/App'
+import { OpenDirectoryDialog, OpenFileDialog, SaveFileDialog } from '../../wailsjs/go/main/App'
 
 /**
  * 我的应用服务组合式函数
  * 负责应用列表、静态服务器、导入导出等逻辑
  */
-export function useAppService(closeAppTab, appDialogsRef) {
+export function useAppService(closeAppTab) {
   const apps = ref([])
   const appsLoading = ref(false)
   const serverStatus = ref({ running: false, port: 0, dir: '' })
@@ -21,7 +21,9 @@ export function useAppService(closeAppTab, appDialogsRef) {
   const appImportTab = ref('zip')
   const importZipPath = ref('')
   const importDirPath = ref('')
-  const importAppName = ref('')
+  const importDirName = ref('')
+  const importHtmlPath = ref('')
+  const importHtmlName = ref('')
 
   const appEditNameVisible = ref(false)
   const appEditNameValue = ref('')
@@ -31,12 +33,13 @@ export function useAppService(closeAppTab, appDialogsRef) {
   const appRenameDirValue = ref('')
   const renamingAppId = ref(null)
 
-  const iconUploadingAppId = ref(null)
-
   const webAppDialogVisible = ref(false)
   const isEditingWebApp = ref(false)
   const editingWebAppId = ref(null)
   const webAppForm = ref({ name: '', url: '' })
+
+  const batchExportVisible = ref(false)
+  const batchExportSelected = ref([])
 
   /**
    * 加载应用列表
@@ -106,7 +109,9 @@ export function useAppService(closeAppTab, appDialogsRef) {
   const showAppImport = () => {
     importZipPath.value = ''
     importDirPath.value = ''
-    importAppName.value = ''
+    importDirName.value = ''
+    importHtmlPath.value = ''
+    importHtmlName.value = ''
     appImportVisible.value = true
   }
 
@@ -115,7 +120,7 @@ export function useAppService(closeAppTab, appDialogsRef) {
    */
   const selectZipFile = async () => {
     try {
-      const path = await OpenFileDialog('选择 ZIP 文件', 'ZIP 文件 (*.zip)')
+      const path = await OpenFileDialog('选择 ZIP 文件', 'ZIP 文件 (*.zip)|*.zip')
       if (path) importZipPath.value = path
     } catch (err) {
       console.error('选择文件失败:', err)
@@ -137,14 +142,35 @@ export function useAppService(closeAppTab, appDialogsRef) {
   }
 
   /**
+   * 选择 HTML 文件
+   */
+  const selectHtmlFile = async () => {
+    try {
+      const path = await OpenFileDialog('选择 HTML 文件', 'HTML 文件 (*.html;*.htm)|*.html;*.htm')
+      if (path) importHtmlPath.value = path
+    } catch (err) {
+      console.error('选择文件失败:', err)
+      ElMessage.warning('文件选择对话框打开失败，请手动输入路径')
+    }
+  }
+
+  /**
    * 执行 ZIP 导入
    */
   const doImportZip = async () => {
+    if (!importZipPath.value) {
+      ElMessage.warning('请选择 ZIP 文件')
+      return
+    }
     try {
-      await ImportZip(importZipPath.value)
-      ElMessage.success('导入成功')
+      const skipped = await ImportZip(importZipPath.value)
       appImportVisible.value = false
       await refreshApps()
+      if (skipped) {
+        ElMessage.warning(`以下应用已存在，已跳过: ${skipped}`)
+      } else {
+        ElMessage.success('导入成功')
+      }
     } catch (err) {
       ElMessage.error('导入失败: ' + err)
     }
@@ -154,8 +180,34 @@ export function useAppService(closeAppTab, appDialogsRef) {
    * 执行目录导入
    */
   const doImportDir = async () => {
+    if (!importDirPath.value) {
+      ElMessage.warning('请选择应用目录')
+      return
+    }
     try {
-      await ImportDir(importDirPath.value, importAppName.value)
+      await ImportDir(importDirPath.value, importDirName.value)
+      ElMessage.success('导入成功')
+      appImportVisible.value = false
+      await refreshApps()
+    } catch (err) {
+      ElMessage.error('导入失败: ' + err)
+    }
+  }
+
+  /**
+   * 执行 HTML 文件导入
+   */
+  const doImportHtml = async () => {
+    if (!importHtmlPath.value) {
+      ElMessage.warning('请选择 HTML 文件')
+      return
+    }
+    if (!importHtmlName.value) {
+      ElMessage.warning('请输入应用名称')
+      return
+    }
+    try {
+      await ImportHtml(importHtmlPath.value, importHtmlName.value)
       ElMessage.success('导入成功')
       appImportVisible.value = false
       await refreshApps()
@@ -238,12 +290,6 @@ export function useAppService(closeAppTab, appDialogsRef) {
         appRenameDirValue.value = app.dirName
         appRenameDirVisible.value = true
         break
-      case 'icon':
-        iconUploadingAppId.value = app.id
-        if (appDialogsRef && appDialogsRef.value) {
-          appDialogsRef.value.triggerIconInput()
-        }
-        break
       case 'export':
         doExportApp(app)
         break
@@ -282,35 +328,78 @@ export function useAppService(closeAppTab, appDialogsRef) {
   }
 
   /**
-   * 处理图标上传
-   */
-  const handleIconUpload = async (event) => {
-    const file = event.target.files[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      const data = new Uint8Array(e.target.result)
-      try {
-        await UploadIcon(iconUploadingAppId.value, Array.from(data))
-        ElMessage.success('图标上传成功')
-        await loadApps()
-      } catch (err) {
-        ElMessage.error('上传失败: ' + err)
-      }
-    }
-    reader.readAsArrayBuffer(file)
-    event.target.value = ''
-  }
-
-  /**
-   * 导出应用
+   * 导出单个应用
+   * 弹出保存文件对话框让用户选择保存路径
+   * 支持静态应用和网页应用
    */
   const doExportApp = async (app) => {
     try {
-      const zipPath = await ExportApp(app.id)
-      ElMessage.success(`已导出到: ${zipPath}`)
+      const baseName = app.appType === 'web' ? app.displayName : app.dirName
+      const defaultName = `${baseName}_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}.zip`
+      const savePath = await SaveFileDialog('导出应用', defaultName, 'ZIP 文件 (*.zip)|*.zip')
+      if (!savePath) return
+
+      await ExportApp(app.id, savePath)
+      ElMessage.success(`已导出到: ${savePath}`)
     } catch (err) {
       ElMessage.error('导出失败: ' + err)
+    }
+  }
+
+  /**
+   * 显示批量导出对话框
+   */
+  const showBatchExport = () => {
+    if (apps.value.length === 0) {
+      ElMessage.info('没有可导出的应用')
+      return
+    }
+    batchExportSelected.value = []
+    batchExportVisible.value = true
+  }
+
+  /**
+   * 执行批量导出
+   */
+  const doBatchExport = async () => {
+    if (batchExportSelected.value.length === 0) {
+      ElMessage.warning('请至少选择一个应用')
+      return
+    }
+
+    try {
+      const defaultName = `apps_export_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}.zip`
+      const savePath = await SaveFileDialog('批量导出应用', defaultName, 'ZIP 文件 (*.zip)|*.zip')
+      if (!savePath) return
+
+      await BatchExportApps(batchExportSelected.value, savePath)
+      ElMessage.success(`已导出 ${batchExportSelected.value.length} 个应用到: ${savePath}`)
+      batchExportVisible.value = false
+    } catch (err) {
+      ElMessage.error('导出失败: ' + err)
+    }
+  }
+
+  /**
+   * 切换批量导出中的应用选中状态
+   */
+  const toggleBatchExportItem = (appId) => {
+    const idx = batchExportSelected.value.indexOf(appId)
+    if (idx >= 0) {
+      batchExportSelected.value.splice(idx, 1)
+    } else {
+      batchExportSelected.value.push(appId)
+    }
+  }
+
+  /**
+   * 全选或取消全选批量导出中的应用
+   */
+  const toggleBatchExportAll = () => {
+    if (batchExportSelected.value.length === apps.value.length) {
+      batchExportSelected.value = []
+    } else {
+      batchExportSelected.value = apps.value.map(app => app.id)
     }
   }
 
@@ -348,7 +437,9 @@ export function useAppService(closeAppTab, appDialogsRef) {
     appImportTab,
     importZipPath,
     importDirPath,
-    importAppName,
+    importDirName,
+    importHtmlPath,
+    importHtmlName,
     appEditNameVisible,
     appEditNameValue,
     appRenameDirVisible,
@@ -356,6 +447,8 @@ export function useAppService(closeAppTab, appDialogsRef) {
     webAppDialogVisible,
     isEditingWebApp,
     webAppForm,
+    batchExportVisible,
+    batchExportSelected,
     loadApps,
     refreshApps,
     loadServerStatus,
@@ -364,8 +457,10 @@ export function useAppService(closeAppTab, appDialogsRef) {
     showAppImport,
     selectZipFile,
     selectImportDir,
+    selectHtmlFile,
     doImportZip,
     doImportDir,
+    doImportHtml,
     showAddWebAppDialog,
     showEditWebAppDialog,
     saveWebApp,
@@ -373,6 +468,11 @@ export function useAppService(closeAppTab, appDialogsRef) {
     handleAppCmd,
     saveAppDisplayName,
     saveAppDirName,
-    handleIconUpload
+    doExportApp,
+    showBatchExport,
+    doBatchExport,
+    toggleBatchExportItem,
+    toggleBatchExportAll,
+    doDeleteApp
   }
 }

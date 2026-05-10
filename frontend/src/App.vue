@@ -20,6 +20,7 @@
       @terminal-history-exec="handleTerminalHistoryExec"
       @show-app-import="showAppImport"
       @show-add-web-app="showAddWebAppDialog"
+      @show-batch-export="showBatchExport"
       @refresh-apps="refreshApps"
       @open-app="openAppHandler"
       @handle-app-cmd="handleAppCmd"
@@ -115,11 +116,14 @@
 
     <AppDialogs
       ref="appDialogsRef"
+      :apps="apps"
       :app-import-visible="appImportVisible"
       :app-import-tab="appImportTab"
       :import-zip-path="importZipPath"
       :import-dir-path="importDirPath"
-      :import-app-name="importAppName"
+      :import-dir-name="importDirName"
+      :import-html-path="importHtmlPath"
+      :import-html-name="importHtmlName"
       :app-edit-name-visible="appEditNameVisible"
       :app-edit-name-value="appEditNameValue"
       :app-rename-dir-visible="appRenameDirVisible"
@@ -127,6 +131,8 @@
       :web-app-dialog-visible="webAppDialogVisible"
       :is-editing-web-app="isEditingWebApp"
       :web-app-form="webAppForm"
+      :batch-export-visible="batchExportVisible"
+      :batch-export-selected="batchExportSelected"
       :ql-cmd-dialog-visible="qlCmdDialogVisible"
       :is-editing-ql-cmd="isEditingQlCmd"
       :ql-cmd-form="qlCmdForm"
@@ -137,7 +143,9 @@
       @update:app-import-tab="appImportTab = $event"
       @update:import-zip-path="importZipPath = $event"
       @update:import-dir-path="importDirPath = $event"
-      @update:import-app-name="importAppName = $event"
+      @update:import-dir-name="importDirName = $event"
+      @update:import-html-path="importHtmlPath = $event"
+      @update:import-html-name="importHtmlName = $event"
       @update:app-edit-name-visible="appEditNameVisible = $event"
       @update:app-edit-name-value="appEditNameValue = $event"
       @update:app-rename-dir-visible="appRenameDirVisible = $event"
@@ -145,17 +153,22 @@
       @update:web-app-dialog-visible="webAppDialogVisible = $event"
       @update-web-app-form="updateWebAppForm"
       @save-web-app="saveWebApp"
+      @update:batch-export-visible="batchExportVisible = $event"
+      @do-batch-export="doBatchExport"
+      @toggle-batch-export-item="toggleBatchExportItem"
+      @toggle-batch-export-all="toggleBatchExportAll"
       @update:ql-cmd-dialog-visible="qlCmdDialogVisible = $event"
       @update:ql-group-dialog-visible="qlGroupDialogVisible = $event"
       @update:new-group-name="newGroupName = $event"
       @update-ql-cmd-form="handleUpdateQlCmdForm"
       @select-zip-file="selectZipFile"
       @select-import-dir="selectImportDir"
+      @select-html-file="selectHtmlFile"
       @do-import-zip="doImportZip"
       @do-import-dir="doImportDir"
+      @do-import-html="doImportHtml"
       @save-app-display-name="saveAppDisplayName"
       @save-app-dir-name="saveAppDirName"
-      @handle-icon-upload="handleIconUpload"
       @select-work-dir="selectWorkDir"
       @save-ql-cmd="saveQlCmd"
       @add-ql-group="addQlGroup"
@@ -222,17 +235,20 @@ const {
 
 const {
   apps, appsLoading, serverStatus,
-  appImportVisible, appImportTab, importZipPath, importDirPath, importAppName,
+  appImportVisible, appImportTab, importZipPath, importDirPath, importDirName,
+  importHtmlPath, importHtmlName,
   appEditNameVisible, appEditNameValue,
   appRenameDirVisible, appRenameDirValue,
   webAppDialogVisible, isEditingWebApp, webAppForm,
+  batchExportVisible, batchExportSelected,
   loadApps, refreshApps, loadServerStatus,
   getAppIconUrl, openApp,
-  showAppImport, selectZipFile, selectImportDir,
-  doImportZip, doImportDir,
+  showAppImport, selectZipFile, selectImportDir, selectHtmlFile,
+  doImportZip, doImportDir, doImportHtml,
   showAddWebAppDialog, saveWebApp, updateWebAppForm,
-  handleAppCmd, saveAppDisplayName, saveAppDirName, handleIconUpload
-} = useAppService(closeAppTab, appDialogsRef)
+  handleAppCmd, saveAppDisplayName, saveAppDirName,
+  showBatchExport, doBatchExport, toggleBatchExportItem, toggleBatchExportAll
+} = useAppService(closeAppTab)
 
 const {
   qlGroups, qlCmds, expandedQlGroups,

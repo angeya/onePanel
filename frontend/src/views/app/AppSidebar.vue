@@ -47,6 +47,11 @@
           </el-button>
           <el-button size="small" @click="$emit('showAppImport')" plain>
             <el-icon><Upload /></el-icon>
+            导入
+          </el-button>
+          <el-button size="small" @click="$emit('showBatchExport')" plain>
+            <el-icon><Download /></el-icon>
+            导出
           </el-button>
           <el-button size="small" @click="$emit('refreshApps')" plain>
             <el-icon><Refresh /></el-icon>
@@ -75,9 +80,8 @@
                   <el-dropdown-item command="edit">{{ app.appType === 'web' ? '编辑' : '编辑名称' }}</el-dropdown-item>
                   <template v-if="app.appType !== 'web'">
                     <el-dropdown-item command="rename">修改目录名</el-dropdown-item>
-                    <el-dropdown-item command="icon">上传图标</el-dropdown-item>
-                    <el-dropdown-item command="export">导出</el-dropdown-item>
                   </template>
+                  <el-dropdown-item command="export">导出</el-dropdown-item>
                   <el-dropdown-item command="delete" divided>
                     <span style="color: #f56c6c">删除</span>
                   </el-dropdown-item>
@@ -177,7 +181,7 @@
 import { computed } from 'vue'
 import {
   Monitor, Grid, Promotion, SetUp, Plus,
-  Setting, Upload, Refresh, Document, MoreFilled,
+  Setting, Upload, Download, Refresh, Document, MoreFilled,
   FolderAdd, ArrowDown, ArrowRight, Edit, Delete,
   VideoPlay, Connection, Link
 } from '@element-plus/icons-vue'
@@ -207,6 +211,7 @@ const emit = defineEmits([
   'terminalHistoryExec',
   'showAppImport',
   'showAddWebApp',
+  'showBatchExport',
   'refreshApps',
   'openApp',
   'handleAppCmd',
