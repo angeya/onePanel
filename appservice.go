@@ -230,7 +230,7 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 			continue
 		}
 
-		displayName := a.readAppName(subDir, dirName)
+		displayName := dirName
 		iconPath := a.resolveIconPath(subDir)
 		entryUrl := fmt.Sprintf("/%s/index.html", dirName)
 
@@ -244,21 +244,6 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 		apps = []SubApp{}
 	}
 	return apps, nil
-}
-
-/**
- * 读取应用名称
- * 优先从 xxx.name 文件读取，否则使用目录名
- */
-func (a *AppService) readAppName(subDir, dirName string) string {
-	nameFile := filepath.Join(subDir, dirName+".name")
-	if data, err := os.ReadFile(nameFile); err == nil {
-		name := strings.TrimSpace(string(data))
-		if name != "" {
-			return name
-		}
-	}
-	return dirName
 }
 
 /**
@@ -536,11 +521,6 @@ func (a *AppService) ImportHtml(htmlPath string, appName string) error {
 		return fmt.Errorf("复制 HTML 文件失败: %w", err)
 	}
 
-	nameFile := filepath.Join(destDir, dirName+".name")
-	if err := os.WriteFile(nameFile, []byte(appName), 0644); err != nil {
-		fmt.Printf("写入 .name 文件失败: %v\n", err)
-	}
-
 	_, err = a.ScanApps()
 	return err
 }
@@ -548,7 +528,7 @@ func (a *AppService) ImportHtml(htmlPath string, appName string) error {
 /**
  * 导入 HTML 目录作为应用
  * 名称非必填，不填则使用源目录名称
- * 如果填写了名称，则目录名使用该名称，并在目录下创建 .name 文件保存显示名称
+ * 如果填写了名称，则目录名使用该名称
  */
 func (a *AppService) ImportDir(srcDir string, appName string) error {
 	staticDir, err := a.GetStaticDir()
@@ -572,13 +552,6 @@ func (a *AppService) ImportDir(srcDir string, appName string) error {
 
 	if err := CopyDirectory(srcDir, destDir); err != nil {
 		return fmt.Errorf("复制目录失败: %w", err)
-	}
-
-	if appName != "" {
-		nameFile := filepath.Join(destDir, dirName+".name")
-		if err := os.WriteFile(nameFile, []byte(appName), 0644); err != nil {
-			fmt.Printf("写入 .name 文件失败: %v\n", err)
-		}
 	}
 
 	_, err = a.ScanApps()
