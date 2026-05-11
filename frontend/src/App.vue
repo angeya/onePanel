@@ -176,9 +176,11 @@
       :visible="settingsVisible"
       :theme="currentTheme"
       :shell="defaultShell"
+      :close-action="closeAction"
       @update:visible="settingsVisible = $event"
       @theme-change="changeTheme"
       @shell-change="changeDefaultShell"
+      @close-action-change="changeCloseAction"
     />
   </div>
 </template>
@@ -186,7 +188,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { Monitor, Grid, Promotion, SetUp, Close, Plus } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import TerminalTab from './views/terminal/TerminalTab.vue'
 import QuickLaunchTab from './views/quicklaunch/QuickLaunchTab.vue'
 import SettingsDialog from './views/settings/SettingsDialog.vue'
@@ -201,6 +203,8 @@ import { useQuickLaunch } from './composables/useQuickLaunch'
 import { useTheme } from './composables/useTheme'
 import { useSettings } from './composables/useSettings'
 import { useTerminalEvent } from './composables/useTerminalEvent'
+import { EventsOn } from '../wailsjs/runtime/runtime'
+import { HideWindow, QuitApp } from '../wailsjs/go/main/App'
 
 const navItems = [
   { key: 'terminal', label: '终端', icon: Monitor },
@@ -217,7 +221,7 @@ const settingsVisible = ref(false)
 const settingsRef = ref(null)
 
 const { currentTheme, changeTheme, loadTheme } = useTheme()
-const { defaultShell, changeDefaultShell, loadSettings } = useSettings()
+const { defaultShell, closeAction, changeDefaultShell, changeCloseAction, loadSettings } = useSettings()
 const { sendCommand, recordHistory } = useTerminalEvent()
 
 const {
@@ -504,6 +508,35 @@ const handleSearchResult = (event) => {
   }
 }
 
+/**
+ * 处理关闭请求事件
+ * 当用户首次点击关闭且未设置关闭行为时触发
+ * 弹窗让用户选择是"最小化到托盘"还是"直接退出"
+ */
+const handleCloseRequested = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '您可以选择关闭窗口时的行为，后续可在系统设置中修改。',
+      '关闭行为',
+      {
+        confirmButtonText: '最小化到托盘',
+        cancelButtonText: '直接退出',
+        distinguishCancelAndClose: true,
+        closeOnClickModal: false,
+        closeOnPressEscape: false,
+        type: 'info'
+      }
+    )
+    await changeCloseAction('tray')
+    HideWindow()
+  } catch (action) {
+    if (action === 'cancel') {
+      await changeCloseAction('close')
+      QuitApp()
+    }
+  }
+}
+
 onMounted(async () => {
   await Promise.all([loadTheme(), loadSettings()])
   addTerminalTab(defaultShell.value)
@@ -512,6 +545,7 @@ onMounted(async () => {
   loadQlCmds()
   window.addEventListener('keydown', handleGlobalKeyDown, true)
   window.addEventListener('tab-search-result', handleSearchResult)
+  EventsOn('close-requested', handleCloseRequested)
 })
 
 onUnmounted(() => {

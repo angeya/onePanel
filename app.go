@@ -6,16 +6,68 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+/**
+ * App 应用核心结构
+ * 持有 Wails 上下文和数据库引用
+ * 提供窗口控制、文件对话框等前端可调用方法
+ */
 type App struct {
 	ctx context.Context
+	db  *Database
 }
 
-func NewApp() *App {
-	return &App{}
+/**
+ * 创建 App 实例
+ * 注入 Database 依赖
+ */
+func NewApp(db *Database) *App {
+	return &App{db: db}
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+}
+
+/**
+ * 显示主窗口
+ * 将窗口从隐藏状态恢复为可见，并置于前台
+ */
+func (a *App) ShowWindow() {
+	runtime.WindowShow(a.ctx)
+}
+
+/**
+ * 隐藏主窗口
+ * 将窗口隐藏到系统托盘，不退出应用
+ */
+func (a *App) HideWindow() {
+	runtime.WindowHide(a.ctx)
+}
+
+/**
+ * 退出应用
+ * 通知前端即将关闭，前端完成清理后真正退出
+ */
+func (a *App) QuitApp() {
+	runtime.Quit(a.ctx)
+}
+
+/**
+ * 获取关闭行为设置
+ * 返回 "tray"（最小化到托盘）或 "close"（直接退出）
+ * 如果未设置则返回空字符串，前端据此判断是否为首次关闭
+ */
+func (a *App) GetCloseAction() string {
+	val, _ := a.db.GetConfig("close_action")
+	return val
+}
+
+/**
+ * 设置关闭行为
+ * action: "tray"（最小化到托盘）或 "close"（直接退出）
+ */
+func (a *App) SetCloseAction(action string) error {
+	return a.db.SetConfig("close_action", action)
 }
 
 /**

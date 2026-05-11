@@ -39,6 +39,15 @@
       </div>
 
       <div class="setting-section">
+        <div class="section-title">关闭行为</div>
+        <div class="close-action-desc">点击窗口右上角关闭按钮时的行为</div>
+        <el-radio-group v-model="currentCloseAction" @change="saveCloseAction">
+          <el-radio value="tray">最小化到托盘</el-radio>
+          <el-radio value="close">直接退出应用</el-radio>
+        </el-radio-group>
+      </div>
+
+      <div class="setting-section">
         <div class="section-title">版本信息</div>
         <div class="info-row">
           <span class="info-label">当前版本</span>
@@ -61,17 +70,20 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { GetSetting, SetSetting } from '../../../wailsjs/go/main/SettingService'
+import { GetCloseAction, SetCloseAction } from '../../../wailsjs/go/main/App'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
   theme: { type: String, default: 'dark' },
-  shell: { type: String, default: 'cmd.exe' }
+  shell: { type: String, default: 'cmd.exe' },
+  closeAction: { type: String, default: '' }
 })
 
-const emit = defineEmits(['update:visible', 'themeChange', 'shellChange'])
+const emit = defineEmits(['update:visible', 'themeChange', 'shellChange', 'closeActionChange'])
 
 const currentTheme = ref(props.theme)
 const defaultShell = ref(props.shell)
+const currentCloseAction = ref(props.closeAction)
 
 const themes = [
   {
@@ -134,6 +146,19 @@ const saveDefaultShell = async (val) => {
 }
 
 /**
+ * 保存关闭行为设置
+ */
+const saveCloseAction = async (val) => {
+  try {
+    await SetCloseAction(val)
+    currentCloseAction.value = val
+    emit('closeActionChange', val)
+  } catch (err) {
+    ElMessage.error('保存关闭行为设置失败: ' + err)
+  }
+}
+
+/**
  * 复制邮箱地址
  */
 const copyEmail = async () => {
@@ -155,6 +180,9 @@ const loadSettings = async () => {
 
     const shell = await GetSetting('default_shell')
     if (shell) defaultShell.value = shell
+
+    const action = await GetCloseAction()
+    if (action) currentCloseAction.value = action
   } catch (err) {
     console.error('加载设置失败:', err)
   }
@@ -166,6 +194,7 @@ const loadSettings = async () => {
 const handleOpen = () => {
   currentTheme.value = props.theme
   defaultShell.value = props.shell
+  currentCloseAction.value = props.closeAction
 }
 
 defineExpose({ loadSettings, handleOpen })
@@ -294,5 +323,11 @@ defineExpose({ loadSettings, handleOpen })
 
 .email:hover {
   text-decoration: underline;
+}
+
+.close-action-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
 }
 </style>
