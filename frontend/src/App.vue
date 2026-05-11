@@ -175,12 +175,9 @@
       :visible="settingsVisible"
       :theme="currentTheme"
       :shell="defaultShell"
-      :app-dir="customAppDir"
       @update:visible="settingsVisible = $event"
       @theme-change="changeTheme"
       @shell-change="changeDefaultShell"
-      @select-app-dir="selectAppDir"
-      @save-app-dir="handleSaveAppDir"
     />
   </div>
 </template>
@@ -219,7 +216,7 @@ const settingsVisible = ref(false)
 const settingsRef = ref(null)
 
 const { currentTheme, changeTheme, loadTheme } = useTheme()
-const { defaultShell, customAppDir, changeDefaultShell, selectAppDir, saveAppDir, loadSettings, loadAppDir } = useSettings()
+const { defaultShell, changeDefaultShell, loadSettings } = useSettings()
 const { sendCommand, recordHistory } = useTerminalEvent()
 
 const {
@@ -343,8 +340,7 @@ const openAppHandler = (app) => {
 /**
  * 打开系统设置
  */
-const openSettings = async () => {
-  await loadAppDir()
+const openSettings = () => {
   if (settingsRef.value) settingsRef.value.handleOpen()
   settingsVisible.value = true
 }

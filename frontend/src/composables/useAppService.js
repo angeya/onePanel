@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   GetServerStatus,
-  GetApps, ScanApps, UpdateDisplayName,
+  ScanApps, UpdateDisplayName,
   DeleteApp, ExportApp, ImportZip, ImportDir, ImportHtml, OpenApp as OpenAppService,
   BatchExportApps, CreateWebApp, UpdateWebApp
 } from '../../wailsjs/go/main/AppService'
@@ -43,7 +43,7 @@ export function useAppService(closeAppTab) {
   const loadApps = async () => {
     appsLoading.value = true
     try {
-      apps.value = await GetApps()
+      apps.value = await ScanApps()
     } catch (err) {
       ElMessage.error('加载应用列表失败: ' + err)
     } finally {

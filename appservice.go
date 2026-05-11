@@ -53,39 +53,15 @@ func NewAppService(db *Database, server *StaticServer) *AppService {
 }
 
 /**
- * 获取静态目录配置
- * 如果未配置自定义目录，则使用可执行文件同级目录下的 apps 目录作为默认值
+ * 获取应用目录
+ * 固定使用可执行文件同级目录下的 apps 目录
  */
 func (a *AppService) GetStaticDir() (string, error) {
-	dir, err := a.db.GetConfig("static_dir")
-	if err != nil {
-		return "", err
-	}
-	if dir != "" {
-		return dir, nil
-	}
 	exePath, err := os.Executable()
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(filepath.Dir(exePath), "apps"), nil
-}
-
-/**
- * 设置自定义应用目录
- * 清空目录表示恢复使用默认目录（exe 同级 apps 目录）
- * 如果目录发生变化，自动停止静态服务器以便下次使用新目录启动
- */
-func (a *AppService) SetStaticDir(dir string) error {
-	if err := a.db.SetConfig("static_dir", dir); err != nil {
-		return fmt.Errorf("保存静态目录配置失败: %w", err)
-	}
-
-	if a.server != nil {
-		a.server.Stop()
-	}
-
-	return nil
 }
 
 /**
@@ -211,9 +187,14 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 		return nil, fmt.Errorf("获取应用目录失败")
 	}
 
+	a.db.DB().Exec("DELETE FROM sub_app WHERE app_type = 'static'")
+
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("读取静态目录失败: %w", err)
+		if os.IsNotExist(err) {
+			return []SubApp{}, nil
+		}
+		return nil, fmt.Errorf("读取应用目录失败: %w", err)
 	}
 
 	var apps []SubApp
