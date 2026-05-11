@@ -47,6 +47,7 @@
               class="main-tab-item"
               :class="{ active: activeTabId === tab.id }"
               @click="switchTab(tab.id)"
+              @mousedown="handleTabMouseDown($event, tab)"
             >
               <el-icon size="12"><component :is="getTabIcon(tab)" /></el-icon>
               <span class="tab-name">{{ tab.title }}</span>
@@ -348,6 +349,17 @@ const openAppHandler = (app) => {
 const openSettings = () => {
   if (settingsRef.value) settingsRef.value.handleOpen()
   settingsVisible.value = true
+}
+
+/**
+ * Tab 标签鼠标按下事件
+ * 中键点击（button === 1）关闭 tab，模拟浏览器行为
+ */
+const handleTabMouseDown = (event, tab) => {
+  if (event.button === 1 && tab.closable !== false) {
+    event.preventDefault()
+    closeTab(tab.id)
+  }
 }
 
 const searchBarRef = ref(null)
