@@ -47,7 +47,7 @@
               class="main-tab-item"
               :class="{ active: activeTabId === tab.id }"
               @click="switchTab(tab.id)"
-              @mousedown="handleTabMouseDown($event, tab)"
+              @mouseup="handleTabMouseDown($event, tab)"
             >
               <el-icon size="12"><component :is="getTabIcon(tab)" /></el-icon>
               <span class="tab-name">{{ tab.title }}</span>
