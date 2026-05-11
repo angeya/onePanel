@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { SearchAddon } from 'xterm-addon-search'
@@ -21,9 +21,105 @@ const SEARCH_DECORATIONS = {
   activeMatchColorOverviewRuler: '#FFA000'
 }
 
+const TERMINAL_THEMES = {
+  dark: {
+    background: '#1e1e1e',
+    foreground: '#d4d4d4',
+    cursor: '#ffffff',
+    cursorAccent: '#000000',
+    selection: 'rgba(255, 255, 255, 0.3)',
+    black: '#000000',
+    red: '#cd3131',
+    green: '#0dbc79',
+    yellow: '#e5e510',
+    blue: '#2472c8',
+    magenta: '#bc3fbc',
+    cyan: '#11a8cd',
+    white: '#e5e5e5',
+    brightBlack: '#666666',
+    brightRed: '#f14c4c',
+    brightGreen: '#23d18b',
+    brightYellow: '#f5f543',
+    brightBlue: '#3b8eea',
+    brightMagenta: '#d670d6',
+    brightCyan: '#29b8db',
+    brightWhite: '#e5e5e5'
+  },
+  light: {
+    background: '#ffffff',
+    foreground: '#383a42',
+    cursor: '#526eff',
+    cursorAccent: '#ffffff',
+    selection: 'rgba(82, 110, 255, 0.25)',
+    black: '#383a42',
+    red: '#e45649',
+    green: '#50a14f',
+    yellow: '#c18401',
+    blue: '#4078f2',
+    magenta: '#a626a4',
+    cyan: '#0184bc',
+    white: '#a0a1a7',
+    brightBlack: '#4f525e',
+    brightRed: '#e06c75',
+    brightGreen: '#98c379',
+    brightYellow: '#e5c07b',
+    brightBlue: '#61afef',
+    brightMagenta: '#c678dd',
+    brightCyan: '#56b6c2',
+    brightWhite: '#ffffff'
+  },
+  blue: {
+    background: '#0d1b2a',
+    foreground: '#e0e8f0',
+    cursor: '#4da6ff',
+    cursorAccent: '#0d1b2a',
+    selection: 'rgba(77, 166, 255, 0.3)',
+    black: '#0d1b2a',
+    red: '#ff6b6b',
+    green: '#5cb85c',
+    yellow: '#f0ad4e',
+    blue: '#4da6ff',
+    magenta: '#c678dd',
+    cyan: '#56b6c2',
+    white: '#e0e8f0',
+    brightBlack: '#3d5a78',
+    brightRed: '#ff8a8a',
+    brightGreen: '#7dce7d',
+    brightYellow: '#ffc85a',
+    brightBlue: '#79bfff',
+    brightMagenta: '#d8a0ff',
+    brightCyan: '#7dd8e0',
+    brightWhite: '#ffffff'
+  },
+  green: {
+    background: '#1a2e1a',
+    foreground: '#d8e8d8',
+    cursor: '#67c23a',
+    cursorAccent: '#1a2e1a',
+    selection: 'rgba(103, 194, 58, 0.3)',
+    black: '#1a2e1a',
+    red: '#e06c75',
+    green: '#67c23a',
+    yellow: '#e6a23c',
+    blue: '#61afef',
+    magenta: '#c678dd',
+    cyan: '#56b6c2',
+    white: '#d8e8d8',
+    brightBlack: '#3d6a3d',
+    brightRed: '#f08890',
+    brightGreen: '#85ce5f',
+    brightYellow: '#f5c462',
+    brightBlue: '#79bfff',
+    brightMagenta: '#d8a0ff',
+    brightCyan: '#7dd8e0',
+    brightWhite: '#f0f8f0'
+  }
+}
+
 const props = defineProps({
   tabId: { type: String, required: true },
-  shell: { type: String, default: 'cmd.exe' }
+  shell: { type: String, default: 'cmd.exe' },
+  theme: { type: String, default: 'dark' }
 })
 
 const emit = defineEmits(['commandExecuted', 'sendCommand'])
@@ -48,7 +144,6 @@ const initTerminal = () => {
   terminal = new Terminal({
     allowProposedApi: true,
     customKeyEventHandler: (event) => {
-      // ctr + f是搜索快捷键，不会键入终端
       if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
         return false
       }
@@ -57,29 +152,7 @@ const initTerminal = () => {
     fontFamily: 'Consolas, "Courier New", monospace',
     fontSize: 14,
     lineHeight: 1.2,
-    theme: {
-      background: '#1e1e1e',
-      foreground: '#d4d4d4',
-      cursor: '#ffffff',
-      cursorAccent: '#000000',
-      selection: 'rgba(255, 255, 255, 0.3)',
-      black: '#000000',
-      red: '#cd3131',
-      green: '#0dbc79',
-      yellow: '#e5e510',
-      blue: '#2472c8',
-      magenta: '#bc3fbc',
-      cyan: '#11a8cd',
-      white: '#e5e5e5',
-      brightBlack: '#666666',
-      brightRed: '#f14c4c',
-      brightGreen: '#23d18b',
-      brightYellow: '#f5f543',
-      brightBlue: '#3b8eea',
-      brightMagenta: '#d670d6',
-      brightCyan: '#29b8db',
-      brightWhite: '#e5e5e5'
-    },
+    theme: TERMINAL_THEMES[props.theme] || TERMINAL_THEMES.dark,
     cursorBlink: true,
     cursorStyle: 'block',
     scrollback: 10000,
@@ -236,6 +309,12 @@ onMounted(() => {
   window.addEventListener('terminal-send-command', handleSendCommandEvent)
   window.addEventListener('tab-search', handleSearchEvent)
   window.addEventListener('tab-search-close', handleSearchCloseEvent)
+})
+
+watch(() => props.theme, (newTheme) => {
+  if (terminal) {
+    terminal.options.theme = TERMINAL_THEMES[newTheme] || TERMINAL_THEMES.dark
+  }
 })
 
 onUnmounted(() => {

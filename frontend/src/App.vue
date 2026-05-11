@@ -75,6 +75,7 @@
             :key="tab.id"
             :tab-id="tab.id"
             :shell="tab.shell || 'cmd.exe'"
+            :theme="currentTheme"
             v-show="activeTabId === tab.id"
             @command-executed="handleCommandExecuted"
             @send-command="handleSendCommand"
