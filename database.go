@@ -34,6 +34,9 @@ func InitDatabase() (*Database, error) {
 		return nil, fmt.Errorf("打开数据库失败: %w", err)
 	}
 
+	conn.SetMaxOpenConns(2)
+	conn.SetMaxIdleConns(2)
+
 	if err := createTables(conn); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("创建表结构失败: %w", err)

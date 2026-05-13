@@ -11,6 +11,12 @@ import (
 
 const CREATE_NO_WINDOW = 0x08000000
 
+/**
+ * 预编译端口匹配正则表达式
+ * 避免每次调用 GetPortList 时重复编译，减少内存分配和 CPU 开销
+ */
+var portPattern = regexp.MustCompile(`^\s*(TCP|UDP)\s+(\S+):(\d+)\s+(\S+):(\d+)\s*(\S*)\s+(\d+)\s*$`)
+
 func hideWindow(cmd *exec.Cmd) *exec.Cmd {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		CreationFlags: CREATE_NO_WINDOW,
@@ -48,8 +54,6 @@ func (t *ToolService) GetPortList() ([]PortInfo, error) {
 
 	var result []PortInfo
 	lines := strings.Split(string(output), "\n")
-
-	portPattern := regexp.MustCompile(`^\s*(TCP|UDP)\s+(\S+):(\d+)\s+(\S+):(\d+)\s*(\S*)\s+(\d+)\s*$`)
 
 	for _, line := range lines {
 		matches := portPattern.FindStringSubmatch(line)

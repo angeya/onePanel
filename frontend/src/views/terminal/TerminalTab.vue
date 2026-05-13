@@ -155,7 +155,7 @@ const initTerminal = () => {
     theme: TERMINAL_THEMES[props.theme] || TERMINAL_THEMES.dark,
     cursorBlink: true,
     cursorStyle: 'block',
-    scrollback: 10000,
+    scrollback: 5000,
     tabStopWidth: 4
   })
 

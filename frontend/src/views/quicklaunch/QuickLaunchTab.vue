@@ -43,10 +43,12 @@ import { ref } from 'vue'
 import { Folder, CircleCloseFilled } from '@element-plus/icons-vue'
 import { ExecuteCommand } from '../../../wailsjs/go/main/ShortcutCmdService'
 
+const MAX_EXEC_LOGS = 100
 const execLogs = ref([])
 
 /**
  * 执行快速启动命令并记录日志
+ * 超出最大条目数时移除最早的记录，避免内存持续增长
  */
 const execute = async (cmd) => {
   const now = new Date()
@@ -63,6 +65,9 @@ const execute = async (cmd) => {
   }
 
   execLogs.value.unshift(log)
+  if (execLogs.value.length > MAX_EXEC_LOGS) {
+    execLogs.value.splice(MAX_EXEC_LOGS)
+  }
 
   try {
     await ExecuteCommand(cmd.id)

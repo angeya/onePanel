@@ -187,7 +187,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { Monitor, Grid, Promotion, SetUp, Close, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TerminalTab from './views/terminal/TerminalTab.vue'
@@ -366,6 +366,24 @@ const searchBarRef = ref(null)
 const mainTabsBodyRef = ref(null)
 const searchVisibleMap = reactive({})
 const lastSearchKeyword = reactive({})
+
+/**
+ * 监听 tabs 变化，清理已关闭 tab 对应的搜索状态
+ * 防止 searchVisibleMap 和 lastSearchKeyword 无限增长导致内存泄漏
+ */
+watch(tabs, (currentTabs) => {
+  const activeIds = new Set(currentTabs.map(t => t.id))
+  for (const key of Object.keys(searchVisibleMap)) {
+    if (!activeIds.has(key)) {
+      delete searchVisibleMap[key]
+    }
+  }
+  for (const key of Object.keys(lastSearchKeyword)) {
+    if (!activeIds.has(key)) {
+      delete lastSearchKeyword[key]
+    }
+  }
+}, { deep: true })
 
 const currentSearchVisible = computed(() => !!searchVisibleMap[activeTabId.value])
 
