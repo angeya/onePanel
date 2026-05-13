@@ -6,7 +6,17 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 )
+
+const CREATE_NO_WINDOW = 0x08000000
+
+func hideWindow(cmd *exec.Cmd) *exec.Cmd {
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: CREATE_NO_WINDOW,
+	}
+	return cmd
+}
 
 /**
  * ToolService 实用工具服务
@@ -26,7 +36,7 @@ func NewToolService() *ToolService {
  * 通过 netstat -ano 和 tasklist 命令获取系统端口和进程映射
  */
 func (t *ToolService) GetPortList() ([]PortInfo, error) {
-	output, err := exec.Command("netstat", "-ano").Output()
+	output, err := hideWindow(exec.Command("netstat", "-ano")).Output()
 	if err != nil {
 		return nil, fmt.Errorf("执行 netstat 失败: %w", err)
 	}
@@ -108,7 +118,7 @@ func (t *ToolService) GetPortInfo(port int) ([]PortInfo, error) {
  * 使用 taskkill /F 强制终止
  */
 func (t *ToolService) KillProcess(pid int) error {
-	err := exec.Command("taskkill", "/PID", strconv.Itoa(pid), "/F").Run()
+	err := hideWindow(exec.Command("taskkill", "/PID", strconv.Itoa(pid), "/F")).Run()
 	if err != nil {
 		return fmt.Errorf("终止进程 %d 失败: %w", pid, err)
 	}
@@ -120,7 +130,7 @@ func (t *ToolService) KillProcess(pid int) error {
  * 通过 tasklist 命令获取 PID 到进程名称的映射
  */
 func getProcessNameMap() (map[int]string, error) {
-	output, err := exec.Command("tasklist", "/FO", "CSV", "/NH").Output()
+	output, err := hideWindow(exec.Command("tasklist", "/FO", "CSV", "/NH")).Output()
 	if err != nil {
 		return nil, fmt.Errorf("执行 tasklist 失败: %w", err)
 	}
