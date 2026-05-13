@@ -12,7 +12,7 @@ Thumbs.db
 # Go
 # =========================
 bin/
-build/
+build/bin/
 dist/
 *.exe
 *.exe~
