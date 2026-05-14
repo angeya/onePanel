@@ -6,8 +6,7 @@
       @update:terminal-sub-tab="terminalSubTab = $event"
       :nav-items="navItems"
       @switch-nav="switchNav"
-      @terminal-ql-exec="handleTerminalQlExec"
-      @terminal-history-exec="handleTerminalHistoryExec"
+      @terminal-command="handleTerminalCommand"
       @show-app-import="myAppDialogsRef.showAppImport()"
       @show-add-web-app="myAppDialogsRef.showAddWebAppDialog()"
       @show-batch-export="myAppDialogsRef.showBatchExport()"
@@ -187,14 +186,7 @@ const switchNav = (key) => {
   }
 }
 
-const handleTerminalQlExec = (command) => {
-  if (terminalTabs.value.length === 0) {
-    addTerminalTab(defaultShell.value)
-  }
-  sendCommand(activeTabId.value, command)
-}
-
-const handleTerminalHistoryExec = (command) => {
+const handleTerminalCommand = (command) => {
   if (terminalTabs.value.length === 0) {
     addTerminalTab(defaultShell.value)
   }

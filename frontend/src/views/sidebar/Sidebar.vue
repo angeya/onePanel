@@ -23,170 +23,72 @@
         <div class="version-info" title="oneWin v0.0.1">v0.0.1</div>
       </div>
     </div>
-    <div class="sub-panel">
-      <div v-if="activeNav === 'terminal'" class="sub-panel-content">
-        <div class="sub-panel-title">终端</div>
-        <el-tabs v-model="localTerminalSubTab" class="sub-tabs">
-          <el-tab-pane label="快捷命令" name="shortcuts">
-            <ShortcutPanel @execute-command="$emit('terminalQlExec', $event)" />
-          </el-tab-pane>
-          <el-tab-pane label="历史" name="history">
-            <HistoryPanel @execute-command="$emit('terminalHistoryExec', $event)" />
-          </el-tab-pane>
-        </el-tabs>
+
+    <div
+      class="sub-panel"
+      :class="{ collapsed: panelCollapsed }"
+      :style="{ width: panelWidth + 'px' }"
+    >
+      <div class="sub-panel-body">
+        <TerminalPanel
+          v-if="activeNav === 'terminal'"
+          :sub-tab="terminalSubTab"
+          @update:sub-tab="$emit('update:terminalSubTab', $event)"
+          @execute-command="$emit('terminalCommand', $event)"
+        />
+        <MyAppPanel
+          v-if="activeNav === 'apps'"
+          @show-app-import="$emit('showAppImport')"
+          @show-add-web-app="$emit('showAddWebApp')"
+          @show-batch-export="$emit('showBatchExport')"
+          @refresh-apps="$emit('refreshApps')"
+          @open-app="$emit('openApp', $event)"
+          @handle-app-cmd="(cmd, app) => $emit('handleAppCmd', cmd, app)"
+        />
+        <QuickLaunchPanel
+          v-if="activeNav === 'shortcuts'"
+          @show-ql-add-dialog="$emit('showQlAddDialog')"
+          @show-ql-group-dialog="$emit('showQlGroupDialog')"
+          @execute-ql-cmd="$emit('executeQlCmd', $event)"
+          @edit-ql-cmd="$emit('editQlCmd', $event)"
+          @delete-ql-cmd="$emit('deleteQlCmd', $event)"
+        />
+        <ToolsPanel
+          v-if="activeNav === 'tools'"
+          @open-tool="(...args) => $emit('openTool', ...args)"
+        />
       </div>
 
-      <div v-if="activeNav === 'apps'" class="sub-panel-content">
-        <div class="sub-panel-header">
-          <span class="sub-panel-title">我的应用</span>
-        </div>
-        <div class="sub-panel-toolbar">
-          <el-button size="small" @click="$emit('showAppImport')" plain>
-            <el-icon><Upload /></el-icon>
-            导入
-          </el-button>
-          <el-button size="small" @click="$emit('showAddWebApp')" plain>
-            <el-icon><Link /></el-icon>
-            网页
-          </el-button>
-          <el-button size="small" @click="$emit('showBatchExport')" plain>
-            <el-icon><Download /></el-icon>
-            导出
-          </el-button>
-          <el-button size="small" @click="$emit('refreshApps')" plain>
-            <el-icon><Refresh /></el-icon>
-          </el-button>
-        </div>
-        <div class="app-sidebar-list" v-loading="appService.appsLoading.value">
-          <div
-            v-for="app in appService.apps.value"
-            :key="app.id"
-            class="app-sidebar-item"
-            @click="$emit('openApp', app)"
-          >
-            <div class="app-sidebar-icon">
-              <img v-if="app.iconPath" :src="appService.getAppIconUrl(app)" alt="" />
-              <el-icon v-else-if="app.appType === 'web'" :size="22" color="#67c23a"><Link /></el-icon>
-              <el-icon v-else :size="22" color="#409eff"><Document /></el-icon>
-            </div>
-            <div class="app-sidebar-info">
-              <div class="app-sidebar-name">{{ app.displayName }}</div>
-              <div class="app-sidebar-dir">{{ app.appType === 'web' ? app.entryUrl : app.dirName }}</div>
-            </div>
-            <el-dropdown trigger="click" @command="(cmd) => $emit('handleAppCmd', cmd, app)" @click.stop>
-              <el-icon class="app-sidebar-more" @click.stop><MoreFilled /></el-icon>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit">{{ app.appType === 'web' ? '编辑' : '编辑名称' }}</el-dropdown-item>
-                  <el-dropdown-item command="export">导出</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>
-                    <span style="color: #f56c6c">删除</span>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
-          <el-empty v-if="appService.apps.value.length === 0 && !appService.appsLoading.value" description="暂无应用" :image-size="40" />
-        </div>
-      </div>
+      <div
+        class="resize-handle"
+        @mousedown.prevent="startResize"
+      />
+    </div>
 
-      <div v-if="activeNav === 'shortcuts'" class="sub-panel-content">
-        <div class="sub-panel-header">
-          <span class="sub-panel-title">快速启动</span>
-          <el-button size="small" @click="$emit('showQlAddDialog')" plain>
-            <el-icon><Plus /></el-icon>
-          </el-button>
-        </div>
-        <div class="sub-panel-toolbar">
-          <el-button size="small" @click="$emit('showQlGroupDialog')" plain>
-            <el-icon><FolderAdd /></el-icon>
-            管理分组
-          </el-button>
-        </div>
-        <div class="ql-sidebar-list">
-          <div v-for="group in qlService.qlGroups.value" :key="group.id" class="ql-sidebar-group">
-            <div class="ql-group-header" @click="qlService.toggleQlGroup(group.id)">
-              <el-icon>
-                <ArrowDown v-if="qlService.expandedQlGroups.value.has(group.id)" />
-                <ArrowRight v-else />
-              </el-icon>
-              <span class="group-name">{{ group.name }}</span>
-              <span class="group-count">({{ qlService.getQlCmdCount(group.id) }})</span>
-            </div>
-            <div v-show="qlService.expandedQlGroups.value.has(group.id)" class="ql-group-items">
-              <div
-                v-for="cmd in qlService.getQlCmdsByGroup(group.id)"
-                :key="cmd.id"
-                class="ql-sidebar-item"
-                @dblclick="$emit('executeQlCmd', cmd)"
-              >
-                <el-icon :size="16" :color="cmd.shell === 'powershell.exe' ? '#012456' : '#4cc2ff'">
-                  <Monitor />
-                </el-icon>
-                <div class="ql-item-info">
-                  <div class="ql-item-name">{{ cmd.name }}</div>
-                  <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
-                </div>
-                <div class="ql-item-actions" @click.stop>
-                  <el-icon class="action-icon" @click="$emit('executeQlCmd', cmd)"><VideoPlay /></el-icon>
-                  <el-icon class="action-icon" @click="$emit('editQlCmd', cmd)"><Edit /></el-icon>
-                  <el-icon class="action-icon" @click="$emit('deleteQlCmd', cmd)"><Delete /></el-icon>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            v-for="cmd in qlService.ungroupedQlCmds.value"
-            :key="cmd.id"
-            class="ql-sidebar-item"
-            @dblclick="$emit('executeQlCmd', cmd)"
-          >
-            <el-icon :size="16" :color="cmd.shell === 'powershell.exe' ? '#012456' : '#4cc2ff'">
-              <Monitor />
-            </el-icon>
-            <div class="ql-item-info">
-              <div class="ql-item-name">{{ cmd.name }}</div>
-              <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
-            </div>
-            <div class="ql-item-actions" @click.stop>
-              <el-icon class="action-icon" @click="$emit('executeQlCmd', cmd)"><VideoPlay /></el-icon>
-              <el-icon class="action-icon" @click="$emit('editQlCmd', cmd)"><Edit /></el-icon>
-              <el-icon class="action-icon" @click="$emit('deleteQlCmd', cmd)"><Delete /></el-icon>
-            </div>
-          </div>
-
-          <el-empty v-if="qlService.qlCmds.value.length === 0" description="暂无快速启动命令" :image-size="40" />
-        </div>
-      </div>
-
-      <div v-if="activeNav === 'tools'" class="sub-panel-content">
-        <div class="sub-panel-title">实用工具</div>
-        <div class="tool-sidebar-list">
-          <div class="tool-sidebar-item" @click="$emit('openTool', 'port', '网络端口')">
-            <el-icon :size="18" color="#409eff"><Connection /></el-icon>
-            <span class="tool-name">网络端口</span>
-            <el-icon class="tool-arrow"><ArrowRight /></el-icon>
-          </div>
-        </div>
-      </div>
+    <div
+      class="collapse-btn"
+      :title="panelCollapsed ? '展开面板' : '收起面板'"
+      @click="toggleCollapse"
+    >
+      <el-icon :size="12">
+        <DArrowLeft v-if="!panelCollapsed" />
+        <DArrowRight v-else />
+      </el-icon>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, inject } from 'vue'
-import {
-  Monitor, Plus,
-  Setting, Upload, Download, Refresh, Document, MoreFilled,
-  FolderAdd, ArrowDown, ArrowRight, Edit, Delete,
-  VideoPlay, Connection, Link
-} from '@element-plus/icons-vue'
-import ShortcutPanel from '../terminal/ShortcutPanel.vue'
-import HistoryPanel from '../terminal/HistoryPanel.vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { Setting, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import TerminalPanel from './panels/TerminalPanel.vue'
+import MyAppPanel from './panels/MyAppPanel.vue'
+import QuickLaunchPanel from './panels/QuickLaunchPanel.vue'
+import ToolsPanel from './panels/ToolsPanel.vue'
 
-const appService = inject('appService')
-const qlService = inject('qlService')
+const DEFAULT_PANEL_WIDTH = 240
+const MIN_PANEL_WIDTH = 120
+const MAX_PANEL_WIDTH = DEFAULT_PANEL_WIDTH
 
 const props = defineProps({
   activeNav: { type: String, required: true },
@@ -194,11 +96,10 @@ const props = defineProps({
   navItems: { type: Array, required: true }
 })
 
-const emit = defineEmits([
+defineEmits([
   'update:terminalSubTab',
   'switchNav',
-  'terminalQlExec',
-  'terminalHistoryExec',
+  'terminalCommand',
   'showAppImport',
   'showAddWebApp',
   'showBatchExport',
@@ -214,19 +115,63 @@ const emit = defineEmits([
   'openSettings'
 ])
 
-const localTerminalSubTab = computed({
-  get: () => props.terminalSubTab,
-  set: (val) => emit('update:terminalSubTab', val)
+const panelWidth = ref(DEFAULT_PANEL_WIDTH)
+const panelCollapsed = ref(false)
+const savedWidthBeforeCollapse = ref(DEFAULT_PANEL_WIDTH)
+
+let resizing = false
+let startX = 0
+let startWidth = 0
+
+const startResize = (e) => {
+  if (panelCollapsed.value) return
+  resizing = true
+  startX = e.clientX
+  startWidth = panelWidth.value
+  document.addEventListener('mousemove', onResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const onResize = (e) => {
+  if (!resizing) return
+  const delta = startX - e.clientX
+  let newWidth = startWidth - delta
+  newWidth = Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, newWidth))
+  panelWidth.value = newWidth
+}
+
+const stopResize = () => {
+  resizing = false
+  document.removeEventListener('mousemove', onResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
+const toggleCollapse = () => {
+  if (panelCollapsed.value) {
+    panelWidth.value = savedWidthBeforeCollapse.value
+    panelCollapsed.value = false
+  } else {
+    savedWidthBeforeCollapse.value = panelWidth.value
+    panelCollapsed.value = true
+    panelWidth.value = 0
+  }
+}
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onResize)
+  document.removeEventListener('mouseup', stopResize)
 })
 </script>
 
 <style scoped>
 .left-panel {
   display: flex;
-  width: auto;
   flex-shrink: 0;
   background-color: var(--bg-primary);
-  border-right: 1px solid var(--border-color);
 }
 
 .nav-column {
@@ -245,8 +190,6 @@ const localTerminalSubTab = computed({
   justify-content: center;
   border-bottom: 1px solid var(--border-color);
   width: 100%;
-  gap: 0;
-  flex-direction: column;
 }
 
 .logo-icon {
@@ -319,311 +262,52 @@ const localTerminalSubTab = computed({
 }
 
 .sub-panel {
-  width: 240px;
-  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
   overflow: hidden;
-}
-
-.sub-panel-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
-
-.sub-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 12px 0;
-}
-
-.sub-panel-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  padding: 12px 12px 0;
-}
-
-.sub-panel-header .sub-panel-title {
-  padding: 0;
-}
-
-.sub-panel-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  border-right: 1px solid var(--border-color);
+  transition: width 0.2s ease;
   flex-shrink: 0;
 }
 
-.sub-tabs {
+.sub-panel.collapsed {
+  width: 0 !important;
+  border-right: none;
+}
+
+.sub-panel-body {
   flex: 1;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  padding: 0 8px;
+  min-width: 0;
 }
 
-.sub-tabs :deep(.el-tabs__header) {
-  margin: 0;
-  flex-shrink: 0;
-}
-
-.sub-tabs :deep(.el-tabs__nav-wrap::after) {
-  background-color: var(--border-color);
-}
-
-.sub-tabs :deep(.el-tabs__item) {
-  color: var(--text-muted);
-  font-size: 12px;
-  padding: 0 12px;
-  height: 32px;
-  line-height: 32px;
-}
-
-.sub-tabs :deep(.el-tabs__item.is-active) {
-  color: var(--accent);
-}
-
-.sub-tabs :deep(.el-tabs__content) {
-  flex: 1;
-  overflow: hidden;
-  padding: 0;
-}
-
-.sub-tabs :deep(.el-tab-pane) {
-  height: 100%;
-  overflow: hidden;
-}
-
-.app-sidebar-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 8px;
-}
-
-.app-sidebar-list::-webkit-scrollbar {
+.resize-handle {
   width: 4px;
-}
-
-.app-sidebar-list::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb);
+  cursor: col-resize;
+  flex-shrink: 0;
+  background: transparent;
+  transition: background-color 0.15s;
   border-radius: 2px;
 }
 
-.app-sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-  position: relative;
+.resize-handle:hover {
+  background-color: var(--accent);
 }
 
-.app-sidebar-item:hover {
-  background-color: var(--bg-hover);
-}
-
-.app-sidebar-icon {
-  width: 36px;
-  height: 36px;
+.collapse-btn {
+  width: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  background-color: var(--bg-secondary);
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.app-sidebar-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.app-sidebar-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.app-sidebar-name {
-  font-size: 13px;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-sidebar-dir {
-  font-size: 11px;
-  color: var(--text-faint);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: 1px;
-}
-
-.app-sidebar-more {
+  cursor: pointer;
   color: var(--text-dimmed);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.app-sidebar-item:hover .app-sidebar-more {
-  opacity: 1;
-}
-
-.app-sidebar-more:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-active);
-}
-
-.ql-sidebar-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 8px;
-}
-
-.ql-sidebar-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.ql-sidebar-list::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb);
-  border-radius: 2px;
-}
-
-.ql-sidebar-group {
-  margin-bottom: 2px;
-}
-
-.ql-group-header {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: 4px;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.ql-group-header:hover {
-  background-color: var(--bg-hover);
-}
-
-.ql-group-header .group-name {
-  font-weight: 500;
-  flex: 1;
-}
-
-.ql-group-header .group-count {
-  color: var(--text-faint);
-  font-size: 11px;
-}
-
-.ql-group-items {
-  padding-left: 8px;
-}
-
-.ql-sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-
-.ql-sidebar-item:hover {
-  background-color: var(--bg-hover);
-}
-
-.ql-item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.ql-item-name {
-  font-size: 13px;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ql-item-cmd {
-  font-size: 11px;
-  color: var(--text-faint);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: Consolas, 'Courier New', monospace;
-  margin-top: 1px;
-}
-
-.ql-item-actions {
-  display: flex;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
+  background-color: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
   flex-shrink: 0;
-}
-
-.ql-sidebar-item:hover .ql-item-actions {
-  opacity: 1;
-}
-
-.action-icon {
-  cursor: pointer;
-  color: var(--text-muted);
-  padding: 2px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.action-icon:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-active);
-}
-
-.tool-sidebar-list {
-  padding: 8px;
-}
-
-.tool-sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text-secondary);
   transition: all 0.15s;
 }
 
-.tool-sidebar-item:hover {
-  background-color: var(--bg-hover);
+.collapse-btn:hover {
   color: var(--text-primary);
-}
-
-.tool-name {
-  flex: 1;
-  font-size: 13px;
-}
-
-.tool-arrow {
-  color: var(--text-dimmed);
-  font-size: 12px;
+  background-color: var(--bg-hover);
 }
 </style>
