@@ -41,13 +41,13 @@
           <span class="sub-panel-title">我的应用</span>
         </div>
         <div class="sub-panel-toolbar">
-          <el-button size="small" @click="$emit('showAddWebApp')" plain>
-            <el-icon><Link /></el-icon>
-            网页
-          </el-button>
           <el-button size="small" @click="$emit('showAppImport')" plain>
             <el-icon><Upload /></el-icon>
             导入
+          </el-button>
+          <el-button size="small" @click="$emit('showAddWebApp')" plain>
+            <el-icon><Link /></el-icon>
+            网页
           </el-button>
           <el-button size="small" @click="$emit('showBatchExport')" plain>
             <el-icon><Download /></el-icon>
@@ -57,15 +57,15 @@
             <el-icon><Refresh /></el-icon>
           </el-button>
         </div>
-        <div class="app-sidebar-list" v-loading="appsLoading">
+        <div class="app-sidebar-list" v-loading="appService.appsLoading.value">
           <div
-            v-for="app in apps"
+            v-for="app in appService.apps.value"
             :key="app.id"
             class="app-sidebar-item"
             @click="$emit('openApp', app)"
           >
             <div class="app-sidebar-icon">
-              <img v-if="app.iconPath" :src="getAppIconUrl(app)" alt="" />
+              <img v-if="app.iconPath" :src="appService.getAppIconUrl(app)" alt="" />
               <el-icon v-else-if="app.appType === 'web'" :size="22" color="#67c23a"><Link /></el-icon>
               <el-icon v-else :size="22" color="#409eff"><Document /></el-icon>
             </div>
@@ -86,7 +86,7 @@
               </template>
             </el-dropdown>
           </div>
-          <el-empty v-if="apps.length === 0 && !appsLoading" description="暂无应用" :image-size="40" />
+          <el-empty v-if="appService.apps.value.length === 0 && !appService.appsLoading.value" description="暂无应用" :image-size="40" />
         </div>
       </div>
 
@@ -104,18 +104,18 @@
           </el-button>
         </div>
         <div class="ql-sidebar-list">
-          <div v-for="group in qlGroups" :key="group.id" class="ql-sidebar-group">
-            <div class="ql-group-header" @click="$emit('toggleQlGroup', group.id)">
+          <div v-for="group in qlService.qlGroups.value" :key="group.id" class="ql-sidebar-group">
+            <div class="ql-group-header" @click="qlService.toggleQlGroup(group.id)">
               <el-icon>
-                <ArrowDown v-if="expandedQlGroups.has(group.id)" />
+                <ArrowDown v-if="qlService.expandedQlGroups.value.has(group.id)" />
                 <ArrowRight v-else />
               </el-icon>
               <span class="group-name">{{ group.name }}</span>
-              <span class="group-count">({{ getQlCmdCount(group.id) }})</span>
+              <span class="group-count">({{ qlService.getQlCmdCount(group.id) }})</span>
             </div>
-            <div v-show="expandedQlGroups.has(group.id)" class="ql-group-items">
+            <div v-show="qlService.expandedQlGroups.value.has(group.id)" class="ql-group-items">
               <div
-                v-for="cmd in getQlCmdsByGroup(group.id)"
+                v-for="cmd in qlService.getQlCmdsByGroup(group.id)"
                 :key="cmd.id"
                 class="ql-sidebar-item"
                 @dblclick="$emit('executeQlCmd', cmd)"
@@ -137,7 +137,7 @@
           </div>
 
           <div
-            v-for="cmd in ungroupedQlCmds"
+            v-for="cmd in qlService.ungroupedQlCmds.value"
             :key="cmd.id"
             class="ql-sidebar-item"
             @dblclick="$emit('executeQlCmd', cmd)"
@@ -156,7 +156,7 @@
             </div>
           </div>
 
-          <el-empty v-if="qlCmds.length === 0" description="暂无快速启动命令" :image-size="40" />
+          <el-empty v-if="qlService.qlCmds.value.length === 0" description="暂无快速启动命令" :image-size="40" />
         </div>
       </div>
 
@@ -175,9 +175,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import {
-  Monitor, Grid, Promotion, SetUp, Plus,
+  Monitor, Plus,
   Setting, Upload, Download, Refresh, Document, MoreFilled,
   FolderAdd, ArrowDown, ArrowRight, Edit, Delete,
   VideoPlay, Connection, Link
@@ -185,20 +185,13 @@ import {
 import ShortcutPanel from '../terminal/ShortcutPanel.vue'
 import HistoryPanel from '../terminal/HistoryPanel.vue'
 
+const appService = inject('appService')
+const qlService = inject('qlService')
+
 const props = defineProps({
   activeNav: { type: String, required: true },
-  activeTabId: { type: String, default: '' },
   terminalSubTab: { type: String, default: 'shortcuts' },
-  navItems: { type: Array, required: true },
-  apps: { type: Array, default: () => [] },
-  appsLoading: { type: Boolean, default: false },
-  getAppIconUrl: { type: Function, default: () => '' },
-  qlGroups: { type: Array, default: () => [] },
-  qlCmds: { type: Array, default: () => [] },
-  expandedQlGroups: { type: Set, default: () => new Set() },
-  ungroupedQlCmds: { type: Array, default: () => [] },
-  getQlCmdsByGroup: { type: Function, default: () => [] },
-  getQlCmdCount: { type: Function, default: () => 0 }
+  navItems: { type: Array, required: true }
 })
 
 const emit = defineEmits([
@@ -214,7 +207,6 @@ const emit = defineEmits([
   'handleAppCmd',
   'showQlAddDialog',
   'showQlGroupDialog',
-  'toggleQlGroup',
   'executeQlCmd',
   'editQlCmd',
   'deleteQlCmd',
