@@ -9,6 +9,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.6.2",
+    "unplugin-auto-import": "^0.17.8",
+    "unplugin-vue-components": "^0.27.5",
     "vite": "^4.5.14"
   },
   "dependencies": {

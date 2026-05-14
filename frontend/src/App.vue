@@ -187,15 +187,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, nextTick, watch, defineAsyncComponent } from 'vue'
 import { Monitor, Grid, Promotion, SetUp, Close, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TerminalTab from './views/terminal/TerminalTab.vue'
 import QuickLaunchTab from './views/quicklaunch/QuickLaunchTab.vue'
-import SettingsDialog from './views/settings/SettingsDialog.vue'
-import ToolsPage from './views/tools/ToolsPage.vue'
+const SettingsDialog = defineAsyncComponent(() => import('./views/settings/SettingsDialog.vue'))
+const ToolsPage = defineAsyncComponent(() => import('./views/tools/ToolsPage.vue'))
 import AppSidebar from './views/app/AppSidebar.vue'
-import AppDialogs from './views/app/AppDialogs.vue'
+const AppDialogs = defineAsyncComponent(() => import('./views/app/AppDialogs.vue'))
 import SearchBar from './components/SearchBar.vue'
 import { searchInContainer, findNextInContainer, findPrevInContainer, clearHighlights } from './utils/domSearch'
 import { useAppTabs } from './composables/useAppTabs'
