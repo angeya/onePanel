@@ -339,6 +339,52 @@ onMounted(() => {
   --el-pagination-bg-color: transparent;
   --el-pagination-text-color: var(--text-muted);
   --el-pagination-button-bg-color: var(--bg-tertiary);
+  --el-pagination-button-color: var(--text-muted);
   --el-pagination-hover-color: var(--accent);
+  --el-pagination-button-disabled-bg-color: var(--bg-tertiary);
+  --el-pagination-button-disabled-color: var(--text-faint);
+}
+
+.pagination-area :deep(.el-pager li) {
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+.pagination-area :deep(.el-pager li:hover) {
+  color: var(--accent);
+}
+
+.pagination-area :deep(.el-pager li.is-active) {
+  background-color: var(--accent);
+  color: #fff;
+}
+
+.pagination-area :deep(.el-pagination__jump) {
+  color: var(--text-muted);
+}
+
+.pagination-area :deep(.el-pagination__sizes .el-input__wrapper) {
+  background-color: var(--bg-tertiary);
+  box-shadow: 0 0 0 1px var(--border-light) inset;
+  color: var(--text-muted);
+}
+
+.pagination-area :deep(.el-pagination__sizes .el-input__inner) {
+  color: var(--text-muted);
+}
+
+.pagination-area :deep(.el-pagination__total) {
+  color: var(--text-muted);
+}
+
+.pagination-area :deep(.el-pagination__jump .el-input__wrapper) {
+  background-color: var(--bg-tertiary);
+  box-shadow: 0 0 0 1px var(--border-light) inset;
+}
+
+.pagination-area :deep(.el-pagination__jump .el-input__inner) {
+  color: var(--text-muted);
 }
 </style>
