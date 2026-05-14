@@ -66,6 +66,9 @@ const (
 
 	IMAGE_ICON      = 1
 	LR_LOADFROMFILE = 0x00000010
+	LR_DEFAULTSIZE  = 0x00000040
+	LR_SHARED       = 0x00008000
+	MAKEINTRESOURCE = 1
 )
 
 type NOTIFYICONDATA struct {
@@ -294,7 +297,13 @@ func (t *TrayManager) showContextMenu() {
 func (t *TrayManager) loadIcon() syscall.Handle {
 	hInstance, _, _ := procGetModuleHandleW.Call(0)
 
-	hIcon, _, _ := procLoadIconW.Call(hInstance, uintptr(1))
+	hIcon, _, _ := procLoadImageW.Call(
+		hInstance,
+		MAKEINTRESOURCE,
+		IMAGE_ICON,
+		0, 0,
+		LR_DEFAULTSIZE|LR_SHARED,
+	)
 	if hIcon != 0 {
 		return syscall.Handle(hIcon)
 	}
@@ -307,14 +316,14 @@ func (t *TrayManager) loadIcon() syscall.Handle {
 			uintptr(unsafe.Pointer(iconPathPtr)),
 			IMAGE_ICON,
 			0, 0,
-			LR_LOADFROMFILE,
+			LR_LOADFROMFILE|LR_DEFAULTSIZE,
 		)
 		if hIcon != 0 {
 			return syscall.Handle(hIcon)
 		}
 	}
 
-	hIcon, _, _ = procLoadIconW.Call(0, uintptr(0x7F00)) // IDI_APPLICATION
+	hIcon, _, _ = procLoadIconW.Call(0, uintptr(0x7F00))
 	return syscall.Handle(hIcon)
 }
 
