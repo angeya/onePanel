@@ -12,8 +12,9 @@ import (
  * 提供窗口控制、文件对话框等前端可调用方法
  */
 type App struct {
-	ctx context.Context
-	db  *Database
+	ctx       context.Context
+	db        *Database
+	forceQuit bool
 }
 
 /**
@@ -49,6 +50,7 @@ func (a *App) HideWindow() {
  * 通知前端即将关闭，前端完成清理后真正退出
  */
 func (a *App) QuitApp() {
+	a.forceQuit = true
 	runtime.Quit(a.ctx)
 }
 

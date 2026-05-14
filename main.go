@@ -49,7 +49,7 @@ func main() {
 			tray = NewTrayManager(func() {
 				runtime.WindowShow(app.ctx)
 			}, func() {
-				runtime.Quit(app.ctx)
+				app.QuitApp()
 			})
 			tray.Start()
 
@@ -61,6 +61,9 @@ func main() {
 			}
 		},
 		OnBeforeClose: func(ctx context.Context) bool {
+			if app.forceQuit {
+				return false
+			}
 			closeAction := app.GetCloseAction()
 			if closeAction == "" {
 				runtime.EventsEmit(ctx, "close-requested")
