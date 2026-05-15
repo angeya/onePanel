@@ -1,9 +1,6 @@
 <template>
   <div class="left-panel">
     <div class="nav-column">
-      <div class="nav-logo">
-        <img src="../../assets/images/appicon.png" alt="oneWin" class="logo-icon" />
-      </div>
       <div class="nav-menu">
         <div
           v-for="item in navItems"
@@ -11,7 +8,7 @@
           class="nav-item"
           :class="{ active: activeNav === item.key }"
           :title="item.label"
-          @click="$emit('switchNav', item.key)"
+          @click="switchNav(item.key)"
         >
           <el-icon :size="20"><component :is="item.icon" /></el-icon>
         </div>
@@ -41,14 +38,12 @@
         <ToolsPanel v-if="activeNav === 'tools'" />
       </div>
 
-      <div
-        class="resize-handle"
+      <div class="resize-handle"
         @mousedown.prevent="startResize"
       />
     </div>
 
-    <div
-      class="collapse-btn"
+    <div class="collapse-btn"
       :title="panelCollapsed ? '展开面板' : '收起面板'"
       @click="toggleCollapse"
     >
@@ -68,6 +63,7 @@ import MyAppPanel from './MyAppPanel.vue'
 import QuickLaunchPanel from './QuickLaunchPanel.vue'
 import ToolsPanel from './ToolsPanel.vue'
 
+// 面板宽度范围
 const DEFAULT_PANEL_WIDTH = 240
 const MIN_PANEL_WIDTH = 120
 const MAX_PANEL_WIDTH = DEFAULT_PANEL_WIDTH
@@ -78,7 +74,7 @@ const props = defineProps({
   navItems: { type: Array, required: true }
 })
 
-defineEmits([
+const emits = defineEmits([
   'update:terminalSubTab',
   'switchNav',
   'terminalCommand'
@@ -94,8 +90,26 @@ let resizing = false
 let startX = 0
 let startWidth = 0
 
+
+/**
+ * 切换导航面板
+ * @param {string} navKey - 导航项键名
+ */
+const switchNav = (navKey) => {
+  emits('switchNav', navKey)
+  if (panelCollapsed.value) {
+    toggleCollapse()
+  }
+}
+
+/**
+ * 开始调整面板宽度
+ * @param {MouseEvent} e - 鼠标事件
+ */
 const startResize = (e) => {
-  if (panelCollapsed.value) return
+  if (panelCollapsed.value) {
+    return
+  }
   resizing = true
   startX = e.clientX
   startWidth = panelWidth.value
@@ -105,6 +119,10 @@ const startResize = (e) => {
   document.body.style.userSelect = 'none'
 }
 
+/**
+ * 调整面板宽度
+ * @param {MouseEvent} e - 鼠标事件
+ */
 const onResize = (e) => {
   if (!resizing) return
   const delta = startX - e.clientX
@@ -113,6 +131,9 @@ const onResize = (e) => {
   panelWidth.value = newWidth
 }
 
+/**
+ * 停止调整面板宽度
+ */
 const stopResize = () => {
   resizing = false
   document.removeEventListener('mousemove', onResize)
@@ -121,6 +142,9 @@ const stopResize = () => {
   document.body.style.userSelect = ''
 }
 
+/**
+ * 切换面板折叠状态
+ */
 const toggleCollapse = () => {
   if (panelCollapsed.value) {
     panelWidth.value = savedWidthBeforeCollapse.value
@@ -132,6 +156,9 @@ const toggleCollapse = () => {
   }
 }
 
+/**
+ * 组件卸载时移除事件监听
+ */
 onUnmounted(() => {
   document.removeEventListener('mousemove', onResize)
   document.removeEventListener('mouseup', stopResize)
@@ -265,7 +292,7 @@ onUnmounted(() => {
 }
 
 .collapse-btn {
-  width: 16px;
+  width: 12px;
   display: flex;
   align-items: center;
   justify-content: center;

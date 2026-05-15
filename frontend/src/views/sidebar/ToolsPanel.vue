@@ -5,7 +5,6 @@
       <div class="tool-item" @click="addToolTab('port', '网络端口')">
         <el-icon :size="18" color="#409eff"><Connection /></el-icon>
         <span class="tool-name">网络端口</span>
-        <el-icon class="tool-arrow"><ArrowRight /></el-icon>
       </div>
     </div>
   </div>
@@ -13,7 +12,7 @@
 
 <script setup>
 import { inject } from 'vue'
-import { Connection, ArrowRight } from '@element-plus/icons-vue'
+import { Connection } from '@element-plus/icons-vue'
 
 const addToolTab = inject('addToolTab')
 </script>
