@@ -1,7 +1,6 @@
 <template>
   <el-dialog
-    :model-value="visible"
-    @update:model-value="$emit('update:visible', $event)"
+    v-model="visible"
     title="系统设置"
     width="480px"
     :close-on-click-modal="false"
@@ -72,18 +71,12 @@ import { ElMessage } from 'element-plus'
 import { GetSetting, SetSetting } from '../../../wailsjs/go/main/SettingService'
 import { GetCloseAction, SetCloseAction } from '../../../wailsjs/go/main/App'
 
-const props = defineProps({
-  visible: { type: Boolean, default: false },
-  theme: { type: String, default: 'dark' },
-  shell: { type: String, default: 'cmd.exe' },
-  closeAction: { type: String, default: '' }
-})
+const emit = defineEmits(['themeChange', 'shellChange', 'closeActionChange'])
 
-const emit = defineEmits(['update:visible', 'themeChange', 'shellChange', 'closeActionChange'])
-
-const currentTheme = ref(props.theme)
-const defaultShell = ref(props.shell)
-const currentCloseAction = ref(props.closeAction)
+const visible = ref(false)
+const currentTheme = ref('dark')
+const defaultShell = ref('cmd.exe')
+const currentCloseAction = ref('')
 
 const themes = [
   {
@@ -120,9 +113,6 @@ const themes = [
   }
 ]
 
-/**
- * 切换主题
- */
 const changeTheme = async (key) => {
   currentTheme.value = key
   try {
@@ -133,9 +123,6 @@ const changeTheme = async (key) => {
   }
 }
 
-/**
- * 保存默认终端
- */
 const saveDefaultShell = async (val) => {
   try {
     await SetSetting('default_shell', val)
@@ -145,9 +132,6 @@ const saveDefaultShell = async (val) => {
   }
 }
 
-/**
- * 保存关闭行为设置
- */
 const saveCloseAction = async (val) => {
   try {
     await SetCloseAction(val)
@@ -158,9 +142,6 @@ const saveCloseAction = async (val) => {
   }
 }
 
-/**
- * 复制邮箱地址
- */
 const copyEmail = async () => {
   try {
     await navigator.clipboard.writeText('1571858518@qq.com')
@@ -170,9 +151,6 @@ const copyEmail = async () => {
   }
 }
 
-/**
- * 加载设置
- */
 const loadSettings = async () => {
   try {
     const theme = await GetSetting('theme')
@@ -188,16 +166,12 @@ const loadSettings = async () => {
   }
 }
 
-/**
- * 打开时同步最新设置
- */
-const handleOpen = () => {
-  currentTheme.value = props.theme
-  defaultShell.value = props.shell
-  currentCloseAction.value = props.closeAction
+const open = async () => {
+  await loadSettings()
+  visible.value = true
 }
 
-defineExpose({ loadSettings, handleOpen })
+defineExpose({ loadSettings, open })
 </script>
 
 <style scoped>

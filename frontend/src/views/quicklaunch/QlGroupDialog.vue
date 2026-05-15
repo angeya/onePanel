@@ -1,14 +1,14 @@
 <template>
-  <el-dialog :model-value="qlGroupDialogVisible" @update:model-value="$emit('update:qlGroupDialogVisible', $event)" title="管理分组" width="420px" :close-on-click-modal="false">
+  <el-dialog v-model="visible" title="管理分组" width="420px" :close-on-click-modal="false">
     <div class="group-manage">
       <div class="group-add-row">
-        <el-input :model-value="newGroupName" @update:model-value="$emit('update:newGroupName', $event)" placeholder="输入分组名称" @keyup.enter="$emit('addQlGroup')" />
-        <el-button type="primary" @click="$emit('addQlGroup')">添加</el-button>
+        <el-input v-model="newGroupName" placeholder="输入分组名称" @keyup.enter="handleAddGroup" />
+        <el-button type="primary" @click="handleAddGroup">添加</el-button>
       </div>
       <div class="group-list">
         <div v-for="group in qlGroups" :key="group.id" class="group-manage-item">
           <span>{{ group.name }}</span>
-          <el-icon class="action-icon" @click="$emit('deleteQlGroup', group)"><Delete /></el-icon>
+          <el-icon class="action-icon" @click="handleDeleteGroup(group)"><Delete /></el-icon>
         </div>
         <el-empty v-if="qlGroups.length === 0" description="暂无分组" :image-size="40" />
       </div>
@@ -17,20 +17,31 @@
 </template>
 
 <script setup>
+import { ref, computed, inject } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
 
-defineProps({
-  qlGroupDialogVisible: { type: Boolean, default: false },
-  qlGroups: { type: Array, default: () => [] },
-  newGroupName: { type: String, default: '' }
-})
+const qlService = inject('qlService')
 
-defineEmits([
-  'update:qlGroupDialogVisible',
-  'update:newGroupName',
-  'addQlGroup',
-  'deleteQlGroup'
-])
+const visible = ref(false)
+const newGroupName = ref('')
+
+const qlGroups = computed(() => qlService.qlGroups.value)
+
+const open = () => {
+  newGroupName.value = ''
+  visible.value = true
+}
+
+const handleAddGroup = async () => {
+  const ok = await qlService.addQlGroup(newGroupName.value)
+  if (ok) newGroupName.value = ''
+}
+
+const handleDeleteGroup = (group) => {
+  qlService.deleteQlGroup(group)
+}
+
+defineExpose({ open })
 </script>
 
 <style scoped>

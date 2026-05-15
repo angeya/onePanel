@@ -109,11 +109,6 @@
 
     <SettingsDialog
       ref="settingsRef"
-      :visible="settingsVisible"
-      :theme="currentTheme"
-      :shell="defaultShell"
-      :close-action="closeAction"
-      @update:visible="settingsVisible = $event"
       @theme-change="changeTheme"
       @shell-change="changeDefaultShell"
       @close-action-change="changeCloseAction"
@@ -155,7 +150,6 @@ const terminalSubTab = ref('shortcuts')
 const quickLaunchTabRef = ref(null)
 const myAppDialogsRef = ref(null)
 const quickLaunchDialogsRef = ref(null)
-const settingsVisible = ref(false)
 const settingsRef = ref(null)
 
 const { currentTheme, changeTheme, loadTheme } = useTheme()
@@ -216,8 +210,7 @@ const openAppHandler = (app) => {
 }
 
 const openSettings = () => {
-  if (settingsRef.value) settingsRef.value.handleOpen()
-  settingsVisible.value = true
+  if (settingsRef.value) settingsRef.value.open()
 }
 
 const handleTabMouseDown = (event, tab) => {
