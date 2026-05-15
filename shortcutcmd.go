@@ -9,7 +9,7 @@ import (
 
 /**
  * ShortcutCmdService 快速启动命令服务
- * 负责快速启动功能的分组管理、命令 CRUD 和命令执行
+ * 负责快速启动功能的分类管理、命令 CRUD 和命令执行
  * 通过依赖注入持有 Database 引用
  */
 type ShortcutCmdService struct {
@@ -25,45 +25,45 @@ func NewShortcutCmdService(db *Database) *ShortcutCmdService {
 }
 
 /**
- * 获取所有快捷命令分组
+ * 获取所有快捷命令分类
  * 按排序字段和 ID 升序排列
  */
-func (s *ShortcutCmdService) GetGroups() ([]ShortcutCmdGroup, error) {
-	rows, err := s.db.DB().Query("SELECT id, name, sort_order, created_at, updated_at FROM shortcut_cmd_group ORDER BY sort_order, id")
+func (s *ShortcutCmdService) GetCategories() ([]ShortcutCmdCategory, error) {
+	rows, err := s.db.DB().Query("SELECT id, name, sort_order, created_at, updated_at FROM shortcut_cmd_category ORDER BY sort_order, id")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var groups []ShortcutCmdGroup
+	var categories []ShortcutCmdCategory
 	for rows.Next() {
-		var g ShortcutCmdGroup
-		if err := rows.Scan(&g.Id, &g.Name, &g.SortOrder, &g.CreatedAt, &g.UpdatedAt); err != nil {
+		var c ShortcutCmdCategory
+		if err := rows.Scan(&c.Id, &c.Name, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, err
 		}
-		groups = append(groups, g)
+		categories = append(categories, c)
 	}
-	if groups == nil {
-		groups = []ShortcutCmdGroup{}
+	if categories == nil {
+		categories = []ShortcutCmdCategory{}
 	}
-	return groups, nil
+	return categories, nil
 }
 
 /**
- * 创建快捷命令分组
+ * 创建快捷命令分类
  */
-func (s *ShortcutCmdService) CreateGroup(name string, sortOrder int) (*ShortcutCmdGroup, error) {
+func (s *ShortcutCmdService) CreateCategory(name string, sortOrder int) (*ShortcutCmdCategory, error) {
 	now := NowFormatted()
 	result, err := s.db.DB().Exec(
-		"INSERT INTO shortcut_cmd_group (name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?)",
+		"INSERT INTO shortcut_cmd_category (name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?)",
 		name, sortOrder, now, now,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("创建分组失败: %w", err)
+		return nil, fmt.Errorf("创建分类失败: %w", err)
 	}
 
 	id, _ := result.LastInsertId()
-	return &ShortcutCmdGroup{
+	return &ShortcutCmdCategory{
 		Id:        id,
 		Name:      name,
 		SortOrder: sortOrder,
@@ -73,22 +73,22 @@ func (s *ShortcutCmdService) CreateGroup(name string, sortOrder int) (*ShortcutC
 }
 
 /**
- * 更新快捷命令分组
+ * 更新快捷命令分类
  */
-func (s *ShortcutCmdService) UpdateGroup(id int64, name string, sortOrder int) error {
+func (s *ShortcutCmdService) UpdateCategory(id int64, name string, sortOrder int) error {
 	now := NowFormatted()
 	_, err := s.db.DB().Exec(
-		"UPDATE shortcut_cmd_group SET name = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+		"UPDATE shortcut_cmd_category SET name = ?, sort_order = ?, updated_at = ? WHERE id = ?",
 		name, sortOrder, now, id,
 	)
 	return err
 }
 
 /**
- * 删除快捷命令分组
+ * 删除快捷命令分类
  */
-func (s *ShortcutCmdService) DeleteGroup(id int64) error {
-	_, err := s.db.DB().Exec("DELETE FROM shortcut_cmd_group WHERE id = ?", id)
+func (s *ShortcutCmdService) DeleteCategory(id int64) error {
+	_, err := s.db.DB().Exec("DELETE FROM shortcut_cmd_category WHERE id = ?", id)
 	return err
 }
 
@@ -98,7 +98,7 @@ func (s *ShortcutCmdService) DeleteGroup(id int64) error {
  */
 func (s *ShortcutCmdService) GetCommands() ([]ShortcutCmd, error) {
 	rows, err := s.db.DB().Query(
-		"SELECT id, group_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_cmd ORDER BY sort_order, id",
+		"SELECT id, category_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_cmd ORDER BY sort_order, id",
 	)
 	if err != nil {
 		return nil, err
@@ -108,12 +108,12 @@ func (s *ShortcutCmdService) GetCommands() ([]ShortcutCmd, error) {
 	var commands []ShortcutCmd
 	for rows.Next() {
 		var cmd ShortcutCmd
-		var groupId sql.NullInt64
-		if err := rows.Scan(&cmd.Id, &groupId, &cmd.Name, &cmd.Shell, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt); err != nil {
+		var categoryId sql.NullInt64
+		if err := rows.Scan(&cmd.Id, &categoryId, &cmd.Name, &cmd.Shell, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt); err != nil {
 			return nil, err
 		}
-		if groupId.Valid {
-			cmd.GroupId = &groupId.Int64
+		if categoryId.Valid {
+			cmd.CategoryId = &categoryId.Int64
 		}
 		commands = append(commands, cmd)
 	}
@@ -124,12 +124,12 @@ func (s *ShortcutCmdService) GetCommands() ([]ShortcutCmd, error) {
 }
 
 /**
- * 根据分组获取快捷命令
+ * 根据分类获取快捷命令
  */
-func (s *ShortcutCmdService) GetCommandsByGroup(groupId int64) ([]ShortcutCmd, error) {
+func (s *ShortcutCmdService) GetCommandsByCategory(categoryId int64) ([]ShortcutCmd, error) {
 	rows, err := s.db.DB().Query(
-		"SELECT id, group_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_cmd WHERE group_id = ? ORDER BY sort_order, id",
-		groupId,
+		"SELECT id, category_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_cmd WHERE category_id = ? ORDER BY sort_order, id",
+		categoryId,
 	)
 	if err != nil {
 		return nil, err
@@ -139,12 +139,12 @@ func (s *ShortcutCmdService) GetCommandsByGroup(groupId int64) ([]ShortcutCmd, e
 	var commands []ShortcutCmd
 	for rows.Next() {
 		var cmd ShortcutCmd
-		var gId sql.NullInt64
-		if err := rows.Scan(&cmd.Id, &gId, &cmd.Name, &cmd.Shell, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt); err != nil {
+		var cId sql.NullInt64
+		if err := rows.Scan(&cmd.Id, &cId, &cmd.Name, &cmd.Shell, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt); err != nil {
 			return nil, err
 		}
-		if gId.Valid {
-			cmd.GroupId = &gId.Int64
+		if cId.Valid {
+			cmd.CategoryId = &cId.Int64
 		}
 		commands = append(commands, cmd)
 	}
@@ -158,18 +158,18 @@ func (s *ShortcutCmdService) GetCommandsByGroup(groupId int64) ([]ShortcutCmd, e
  * 创建快捷命令
  * shell 为空时默认使用 cmd.exe
  */
-func (s *ShortcutCmdService) CreateCommand(groupId *int64, name, shell, workDir, commands string, sortOrder int) (*ShortcutCmd, error) {
+func (s *ShortcutCmdService) CreateCommand(categoryId *int64, name, shell, workDir, commands string, sortOrder int) (*ShortcutCmd, error) {
 	now := NowFormatted()
 	shell = DefaultShell(shell)
 
-	var gId sql.NullInt64
-	if groupId != nil {
-		gId = sql.NullInt64{Int64: *groupId, Valid: true}
+	var cId sql.NullInt64
+	if categoryId != nil {
+		cId = sql.NullInt64{Int64: *categoryId, Valid: true}
 	}
 
 	result, err := s.db.DB().Exec(
-		"INSERT INTO shortcut_cmd (group_id, name, shell, work_dir, commands, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		gId, name, shell, workDir, commands, sortOrder, now, now,
+		"INSERT INTO shortcut_cmd (category_id, name, shell, work_dir, commands, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		cId, name, shell, workDir, commands, sortOrder, now, now,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("创建快捷命令失败: %w", err)
@@ -177,33 +177,33 @@ func (s *ShortcutCmdService) CreateCommand(groupId *int64, name, shell, workDir,
 
 	id, _ := result.LastInsertId()
 	return &ShortcutCmd{
-		Id:        id,
-		GroupId:   groupId,
-		Name:      name,
-		Shell:     shell,
-		WorkDir:   workDir,
-		Commands:  commands,
-		SortOrder: sortOrder,
-		CreatedAt: now,
-		UpdatedAt: now,
+		Id:         id,
+		CategoryId: categoryId,
+		Name:       name,
+		Shell:      shell,
+		WorkDir:    workDir,
+		Commands:   commands,
+		SortOrder:  sortOrder,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}, nil
 }
 
 /**
  * 更新快捷命令
  */
-func (s *ShortcutCmdService) UpdateCommand(id int64, groupId *int64, name, shell, workDir, commands string, sortOrder int) error {
+func (s *ShortcutCmdService) UpdateCommand(id int64, categoryId *int64, name, shell, workDir, commands string, sortOrder int) error {
 	now := NowFormatted()
 	shell = DefaultShell(shell)
 
-	var gId sql.NullInt64
-	if groupId != nil {
-		gId = sql.NullInt64{Int64: *groupId, Valid: true}
+	var cId sql.NullInt64
+	if categoryId != nil {
+		cId = sql.NullInt64{Int64: *categoryId, Valid: true}
 	}
 
 	_, err := s.db.DB().Exec(
-		"UPDATE shortcut_cmd SET group_id = ?, name = ?, shell = ?, work_dir = ?, commands = ?, sort_order = ?, updated_at = ? WHERE id = ?",
-		gId, name, shell, workDir, commands, sortOrder, now, id,
+		"UPDATE shortcut_cmd SET category_id = ?, name = ?, shell = ?, work_dir = ?, commands = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+		cId, name, shell, workDir, commands, sortOrder, now, id,
 	)
 	return err
 }
@@ -222,11 +222,11 @@ func (s *ShortcutCmdService) DeleteCommand(id int64) error {
  */
 func (s *ShortcutCmdService) ExecuteCommand(id int64) error {
 	var cmd ShortcutCmd
-	var groupId sql.NullInt64
+	var categoryId sql.NullInt64
 	err := s.db.DB().QueryRow(
-		"SELECT id, group_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_cmd WHERE id = ?",
+		"SELECT id, category_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_cmd WHERE id = ?",
 		id,
-	).Scan(&cmd.Id, &groupId, &cmd.Name, &cmd.Shell, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt)
+	).Scan(&cmd.Id, &categoryId, &cmd.Name, &cmd.Shell, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("快捷命令不存在: %w", err)
 	}

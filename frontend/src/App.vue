@@ -14,7 +14,7 @@
       @open-app="openAppHandler"
       @handle-app-cmd="(cmd, app) => myAppDialogsRef.handleAppCmd(cmd, app)"
       @show-ql-add-dialog="quickLaunchDialogsRef.showQlAddDialog()"
-      @show-ql-group-dialog="quickLaunchDialogsRef.showQlGroupDialog()"
+      @show-ql-category-dialog="quickLaunchDialogsRef.showQlCategoryDialog()"
       @execute-ql-cmd="executeQlCmdWithRef"
       @edit-ql-cmd="(cmd) => quickLaunchDialogsRef.editQlCmd(cmd)"
       @delete-ql-cmd="qlService.deleteQlCmd"
@@ -104,7 +104,7 @@
       </template>
     </div>
 
-    <MyAppDialogs ref="myAppDialogsRef" />
+    <MyApp ref="myAppDialogsRef" />
     <QuickLaunchDialogs ref="quickLaunchDialogsRef" />
 
     <SettingsDialog
@@ -113,21 +113,22 @@
       @shell-change="changeDefaultShell"
       @close-action-change="changeCloseAction"
     />
+    <CloseActionDialog ref="closeActionDialogRef" />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch, provide, defineAsyncComponent } from 'vue'
 import { Monitor, Grid, Promotion, SetUp, Close, Plus } from '@element-plus/icons-vue'
-import { ElMessageBox } from 'element-plus'
 import TerminalTab from './views/terminal/TerminalTab.vue'
 import QuickLaunchTab from './views/quicklaunch/QuickLaunchTab.vue'
 const SettingsDialog = defineAsyncComponent(() => import('./views/settings/SettingsDialog.vue'))
 const NetworkPortList = defineAsyncComponent(() => import('./views/tools/NetworkPortList.vue'))
 import Sidebar from './views/sidebar/Sidebar.vue'
-const MyAppDialogs = defineAsyncComponent(() => import('./views/myapp/MyAppDialogs.vue'))
+const MyApp = defineAsyncComponent(() => import('./views/myapp/MyApp.vue'))
 const QuickLaunchDialogs = defineAsyncComponent(() => import('./views/quicklaunch/QuickLaunchDialogs.vue'))
 import SearchBar from './components/SearchBar.vue'
+import CloseActionDialog from './components/CloseActionDialog.vue'
 import { searchInContainer, findNextInContainer, findPrevInContainer, clearHighlights } from './utils/domSearch'
 import { useAppTabs } from './composables/useAppTabs'
 import { useAppService } from './composables/useAppService'
@@ -151,6 +152,7 @@ const quickLaunchTabRef = ref(null)
 const myAppDialogsRef = ref(null)
 const quickLaunchDialogsRef = ref(null)
 const settingsRef = ref(null)
+const closeActionDialogRef = ref(null)
 
 const { currentTheme, changeTheme, loadTheme } = useTheme()
 const { defaultShell, closeAction, changeDefaultShell, changeCloseAction, loadSettings } = useSettings()
@@ -176,7 +178,7 @@ const switchNav = (key) => {
     appService.loadServerStatus()
   } else if (key === 'shortcuts') {
     qlService.loadQlCmds()
-    qlService.loadQlGroups()
+    qlService.loadQlCategories()
   }
 }
 
@@ -362,26 +364,14 @@ const handleSearchResult = (event) => {
 }
 
 const handleCloseRequested = async () => {
-  try {
-    await ElMessageBox.confirm(
-      '您可以选择关闭窗口时的行为，后续可在系统设置中修改。',
-      '关闭行为',
-      {
-        confirmButtonText: '最小化到托盘',
-        cancelButtonText: '直接退出',
-        distinguishCancelAndClose: true,
-        closeOnClickModal: false,
-        closeOnPressEscape: false,
-        type: 'info'
-      }
-    )
-    await changeCloseAction('tray')
+  const result = await closeActionDialogRef.value.open()
+  if (result.dontAsk) {
+    await changeCloseAction(result.action)
+  }
+  if (result.action === 'tray') {
     HideWindow()
-  } catch (action) {
-    if (action === 'cancel') {
-      await changeCloseAction('close')
-      QuitApp()
-    }
+  } else {
+    QuitApp()
   }
 }
 
@@ -389,7 +379,7 @@ onMounted(async () => {
   await Promise.all([loadTheme(), loadSettings()])
   addTerminalTab(defaultShell.value)
   appService.loadApps()
-  qlService.loadQlGroups()
+  qlService.loadQlCategories()
   qlService.loadQlCmds()
   window.addEventListener('keydown', handleGlobalKeyDown, true)
   window.addEventListener('tab-search-result', handleSearchResult)

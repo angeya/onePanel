@@ -1,17 +1,17 @@
 <template>
   <div>
     <QlCmdDialog ref="qlCmdRef" />
-    <QlGroupDialog ref="qlGroupRef" />
+    <QlCategoryDialog ref="qlCategoryRef" />
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import QlCmdDialog from './QlCmdDialog.vue'
-import QlGroupDialog from './QlGroupDialog.vue'
+import QlCategoryDialog from './QlCategoryDialog.vue'
 
 const qlCmdRef = ref(null)
-const qlGroupRef = ref(null)
+const qlCategoryRef = ref(null)
 
 const showQlAddDialog = () => {
   qlCmdRef.value.openAdd()
@@ -21,13 +21,13 @@ const editQlCmd = (cmd) => {
   qlCmdRef.value.openEdit(cmd)
 }
 
-const showQlGroupDialog = () => {
-  qlGroupRef.value.open()
+const showQlCategoryDialog = () => {
+  qlCategoryRef.value.open()
 }
 
 defineExpose({
   showQlAddDialog,
   editQlCmd,
-  showQlGroupDialog
+  showQlCategoryDialog
 })
 </script>

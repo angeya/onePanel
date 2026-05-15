@@ -56,10 +56,10 @@ type ShortcutCommand struct {
 }
 
 /**
- * 快速启动命令分组模型
- * 对应 shortcut_cmd_group 表，用于快速启动功能的命令分组
+ * 快速启动命令分类模型
+ * 对应 shortcut_cmd_category 表，用于快速启动功能的命令分类
  */
-type ShortcutCmdGroup struct {
+type ShortcutCmdCategory struct {
 	Id        int64  `json:"id"`
 	Name      string `json:"name"`
 	SortOrder int    `json:"sortOrder"`
@@ -72,15 +72,15 @@ type ShortcutCmdGroup struct {
  * 对应 shortcut_cmd 表，快速启动功能的具体命令
  */
 type ShortcutCmd struct {
-	Id        int64  `json:"id"`
-	GroupId   *int64 `json:"groupId"`
-	Name      string `json:"name"`
-	Shell     string `json:"shell"`
-	WorkDir   string `json:"workDir"`
-	Commands  string `json:"commands"`
-	SortOrder int    `json:"sortOrder"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
+	Id         int64  `json:"id"`
+	CategoryId *int64 `json:"categoryId"`
+	Name       string `json:"name"`
+	Shell      string `json:"shell"`
+	WorkDir    string `json:"workDir"`
+	Commands   string `json:"commands"`
+	SortOrder  int    `json:"sortOrder"`
+	CreatedAt  string `json:"createdAt"`
+	UpdatedAt  string `json:"updatedAt"`
 }
 
 /**

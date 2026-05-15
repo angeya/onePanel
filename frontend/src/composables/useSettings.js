@@ -8,7 +8,7 @@ import { GetCloseAction, SetCloseAction } from '../../wailsjs/go/main/App'
  */
 export function useSettings() {
   const defaultShell = ref('cmd.exe')
-  const closeAction = ref('')
+  const closeAction = ref('ask')
 
   /**
    * 切换默认终端并持久化

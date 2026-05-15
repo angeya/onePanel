@@ -7,24 +7,24 @@
       </el-button>
     </div>
     <div class="sub-panel-toolbar">
-      <el-button size="small" @click="$emit('showQlGroupDialog')" plain>
+      <el-button size="small" @click="$emit('showQlCategoryDialog')" plain>
         <el-icon><FolderAdd /></el-icon>
-        管理分组
+        管理分类
       </el-button>
     </div>
     <div class="ql-list">
-      <div v-for="group in qlService.qlGroups.value" :key="group.id" class="ql-group">
-        <div class="ql-group-header" @click="qlService.toggleQlGroup(group.id)">
+      <div v-for="category in qlService.qlCategories.value" :key="category.id" class="ql-category">
+        <div class="ql-category-header" @click="qlService.toggleQlCategory(category.id)">
           <el-icon>
-            <ArrowDown v-if="qlService.expandedQlGroups.value.has(group.id)" />
+            <ArrowDown v-if="qlService.expandedQlCategories.value.has(category.id)" />
             <ArrowRight v-else />
           </el-icon>
-          <span class="group-name">{{ group.name }}</span>
-          <span class="group-count">({{ qlService.getQlCmdCount(group.id) }})</span>
+          <span class="category-name">{{ category.name }}</span>
+          <span class="category-count">({{ qlService.getQlCmdCount(category.id) }})</span>
         </div>
-        <div v-show="qlService.expandedQlGroups.value.has(group.id)" class="ql-group-items">
+        <div v-show="qlService.expandedQlCategories.value.has(category.id)" class="ql-category-items">
           <div
-            v-for="cmd in qlService.getQlCmdsByGroup(group.id)"
+            v-for="cmd in qlService.getQlCmdsByCategory(category.id)"
             :key="cmd.id"
             class="ql-item"
             @dblclick="$emit('executeQlCmd', cmd)"
@@ -46,7 +46,7 @@
       </div>
 
       <div
-        v-for="cmd in qlService.ungroupedQlCmds.value"
+        v-for="cmd in qlService.uncategorizedQlCmds.value"
         :key="cmd.id"
         class="ql-item"
         @dblclick="$emit('executeQlCmd', cmd)"
@@ -80,7 +80,7 @@ const qlService = inject('qlService')
 
 defineEmits([
   'showQlAddDialog',
-  'showQlGroupDialog',
+  'showQlCategoryDialog',
   'executeQlCmd',
   'editQlCmd',
   'deleteQlCmd'
@@ -131,11 +131,11 @@ defineEmits([
   border-radius: 2px;
 }
 
-.ql-group {
+.ql-category {
   margin-bottom: 2px;
 }
 
-.ql-group-header {
+.ql-category-header {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -146,21 +146,21 @@ defineEmits([
   font-size: 13px;
 }
 
-.ql-group-header:hover {
+.ql-category-header:hover {
   background-color: var(--bg-hover);
 }
 
-.ql-group-header .group-name {
+.ql-category-header .category-name {
   font-weight: 500;
   flex: 1;
 }
 
-.ql-group-header .group-count {
+.ql-category-header .category-count {
   color: var(--text-faint);
   font-size: 11px;
 }
 
-.ql-group-items {
+.ql-category-items {
   padding-left: 8px;
 }
 

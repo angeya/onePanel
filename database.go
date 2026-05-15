@@ -190,6 +190,8 @@ func createTables(db *sql.DB) error {
 
 	migrations := []string{
 		`ALTER TABLE sub_app ADD COLUMN app_type TEXT NOT NULL DEFAULT 'static'`,
+		`ALTER TABLE shortcut_cmd_group RENAME TO shortcut_cmd_category`,
+		`ALTER TABLE shortcut_cmd RENAME COLUMN group_id TO category_id`,
 	}
 
 	for _, stmt := range migrations {

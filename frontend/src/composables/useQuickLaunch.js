@@ -2,35 +2,35 @@ import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { OpenDirectoryDialog } from '../../wailsjs/go/main/App'
 import {
-  GetGroups as GetSCGroups, CreateGroup as CreateSCGroup, DeleteGroup as DeleteSCGroup,
+  GetCategories as GetSCCategories, CreateCategory as CreateSCCategory, DeleteCategory as DeleteSCCategory,
   GetCommands as GetSCCommands, CreateCommand as CreateSCCommand,
   UpdateCommand as UpdateSCCommand, DeleteCommand as DeleteSCCommand,
   ExecuteCommand as ExecSCCommand
 } from '../../wailsjs/go/main/ShortcutCmdService'
 
 export function useQuickLaunch(addQuickLaunchTab) {
-  const qlGroups = ref([])
+  const qlCategories = ref([])
   const qlCmds = ref([])
-  const expandedQlGroups = ref(new Set())
+  const expandedQlCategories = ref(new Set())
 
-  const ungroupedQlCmds = computed(() => qlCmds.value.filter(cmd => !cmd.groupId))
+  const uncategorizedQlCmds = computed(() => qlCmds.value.filter(cmd => !cmd.categoryId))
 
-  const getQlCmdsByGroup = (groupId) => qlCmds.value.filter(cmd => cmd.groupId === groupId)
+  const getQlCmdsByCategory = (categoryId) => qlCmds.value.filter(cmd => cmd.categoryId === categoryId)
 
-  const getQlCmdCount = (groupId) => qlCmds.value.filter(cmd => cmd.groupId === groupId).length
+  const getQlCmdCount = (categoryId) => qlCmds.value.filter(cmd => cmd.categoryId === categoryId).length
 
-  const toggleQlGroup = (groupId) => {
-    const newSet = new Set(expandedQlGroups.value)
-    if (newSet.has(groupId)) newSet.delete(groupId)
-    else newSet.add(groupId)
-    expandedQlGroups.value = newSet
+  const toggleQlCategory = (categoryId) => {
+    const newSet = new Set(expandedQlCategories.value)
+    if (newSet.has(categoryId)) newSet.delete(categoryId)
+    else newSet.add(categoryId)
+    expandedQlCategories.value = newSet
   }
 
-  const loadQlGroups = async () => {
+  const loadQlCategories = async () => {
     try {
-      qlGroups.value = await GetSCGroups() || []
+      qlCategories.value = await GetSCCategories() || []
     } catch (err) {
-      ElMessage.error('加载分组失败: ' + err)
+      ElMessage.error('加载分类失败: ' + err)
     }
   }
 
@@ -70,7 +70,7 @@ export function useQuickLaunch(addQuickLaunchTab) {
       if (isEditing) {
         await UpdateSCCommand(
           editingId,
-          form.groupId,
+          form.categoryId,
           form.name,
           form.shell,
           form.workDir,
@@ -80,7 +80,7 @@ export function useQuickLaunch(addQuickLaunchTab) {
         ElMessage.success('更新成功')
       } else {
         await CreateSCCommand(
-          form.groupId,
+          form.categoryId,
           form.name,
           form.shell,
           form.workDir,
@@ -114,29 +114,29 @@ export function useQuickLaunch(addQuickLaunchTab) {
     }
   }
 
-  const addQlGroup = async (name) => {
-    if (!name.trim()) { ElMessage.warning('请输入分组名称'); return }
+  const addQlCategory = async (name) => {
+    if (!name.trim()) { ElMessage.warning('请输入分类名称'); return }
     try {
-      await CreateSCGroup(name.trim(), 0)
-      ElMessage.success('分组创建成功')
-      await loadQlGroups()
+      await CreateSCCategory(name.trim(), 0)
+      ElMessage.success('分类创建成功')
+      await loadQlCategories()
       return true
     } catch (err) {
-      ElMessage.error('创建分组失败: ' + err)
+      ElMessage.error('创建分类失败: ' + err)
       return false
     }
   }
 
-  const deleteQlGroup = async (group) => {
+  const deleteQlCategory = async (category) => {
     try {
       await ElMessageBox.confirm(
-        `删除分组 "${group.name}" 后，该分组下的命令将变为未分组，确定删除？`,
+        `删除分类 "${category.name}" 后，该分类下的命令将变为未分类，确定删除？`,
         '确认删除',
         { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
       )
-      await DeleteSCGroup(group.id)
-      ElMessage.success('分组删除成功')
-      await loadQlGroups()
+      await DeleteSCCategory(category.id)
+      ElMessage.success('分类删除成功')
+      await loadQlCategories()
       await loadQlCmds()
     } catch (err) {
       if (err !== 'cancel') {
@@ -146,20 +146,20 @@ export function useQuickLaunch(addQuickLaunchTab) {
   }
 
   return {
-    qlGroups,
+    qlCategories,
     qlCmds,
-    expandedQlGroups,
-    ungroupedQlCmds,
-    getQlCmdsByGroup,
+    expandedQlCategories,
+    uncategorizedQlCmds,
+    getQlCmdsByCategory,
     getQlCmdCount,
-    toggleQlGroup,
-    loadQlGroups,
+    toggleQlCategory,
+    loadQlCategories,
     loadQlCmds,
     executeQlCmd,
     selectWorkDir,
     saveQlCmd,
     deleteQlCmd,
-    addQlGroup,
-    deleteQlGroup
+    addQlCategory,
+    deleteQlCategory
   }
 }

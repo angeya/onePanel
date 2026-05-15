@@ -2,7 +2,7 @@
   <div class="left-panel">
     <div class="nav-column">
       <div class="nav-logo">
-        <img src="../../assets/images/logo64x64.png" alt="oneWin" class="logo-icon" />
+        <img src="../../assets/images/appicon.png" alt="oneWin" class="logo-icon" />
       </div>
       <div class="nav-menu">
         <div
@@ -48,7 +48,7 @@
         <QuickLaunchPanel
           v-if="activeNav === 'shortcuts'"
           @show-ql-add-dialog="$emit('showQlAddDialog')"
-          @show-ql-group-dialog="$emit('showQlGroupDialog')"
+          @show-ql-category-dialog="$emit('showQlCategoryDialog')"
           @execute-ql-cmd="$emit('executeQlCmd', $event)"
           @edit-ql-cmd="$emit('editQlCmd', $event)"
           @delete-ql-cmd="$emit('deleteQlCmd', $event)"
@@ -81,10 +81,10 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Setting, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
-import TerminalPanel from './panels/TerminalPanel.vue'
-import MyAppPanel from './panels/MyAppPanel.vue'
-import QuickLaunchPanel from './panels/QuickLaunchPanel.vue'
-import ToolsPanel from './panels/ToolsPanel.vue'
+import TerminalPanel from './TerminalPanel.vue'
+import MyAppPanel from './MyAppPanel.vue'
+import QuickLaunchPanel from './QuickLaunchPanel.vue'
+import ToolsPanel from './ToolsPanel.vue'
 
 const DEFAULT_PANEL_WIDTH = 240
 const MIN_PANEL_WIDTH = 120
@@ -107,7 +107,7 @@ defineEmits([
   'openApp',
   'handleAppCmd',
   'showQlAddDialog',
-  'showQlGroupDialog',
+  'showQlCategoryDialog',
   'executeQlCmd',
   'editQlCmd',
   'deleteQlCmd',

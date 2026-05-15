@@ -41,6 +41,7 @@
         <div class="section-title">关闭行为</div>
         <div class="close-action-desc">点击窗口右上角关闭按钮时的行为</div>
         <el-radio-group v-model="currentCloseAction" @change="saveCloseAction">
+          <el-radio value="ask">每次提问</el-radio>
           <el-radio value="tray">最小化到托盘</el-radio>
           <el-radio value="close">直接退出应用</el-radio>
         </el-radio-group>
@@ -76,7 +77,7 @@ const emit = defineEmits(['themeChange', 'shellChange', 'closeActionChange'])
 const visible = ref(false)
 const currentTheme = ref('dark')
 const defaultShell = ref('cmd.exe')
-const currentCloseAction = ref('')
+const currentCloseAction = ref('ask')
 
 const themes = [
   {

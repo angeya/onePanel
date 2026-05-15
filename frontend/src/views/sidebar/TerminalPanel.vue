@@ -14,8 +14,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import ShortcutPanel from '../../terminal/ShortcutPanel.vue'
-import HistoryPanel from '../../terminal/HistoryPanel.vue'
+import ShortcutPanel from '../terminal/ShortcutPanel.vue'
+import HistoryPanel from '../terminal/HistoryPanel.vue'
 
 const props = defineProps({
   subTab: { type: String, default: 'shortcuts' }

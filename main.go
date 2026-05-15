@@ -65,7 +65,7 @@ func main() {
 				return false
 			}
 			closeAction := app.GetCloseAction()
-			if closeAction == "" {
+			if closeAction == "" || closeAction == "ask" {
 				runtime.EventsEmit(ctx, "close-requested")
 				return true
 			}
