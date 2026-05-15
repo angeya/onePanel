@@ -1,13 +1,6 @@
 <template>
   <div class="app-container">
-    <Sidebar
-      :active-nav="activeNav"
-      :terminal-sub-tab="terminalSubTab"
-      @update:terminal-sub-tab="terminalSubTab = $event"
-      :nav-items="navItems"
-      @switch-nav="switchNav"
-      @terminal-command="handleTerminalCommand"
-    />
+    <Sidebar />
 
     <div class="right-panel">
       <div v-if="tabs.length === 0" class="empty-main">
@@ -54,7 +47,6 @@
             :theme="currentTheme"
             v-show="activeTabId === tab.id"
             @command-executed="handleCommandExecuted"
-            @send-command="handleSendCommand"
           />
           <iframe
             v-for="tab in appTabs"
@@ -106,7 +98,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch, provide, defineAsyncComponent } from 'vue'
-import { Monitor, Grid, Promotion, SetUp, Close, Plus } from '@element-plus/icons-vue'
+import { Close, Plus } from '@element-plus/icons-vue'
 import TerminalTab from './views/terminal/TerminalTab.vue'
 import QuickLaunchTab from './views/quicklaunch/QuickLaunchTab.vue'
 const SettingsDialog = defineAsyncComponent(() => import('./views/settings/SettingsDialog.vue'))
@@ -126,15 +118,7 @@ import { useTerminalEvent } from './composables/useTerminalEvent'
 import { EventsOn } from '../wailsjs/runtime/runtime'
 import { HideWindow, QuitApp } from '../wailsjs/go/main/App'
 
-const navItems = [
-  { key: 'terminal', label: '终端', icon: Monitor },
-  { key: 'apps', label: '我的应用', icon: Grid },
-  { key: 'shortcuts', label: '快速启动', icon: Promotion },
-  { key: 'tools', label: '实用工具', icon: SetUp }
-]
-
 const activeNav = ref('terminal')
-const terminalSubTab = ref('shortcuts')
 const quickLaunchTabRef = ref(null)
 const myAppDialogsRef = ref(null)
 const quickLaunchDialogsRef = ref(null)
@@ -142,7 +126,7 @@ const settingsRef = ref(null)
 const closeActionDialogRef = ref(null)
 
 const { currentTheme, changeTheme, loadTheme } = useTheme()
-const { defaultShell, closeAction, changeDefaultShell, changeCloseAction, loadSettings } = useSettings()
+const { defaultShell, changeDefaultShell, changeCloseAction, loadSettings } = useSettings()
 const { sendCommand, recordHistory } = useTerminalEvent()
 
 const {
@@ -204,14 +188,14 @@ const handleTerminalCommand = (command) => {
   sendCommand(activeTabId.value, command)
 }
 
+provide('activeNav', activeNav)
+provide('switchNav', switchNav)
+provide('handleTerminalCommand', handleTerminalCommand)
+
 const handleCommandExecuted = (data) => {
   if (data && data.command) {
     recordHistory(data.command)
   }
-}
-
-const handleSendCommand = (tabId, command) => {
-  sendCommand(tabId, command)
 }
 
 const handleTabMouseDown = (event, tab) => {
@@ -376,7 +360,8 @@ const handleCloseRequested = async () => {
 
 onMounted(async () => {
   await Promise.all([loadTheme(), loadSettings()])
-  addTerminalTab(defaultShell.value)
+  // 初始化的时候不默认打开终端
+  // addTerminalTab(defaultShell.value)
   appService.loadApps()
   qlService.loadQlCategories()
   qlService.loadQlCmds()

@@ -29,9 +29,6 @@
       <div class="sub-panel-body">
         <TerminalPanel
           v-if="activeNav === 'terminal'"
-          :sub-tab="terminalSubTab"
-          @update:sub-tab="$emit('update:terminalSubTab', $event)"
-          @execute-command="$emit('terminalCommand', $event)"
         />
         <MyAppPanel v-if="activeNav === 'apps'" />
         <QuickLaunchPanel v-if="activeNav === 'shortcuts'" />
@@ -57,29 +54,25 @@
 
 <script setup>
 import { ref, inject, onUnmounted } from 'vue'
-import { Setting, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { Setting, DArrowLeft, DArrowRight, Monitor, Grid, Promotion, SetUp } from '@element-plus/icons-vue'
 import TerminalPanel from './TerminalPanel.vue'
 import MyAppPanel from './MyAppPanel.vue'
 import QuickLaunchPanel from './QuickLaunchPanel.vue'
 import ToolsPanel from './ToolsPanel.vue'
 
-// 面板宽度范围
 const DEFAULT_PANEL_WIDTH = 240
 const MIN_PANEL_WIDTH = 120
 const MAX_PANEL_WIDTH = DEFAULT_PANEL_WIDTH
 
-const props = defineProps({
-  activeNav: { type: String, required: true },
-  terminalSubTab: { type: String, default: 'shortcuts' },
-  navItems: { type: Array, required: true }
-})
+const navItems = [
+  { key: 'terminal', label: '终端', icon: Monitor },
+  { key: 'apps', label: '我的应用', icon: Grid },
+  { key: 'shortcuts', label: '快速启动', icon: Promotion },
+  { key: 'tools', label: '实用工具', icon: SetUp }
+]
 
-const emits = defineEmits([
-  'update:terminalSubTab',
-  'switchNav',
-  'terminalCommand'
-])
-
+const activeNav = inject('activeNav')
+const switchNavFromParent = inject('switchNav')
 const openSettings = inject('openSettings')
 
 const panelWidth = ref(DEFAULT_PANEL_WIDTH)
@@ -96,7 +89,7 @@ let startWidth = 0
  * @param {string} navKey - 导航项键名
  */
 const switchNav = (navKey) => {
-  emits('switchNav', navKey)
+  switchNavFromParent(navKey)
   if (panelCollapsed.value) {
     toggleCollapse()
   }

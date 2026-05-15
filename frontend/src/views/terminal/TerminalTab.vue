@@ -122,7 +122,7 @@ const props = defineProps({
   theme: { type: String, default: 'dark' }
 })
 
-const emit = defineEmits(['commandExecuted', 'sendCommand'])
+const emit = defineEmits(['commandExecuted'])
 
 const terminalRef = ref(null)
 const isRunning = ref(false)

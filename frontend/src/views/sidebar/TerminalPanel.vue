@@ -3,30 +3,23 @@
     <div class="sub-panel-title">终端</div>
     <el-tabs v-model="localSubTab" class="sub-tabs">
       <el-tab-pane label="快捷命令" name="shortcuts">
-        <ShortcutPanel @execute-command="$emit('executeCommand', $event)" />
+        <ShortcutPanel @execute-command="handleTerminalCommand" />
       </el-tab-pane>
       <el-tab-pane label="历史" name="history">
-        <HistoryPanel @execute-command="$emit('executeCommand', $event)" />
+        <HistoryPanel @execute-command="handleTerminalCommand" />
       </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, inject } from 'vue'
 import ShortcutPanel from '../terminal/ShortcutPanel.vue'
 import HistoryPanel from '../terminal/HistoryPanel.vue'
 
-const props = defineProps({
-  subTab: { type: String, default: 'shortcuts' }
-})
+const handleTerminalCommand = inject('handleTerminalCommand')
 
-const emit = defineEmits(['update:subTab', 'executeCommand'])
-
-const localSubTab = computed({
-  get: () => props.subTab,
-  set: (val) => emit('update:subTab', val)
-})
+const localSubTab = ref('shortcuts')
 </script>
 
 <style scoped>
