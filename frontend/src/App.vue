@@ -84,7 +84,7 @@
             ref="quickLaunchTabRef"
             :data-tab-id="quickLaunchTab.id"
           />
-          <ToolsPage
+          <NetworkPortList
             v-for="tab in toolTabs"
             :key="tab.id"
             v-show="activeTabId === tab.id"
@@ -128,7 +128,7 @@ import { ElMessageBox } from 'element-plus'
 import TerminalTab from './views/terminal/TerminalTab.vue'
 import QuickLaunchTab from './views/quicklaunch/QuickLaunchTab.vue'
 const SettingsDialog = defineAsyncComponent(() => import('./views/settings/SettingsDialog.vue'))
-const ToolsPage = defineAsyncComponent(() => import('./views/tools/ToolsPage.vue'))
+const NetworkPortList = defineAsyncComponent(() => import('./views/tools/NetworkPortList.vue'))
 import Sidebar from './views/sidebar/Sidebar.vue'
 const MyAppDialogs = defineAsyncComponent(() => import('./views/myapp/MyAppDialogs.vue'))
 const QuickLaunchDialogs = defineAsyncComponent(() => import('./views/quicklaunch/QuickLaunchDialogs.vue'))

@@ -1,11 +1,11 @@
 <template>
-  <div class="tools-page">
-    <div v-if="!embedded" class="tools-header">
+  <div class="network-port-list">
+    <div v-if="!embedded" class="network-port-header">
       <span class="page-title">实用工具</span>
     </div>
 
-    <div class="tools-body">
-      <div class="tool-section">
+    <div class="network-port-body">
+      <div class="port-section">
         <div class="section-header">
           <div class="section-title-area">
             <el-icon :size="18" color="#409eff"><Connection /></el-icon>
@@ -123,9 +123,6 @@ const pageSize = ref(100)
 const sortProp = ref('localPort')
 const sortOrder = ref('ascending')
 
-/**
- * 过滤后的端口列表
- */
 const filteredPorts = computed(() => {
   let list = ports.value
 
@@ -164,17 +161,11 @@ const filteredPorts = computed(() => {
   return list
 })
 
-/**
- * 分页后的端口列表
- */
 const paginatedPorts = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   return filteredPorts.value.slice(start, start + pageSize.value)
 })
 
-/**
- * 获取状态标签类型
- */
 const getStateTagType = (state) => {
   switch (state) {
     case 'LISTENING':
@@ -193,17 +184,11 @@ const getStateTagType = (state) => {
   }
 }
 
-/**
- * 处理排序变化
- */
 const handleSortChange = ({ prop, order }) => {
   sortProp.value = prop
   sortOrder.value = order
 }
 
-/**
- * 加载端口列表
- */
 const loadPortList = async () => {
   loading.value = true
   try {
@@ -215,9 +200,6 @@ const loadPortList = async () => {
   }
 }
 
-/**
- * 终止进程
- */
 const killProcess = async (row) => {
   try {
     await ElMessageBox.confirm(
@@ -241,14 +223,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.tools-page {
+.network-port-list {
   display: flex;
   flex-direction: column;
   height: 100%;
   background-color: var(--bg-secondary);
 }
 
-.tools-header {
+.network-port-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -263,7 +245,7 @@ onMounted(() => {
   color: var(--text-primary);
 }
 
-.tools-body {
+.network-port-body {
   flex: 1;
   overflow: hidden;
   padding: 16px 20px;
@@ -271,7 +253,7 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.tool-section {
+.port-section {
   display: flex;
   flex-direction: column;
   flex: 1;
