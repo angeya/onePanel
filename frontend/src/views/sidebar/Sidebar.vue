@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="nav-bottom">
-        <div class="nav-settings" title="系统设置" @click="$emit('openSettings')">
+        <div class="nav-settings" title="系统设置" @click="openSettings">
           <el-icon :size="18"><Setting /></el-icon>
         </div>
         <div class="version-info" title="oneWin v0.0.1">v0.0.1</div>
@@ -36,27 +36,9 @@
           @update:sub-tab="$emit('update:terminalSubTab', $event)"
           @execute-command="$emit('terminalCommand', $event)"
         />
-        <MyAppPanel
-          v-if="activeNav === 'apps'"
-          @show-app-import="$emit('showAppImport')"
-          @show-add-web-app="$emit('showAddWebApp')"
-          @show-batch-export="$emit('showBatchExport')"
-          @refresh-apps="$emit('refreshApps')"
-          @open-app="$emit('openApp', $event)"
-          @handle-app-cmd="(cmd, app) => $emit('handleAppCmd', cmd, app)"
-        />
-        <QuickLaunchPanel
-          v-if="activeNav === 'shortcuts'"
-          @show-ql-add-dialog="$emit('showQlAddDialog')"
-          @show-ql-category-dialog="$emit('showQlCategoryDialog')"
-          @execute-ql-cmd="$emit('executeQlCmd', $event)"
-          @edit-ql-cmd="$emit('editQlCmd', $event)"
-          @delete-ql-cmd="$emit('deleteQlCmd', $event)"
-        />
-        <ToolsPanel
-          v-if="activeNav === 'tools'"
-          @open-tool="(...args) => $emit('openTool', ...args)"
-        />
+        <MyAppPanel v-if="activeNav === 'apps'" />
+        <QuickLaunchPanel v-if="activeNav === 'shortcuts'" />
+        <ToolsPanel v-if="activeNav === 'tools'" />
       </div>
 
       <div
@@ -79,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, inject, onUnmounted } from 'vue'
 import { Setting, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 import TerminalPanel from './TerminalPanel.vue'
 import MyAppPanel from './MyAppPanel.vue'
@@ -99,21 +81,10 @@ const props = defineProps({
 defineEmits([
   'update:terminalSubTab',
   'switchNav',
-  'terminalCommand',
-  'showAppImport',
-  'showAddWebApp',
-  'showBatchExport',
-  'refreshApps',
-  'openApp',
-  'handleAppCmd',
-  'showQlAddDialog',
-  'showQlCategoryDialog',
-  'executeQlCmd',
-  'editQlCmd',
-  'deleteQlCmd',
-  'openTool',
-  'openSettings'
+  'terminalCommand'
 ])
+
+const openSettings = inject('openSettings')
 
 const panelWidth = ref(DEFAULT_PANEL_WIDTH)
 const panelCollapsed = ref(false)

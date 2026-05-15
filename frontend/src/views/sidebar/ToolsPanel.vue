@@ -2,7 +2,7 @@
   <div class="sub-panel-content">
     <div class="sub-panel-title">实用工具</div>
     <div class="tool-list">
-      <div class="tool-item" @click="$emit('openTool', 'port', '网络端口')">
+      <div class="tool-item" @click="addToolTab('port', '网络端口')">
         <el-icon :size="18" color="#409eff"><Connection /></el-icon>
         <span class="tool-name">网络端口</span>
         <el-icon class="tool-arrow"><ArrowRight /></el-icon>
@@ -12,9 +12,10 @@
 </template>
 
 <script setup>
+import { inject } from 'vue'
 import { Connection, ArrowRight } from '@element-plus/icons-vue'
 
-defineEmits(['openTool'])
+const addToolTab = inject('addToolTab')
 </script>
 
 <style scoped>

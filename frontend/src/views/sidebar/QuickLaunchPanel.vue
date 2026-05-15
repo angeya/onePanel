@@ -2,12 +2,12 @@
   <div class="sub-panel-content">
     <div class="sub-panel-header">
       <span class="sub-panel-title">快速启动</span>
-      <el-button size="small" @click="$emit('showQlAddDialog')" plain>
+      <el-button size="small" @click="openQlDialog('add')" plain>
         <el-icon><Plus /></el-icon>
       </el-button>
     </div>
     <div class="sub-panel-toolbar">
-      <el-button size="small" @click="$emit('showQlCategoryDialog')" plain>
+      <el-button size="small" @click="openQlDialog('category')" plain>
         <el-icon><FolderAdd /></el-icon>
         管理分类
       </el-button>
@@ -27,7 +27,7 @@
             v-for="cmd in qlService.getQlCmdsByCategory(category.id)"
             :key="cmd.id"
             class="ql-item"
-            @dblclick="$emit('executeQlCmd', cmd)"
+            @dblclick="executeQlCmd(cmd)"
           >
             <el-icon :size="16" :color="cmd.shell === 'powershell.exe' ? '#012456' : '#4cc2ff'">
               <Monitor />
@@ -37,9 +37,9 @@
               <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
             </div>
             <div class="ql-item-actions" @click.stop>
-              <el-icon class="action-icon" @click="$emit('executeQlCmd', cmd)"><VideoPlay /></el-icon>
-              <el-icon class="action-icon" @click="$emit('editQlCmd', cmd)"><Edit /></el-icon>
-              <el-icon class="action-icon" @click="$emit('deleteQlCmd', cmd)"><Delete /></el-icon>
+              <el-icon class="action-icon" @click="executeQlCmd(cmd)"><VideoPlay /></el-icon>
+              <el-icon class="action-icon" @click="openQlDialog('edit', cmd)"><Edit /></el-icon>
+              <el-icon class="action-icon" @click="qlService.deleteQlCmd(cmd)"><Delete /></el-icon>
             </div>
           </div>
         </div>
@@ -49,7 +49,7 @@
         v-for="cmd in qlService.uncategorizedQlCmds.value"
         :key="cmd.id"
         class="ql-item"
-        @dblclick="$emit('executeQlCmd', cmd)"
+        @dblclick="executeQlCmd(cmd)"
       >
         <el-icon :size="16" :color="cmd.shell === 'powershell.exe' ? '#012456' : '#4cc2ff'">
           <Monitor />
@@ -59,9 +59,9 @@
           <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
         </div>
         <div class="ql-item-actions" @click.stop>
-          <el-icon class="action-icon" @click="$emit('executeQlCmd', cmd)"><VideoPlay /></el-icon>
-          <el-icon class="action-icon" @click="$emit('editQlCmd', cmd)"><Edit /></el-icon>
-          <el-icon class="action-icon" @click="$emit('deleteQlCmd', cmd)"><Delete /></el-icon>
+          <el-icon class="action-icon" @click="executeQlCmd(cmd)"><VideoPlay /></el-icon>
+          <el-icon class="action-icon" @click="openQlDialog('edit', cmd)"><Edit /></el-icon>
+          <el-icon class="action-icon" @click="qlService.deleteQlCmd(cmd)"><Delete /></el-icon>
         </div>
       </div>
 
@@ -77,14 +77,12 @@ import {
 } from '@element-plus/icons-vue'
 
 const qlService = inject('qlService')
+const openQlDialog = inject('openQlDialog')
+const quickLaunchTabRef = inject('quickLaunchTabRef')
 
-defineEmits([
-  'showQlAddDialog',
-  'showQlCategoryDialog',
-  'executeQlCmd',
-  'editQlCmd',
-  'deleteQlCmd'
-])
+const executeQlCmd = (cmd) => {
+  qlService.executeQlCmd(cmd, quickLaunchTabRef)
+}
 </script>
 
 <style scoped>

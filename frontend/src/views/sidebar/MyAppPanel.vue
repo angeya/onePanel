@@ -4,19 +4,19 @@
       <span class="sub-panel-title">我的应用</span>
     </div>
     <div class="sub-panel-toolbar">
-      <el-button size="small" @click="$emit('showAppImport')" plain>
+      <el-button size="small" @click="openMyAppDialog('import')" plain>
         <el-icon><Upload /></el-icon>
         导入
       </el-button>
-      <el-button size="small" @click="$emit('showAddWebApp')" plain>
+      <el-button size="small" @click="openMyAppDialog('addWebApp')" plain>
         <el-icon><Link /></el-icon>
         网页
       </el-button>
-      <el-button size="small" @click="$emit('showBatchExport')" plain>
+      <el-button size="small" @click="openMyAppDialog('batchExport')" plain>
         <el-icon><Download /></el-icon>
         导出
       </el-button>
-      <el-button size="small" @click="$emit('refreshApps')" plain>
+      <el-button size="small" @click="appService.refreshApps()" plain>
         <el-icon><Refresh /></el-icon>
       </el-button>
     </div>
@@ -25,7 +25,7 @@
         v-for="app in appService.apps.value"
         :key="app.id"
         class="app-item"
-        @click="$emit('openApp', app)"
+        @click="openApp(app)"
       >
         <div class="app-icon">
           <img v-if="app.iconPath" :src="appService.getAppIconUrl(app)" alt="" />
@@ -36,7 +36,7 @@
           <div class="app-name">{{ app.displayName }}</div>
           <div class="app-dir">{{ app.appType === 'web' ? app.entryUrl : app.dirName }}</div>
         </div>
-        <el-dropdown trigger="click" @command="(cmd) => $emit('handleAppCmd', cmd, app)" @click.stop>
+        <el-dropdown trigger="click" @command="(cmd) => handleAppCmd(cmd, app)" @click.stop>
           <el-icon class="app-more" @click.stop><MoreFilled /></el-icon>
           <template #dropdown>
             <el-dropdown-menu>
@@ -59,15 +59,19 @@ import { inject } from 'vue'
 import { Upload, Download, Refresh, Document, MoreFilled, Link } from '@element-plus/icons-vue'
 
 const appService = inject('appService')
+const openMyAppDialog = inject('openMyAppDialog')
+const addAppTab = inject('addAppTab')
 
-defineEmits([
-  'showAppImport',
-  'showAddWebApp',
-  'showBatchExport',
-  'refreshApps',
-  'openApp',
-  'handleAppCmd'
-])
+const openApp = (app) => {
+  appService.openApp(app, addAppTab)
+}
+
+const handleAppCmd = (cmd, app) => {
+  const result = appService.handleAppCmd(cmd, app)
+  if (result) {
+    openMyAppDialog('handleCmd', { cmd: result.cmd, app: result.app })
+  }
+}
 </script>
 
 <style scoped>

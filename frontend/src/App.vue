@@ -7,19 +7,6 @@
       :nav-items="navItems"
       @switch-nav="switchNav"
       @terminal-command="handleTerminalCommand"
-      @show-app-import="myAppDialogsRef.showAppImport()"
-      @show-add-web-app="myAppDialogsRef.showAddWebAppDialog()"
-      @show-batch-export="myAppDialogsRef.showBatchExport()"
-      @refresh-apps="appService.refreshApps()"
-      @open-app="openAppHandler"
-      @handle-app-cmd="(cmd, app) => myAppDialogsRef.handleAppCmd(cmd, app)"
-      @show-ql-add-dialog="quickLaunchDialogsRef.showQlAddDialog()"
-      @show-ql-category-dialog="quickLaunchDialogsRef.showQlCategoryDialog()"
-      @execute-ql-cmd="executeQlCmdWithRef"
-      @edit-ql-cmd="(cmd) => quickLaunchDialogsRef.editQlCmd(cmd)"
-      @delete-ql-cmd="qlService.deleteQlCmd"
-      @open-tool="openTool"
-      @open-settings="openSettings"
     />
 
     <div class="right-panel">
@@ -170,6 +157,34 @@ const qlService = useQuickLaunch(addQuickLaunchTab)
 provide('appService', appService)
 provide('qlService', qlService)
 
+provide('openMyAppDialog', (action, data) => {
+  if (!myAppDialogsRef.value) return
+  switch (action) {
+    case 'import': myAppDialogsRef.value.showAppImport(); break
+    case 'addWebApp': myAppDialogsRef.value.showAddWebAppDialog(); break
+    case 'batchExport': myAppDialogsRef.value.showBatchExport(); break
+    case 'handleCmd': myAppDialogsRef.value.handleAppCmd(data.cmd, data.app); break
+  }
+})
+
+provide('openQlDialog', (action, data) => {
+  if (!quickLaunchDialogsRef.value) return
+  switch (action) {
+    case 'add': quickLaunchDialogsRef.value.showQlAddDialog(); break
+    case 'category': quickLaunchDialogsRef.value.showQlCategoryDialog(); break
+    case 'edit': quickLaunchDialogsRef.value.editQlCmd(data); break
+  }
+})
+
+provide('openSettings', () => {
+  if (settingsRef.value) settingsRef.value.open()
+})
+
+provide('addAppTab', addAppTab)
+provide('addToolTab', addToolTab)
+provide('addQuickLaunchTab', addQuickLaunchTab)
+provide('quickLaunchTabRef', quickLaunchTabRef)
+
 const switchNav = (key) => {
   activeNav.value = key
   if (key === 'terminal') {
@@ -197,22 +212,6 @@ const handleCommandExecuted = (data) => {
 
 const handleSendCommand = (tabId, command) => {
   sendCommand(tabId, command)
-}
-
-const executeQlCmdWithRef = (cmd) => {
-  qlService.executeQlCmd(cmd, quickLaunchTabRef)
-}
-
-const openTool = (toolKey, toolName) => {
-  addToolTab(toolKey, toolName)
-}
-
-const openAppHandler = (app) => {
-  appService.openApp(app, addAppTab)
-}
-
-const openSettings = () => {
-  if (settingsRef.value) settingsRef.value.open()
 }
 
 const handleTabMouseDown = (event, tab) => {
