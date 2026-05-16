@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -182,7 +181,7 @@ func (t *TrayManager) messageLoop() {
 
 	ret, _, _ := procRegisterClassExW.Call(uintptr(unsafe.Pointer(&wndClass)))
 	if ret == 0 {
-		fmt.Println("注册托盘窗口类失败")
+		LogError("注册托盘窗口类失败")
 		return
 	}
 
@@ -195,7 +194,7 @@ func (t *TrayManager) messageLoop() {
 		0, 0, hInstance, 0,
 	)
 	if hWnd == 0 {
-		fmt.Println("创建托盘窗口失败")
+		LogError("创建托盘窗口失败")
 		return
 	}
 
@@ -203,7 +202,7 @@ func (t *TrayManager) messageLoop() {
 
 	t.hIcon = t.loadIcon()
 	if t.hIcon == 0 {
-		fmt.Println("加载托盘图标失败")
+		LogWarn("加载托盘图标失败")
 	}
 
 	t.nid = NOTIFYICONDATA{}
@@ -217,7 +216,7 @@ func (t *TrayManager) messageLoop() {
 
 	ret, _, _ = procShellNotifyIconW.Call(NIM_ADD, uintptr(unsafe.Pointer(&t.nid)))
 	if ret == 0 {
-		fmt.Println("添加托盘图标失败")
+		LogError("添加托盘图标失败")
 	}
 
 	t.mu.Lock()

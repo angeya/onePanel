@@ -901,7 +901,7 @@ func (a *AppService) importZipWithManifest(reader *zip.ReadCloser, manifest *Exp
 			continue
 		}
 		if _, err := a.CreateWebApp(webApp.Name, webApp.Url); err != nil {
-			fmt.Printf("导入网页应用 %s 失败: %v\n", webApp.Name, err)
+			LogError("导入网页应用 %s 失败: %v", webApp.Name, err)
 		}
 	}
 

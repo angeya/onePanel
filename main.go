@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"embed"
-	"fmt"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -15,9 +14,17 @@ import (
 var assets embed.FS
 
 func main() {
+	if err := InitLogger(); err != nil {
+		println("日志初始化失败:", err.Error())
+		return
+	}
+	defer CloseLogger()
+
+	LogInfo("oneWin 应用启动")
+
 	database, err := InitDatabase()
 	if err != nil {
-		println("数据库初始化失败:", err.Error())
+		LogError("数据库初始化失败: %v", err)
 		return
 	}
 
@@ -46,6 +53,17 @@ func main() {
 			app.startup(ctx)
 			ptyService.SetContext(ctx)
 
+			if err := InitContextMenuControl(ctx); err != nil {
+				LogWarn("初始化上下文菜单控制失败: %v", err)
+			} else {
+				allowDebugVal, _ := database.GetConfig("allow_debug")
+				if allowDebugVal != "true" {
+					if err := SetContextMenuEnabled(ctx, false); err != nil {
+						LogWarn("初始化上下文菜单状态失败: %v", err)
+					}
+				}
+			}
+
 			tray = NewTrayManager(func() {
 				runtime.WindowShow(app.ctx)
 			}, func() {
@@ -57,7 +75,7 @@ func main() {
 				runtime.WindowShow(app.ctx)
 			})
 			if err := hotkey.Start(); err != nil {
-				fmt.Println("注册全局快捷键失败:", err)
+				LogWarn("注册全局快捷键失败: %v", err)
 			}
 		},
 		OnBeforeClose: func(ctx context.Context) bool {
@@ -76,6 +94,7 @@ func main() {
 			return false
 		},
 		OnShutdown: func(ctx context.Context) {
+			CleanupContextMenuControl()
 			if hotkey != nil {
 				hotkey.Stop()
 			}
@@ -100,6 +119,6 @@ func main() {
 	})
 
 	if err != nil {
-		fmt.Println("Error:", err.Error())
+		LogError("应用运行错误: %v", err)
 	}
 }

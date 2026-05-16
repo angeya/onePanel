@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os/exec"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -178,4 +179,28 @@ func splitFilterParts(filter string) []string {
 		parts = append(parts, filter[start:])
 	}
 	return parts
+}
+
+/**
+ * 打开日志文件夹
+ * 使用 Windows 资源管理器打开 logs 目录
+ */
+func (a *App) OpenLogsDir() error {
+	logsDir := GetLogsDir()
+	cmd := exec.Command("explorer.exe", logsDir)
+	return cmd.Start()
+}
+
+/**
+ * 设置是否允许调试（右键菜单）
+ * 通过 WebView2 API 动态控制默认上下文菜单的启用状态
+ * 同时控制主页面的 contextmenu 事件拦截
+ */
+func (a *App) SetAllowDebug(enabled bool) error {
+	if err := SetContextMenuEnabled(a.ctx, enabled); err != nil {
+		LogWarn("设置上下文菜单启用状态失败: %v", err)
+		return err
+	}
+	LogInfo("调试模式已%s", map[bool]string{true: "开启", false: "关闭"}[enabled])
+	return nil
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"runtime"
 	"sync"
 	"syscall"
@@ -88,7 +87,7 @@ func (h *HotkeyManager) listen() {
 		VK_O,
 	)
 	if ret == 0 {
-		fmt.Printf("注册全局快捷键失败: %v\n", err)
+		LogWarn("注册全局快捷键失败: %v", err)
 		h.mu.Lock()
 		h.registered = false
 		h.mu.Unlock()

@@ -48,15 +48,19 @@
             v-show="activeTabId === tab.id"
             @command-executed="handleCommandExecuted"
           />
-          <iframe
+          <div
             v-for="tab in appTabs"
             :key="tab.id"
             v-show="activeTabId === tab.id"
-            :src="tab.url"
-            class="app-iframe"
+            class="app-iframe-wrapper"
             :data-tab-id="tab.id"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          />
+          >
+            <iframe
+              :src="tab.url"
+              class="app-iframe"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            />
+          </div>
           <QuickLaunchTab
             v-if="quickLaunchTab"
             v-show="activeTabId === quickLaunchTab.id"
@@ -126,7 +130,7 @@ const settingsRef = ref(null)
 const closeActionDialogRef = ref(null)
 
 const { currentTheme, changeTheme, loadTheme } = useTheme()
-const { defaultShell, changeDefaultShell, changeCloseAction, loadSettings } = useSettings()
+const { defaultShell, allowDebug, changeDefaultShell, changeCloseAction, changeAllowDebug, loadSettings } = useSettings()
 const { sendCommand, recordHistory } = useTerminalEvent()
 
 const {
@@ -191,6 +195,8 @@ const handleTerminalCommand = (command) => {
 provide('activeNav', activeNav)
 provide('switchNav', switchNav)
 provide('handleTerminalCommand', handleTerminalCommand)
+provide('allowDebug', allowDebug)
+provide('changeAllowDebug', changeAllowDebug)
 
 const handleCommandExecuted = (data) => {
   if (data && data.command) {
@@ -358,21 +364,31 @@ const handleCloseRequested = async () => {
   }
 }
 
+/**
+ * 全局右键菜单拦截处理器
+ * 当 allowDebug 为 false 时，阻止主页面浏览器默认右键菜单弹出
+ */
+const handleContextMenu = (e) => {
+  if (!allowDebug.value) {
+    e.preventDefault()
+  }
+}
+
 onMounted(async () => {
   await Promise.all([loadTheme(), loadSettings()])
-  // 初始化的时候不默认打开终端
-  // addTerminalTab(defaultShell.value)
   appService.loadApps()
   qlService.loadQlCategories()
   qlService.loadQlCmds()
   window.addEventListener('keydown', handleGlobalKeyDown, true)
   window.addEventListener('tab-search-result', handleSearchResult)
+  window.addEventListener('contextmenu', handleContextMenu)
   EventsOn('close-requested', handleCloseRequested)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeyDown, true)
   window.removeEventListener('tab-search-result', handleSearchResult)
+  window.removeEventListener('contextmenu', handleContextMenu)
 })
 </script>
 
@@ -489,4 +505,18 @@ onUnmounted(() => {
   overflow: hidden;
   position: relative;
 }
+
+.app-iframe-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.app-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+
 </style>

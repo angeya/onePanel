@@ -48,6 +48,28 @@
       </div>
 
       <div class="setting-section">
+        <div class="section-title">调试设置</div>
+        <div class="setting-row">
+          <div class="setting-row-info">
+            <span class="setting-row-label">允许调试</span>
+            <span class="setting-row-desc">开启后允许在应用页面中右键弹出浏览器菜单</span>
+          </div>
+          <el-switch v-model="allowDebug" @change="saveAllowDebug" />
+        </div>
+      </div>
+
+      <div class="setting-section">
+        <div class="section-title">日志管理</div>
+        <div class="setting-row">
+          <div class="setting-row-info">
+            <span class="setting-row-label">应用日志</span>
+            <span class="setting-row-desc">查看应用运行日志文件</span>
+          </div>
+          <el-button size="small" @click="openLogsDir">查看日志</el-button>
+        </div>
+      </div>
+
+      <div class="setting-section">
         <div class="section-title">版本信息</div>
         <div class="info-row">
           <span class="info-label">当前版本</span>
@@ -67,17 +89,20 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
 import { ElMessage } from 'element-plus'
 import { GetSetting, SetSetting } from '../../../wailsjs/go/main/SettingService'
-import { GetCloseAction, SetCloseAction } from '../../../wailsjs/go/main/App'
+import { GetCloseAction, SetCloseAction, OpenLogsDir } from '../../../wailsjs/go/main/App'
 
-const emit = defineEmits(['themeChange', 'shellChange', 'closeActionChange'])
+const emit = defineEmits(['themeChange', 'shellChange', 'closeActionChange', 'allowDebugChange'])
 
 const visible = ref(false)
 const currentTheme = ref('dark')
 const defaultShell = ref('cmd.exe')
 const currentCloseAction = ref('ask')
+const allowDebug = ref(false)
+
+const changeAllowDebug = inject('changeAllowDebug')
 
 const themes = [
   {
@@ -143,6 +168,23 @@ const saveCloseAction = async (val) => {
   }
 }
 
+const saveAllowDebug = async (val) => {
+  try {
+    await changeAllowDebug(val)
+    emit('allowDebugChange', val)
+  } catch (err) {
+    ElMessage.error('保存调试开关设置失败: ' + err)
+  }
+}
+
+const openLogsDir = async () => {
+  try {
+    await OpenLogsDir()
+  } catch (err) {
+    ElMessage.error('打开日志目录失败: ' + err)
+  }
+}
+
 const copyEmail = async () => {
   try {
     await navigator.clipboard.writeText('1571858518@qq.com')
@@ -162,6 +204,9 @@ const loadSettings = async () => {
 
     const action = await GetCloseAction()
     if (action) currentCloseAction.value = action
+
+    const debug = await GetSetting('allow_debug')
+    if (debug === 'true') allowDebug.value = true
   } catch (err) {
     console.error('加载设置失败:', err)
   }
@@ -304,5 +349,27 @@ defineExpose({ loadSettings, open })
   font-size: 12px;
   color: var(--text-muted);
   margin-bottom: 4px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setting-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setting-row-label {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.setting-row-desc {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 </style>
