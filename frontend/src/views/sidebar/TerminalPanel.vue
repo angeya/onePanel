@@ -5,6 +5,9 @@
       <el-tab-pane label="快捷命令" name="shortcuts">
         <ShortcutPanel @execute-command="handleTerminalCommand" />
       </el-tab-pane>
+      <el-tab-pane label="服务器列表" name="sshkey">
+        <SSHKeyPanel @execute-command="handleTerminalCommand" />
+      </el-tab-pane>
       <el-tab-pane label="历史" name="history">
         <HistoryPanel @execute-command="handleTerminalCommand" />
       </el-tab-pane>
@@ -15,6 +18,7 @@
 <script setup>
 import { ref, inject } from 'vue'
 import ShortcutPanel from '../terminal/ShortcutPanel.vue'
+import SSHKeyPanel from '../terminal/SSHKeyPanel.vue'
 import HistoryPanel from '../terminal/HistoryPanel.vue'
 
 const handleTerminalCommand = inject('handleTerminalCommand')

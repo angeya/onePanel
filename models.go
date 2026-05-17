@@ -120,6 +120,46 @@ type PortInfo struct {
 }
 
 /**
+ * SSH 会话分类模型
+ * 对应 ssh_session_category 表，用于服务器列表的分类管理
+ */
+type SSHSessionCategory struct {
+	Id        int64  `json:"id"`
+	Name      string `json:"name"`
+	SortOrder int    `json:"sortOrder"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
+/**
+ * SSH 服务器模型
+ * 对应 ssh_server 表，记录远程服务器会话信息
+ */
+type SSHServer struct {
+	Id          int64  `json:"id"`
+	CategoryId  *int64 `json:"categoryId"`
+	SessionName string `json:"sessionName"`
+	Host        string `json:"host"`
+	Port        int    `json:"port"`
+	User        string `json:"user"`
+	UseKeyLogin bool   `json:"useKeyLogin"`
+	KeyDeployed bool   `json:"keyDeployed"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
+}
+
+/**
+ * SSH 密钥状态信息
+ * 返回本地 SSH 密钥的存在状态和公钥内容
+ */
+type SSHKeyStatus struct {
+	KeyExists  bool   `json:"keyExists"`
+	PublicKey  string `json:"publicKey"`
+	KeyPath    string `json:"keyPath"`
+	PubKeyPath string `json:"pubKeyPath"`
+}
+
+/**
  * PTY 启动请求参数
  * 前端启动终端时传入的参数
  */

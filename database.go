@@ -180,6 +180,27 @@ func createTables(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_command_history_executed_at ON command_history(executed_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_shortcut_command_category_id ON shortcut_command(category_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_sub_app_dir_name ON sub_app(dir_name)`,
+		`CREATE TABLE IF NOT EXISTS ssh_server (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			category_id INTEGER,
+			session_name TEXT DEFAULT '',
+			host TEXT NOT NULL,
+			port INTEGER DEFAULT 22,
+			user TEXT NOT NULL,
+			use_key_login INTEGER DEFAULT 0,
+			key_deployed INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (category_id) REFERENCES ssh_session_category(id) ON DELETE SET NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_ssh_server_host_user ON ssh_server(host, user)`,
+		`CREATE TABLE IF NOT EXISTS ssh_session_category (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			sort_order INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, stmt := range statements {
@@ -192,6 +213,9 @@ func createTables(db *sql.DB) error {
 		`ALTER TABLE sub_app ADD COLUMN app_type TEXT NOT NULL DEFAULT 'static'`,
 		`ALTER TABLE shortcut_cmd_group RENAME TO shortcut_cmd_category`,
 		`ALTER TABLE shortcut_cmd RENAME COLUMN group_id TO category_id`,
+		`ALTER TABLE ssh_server ADD COLUMN category_id INTEGER DEFAULT NULL`,
+		`ALTER TABLE ssh_server ADD COLUMN session_name TEXT DEFAULT ''`,
+		`ALTER TABLE ssh_server ADD COLUMN use_key_login INTEGER DEFAULT 0`,
 	}
 
 	for _, stmt := range migrations {
