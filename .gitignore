@@ -13,6 +13,7 @@ Thumbs.db
 # =========================
 bin/
 build/bin/
+build/windows/
 dist/
 *.exe
 *.exe~
@@ -33,7 +34,6 @@ vendor/
 # =========================
 node_modules/
 dist/
-build/
 
 # Logs
 npm-debug.log*
