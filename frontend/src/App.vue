@@ -29,14 +29,6 @@
               </el-icon>
             </div>
           </div>
-          <el-button
-            v-if="activeNav === 'terminal'"
-            class="tab-add"
-            size="small"
-            @click="addTerminalTab(defaultShell)"
-            :icon="Plus"
-            circle
-          />
         </div>
         <div class="main-tabs-body" ref="mainTabsBodyRef">
           <TerminalTab
@@ -46,7 +38,6 @@
             :shell="tab.shell || 'cmd.exe'"
             :theme="currentTheme"
             v-show="activeTabId === tab.id"
-            @command-executed="handleCommandExecuted"
           />
           <div
             v-for="tab in appTabs"
@@ -102,7 +93,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch, provide, defineAsyncComponent } from 'vue'
-import { Close, Plus } from '@element-plus/icons-vue'
+import { Close } from '@element-plus/icons-vue'
 import TerminalTab from './views/terminal/TerminalTab.vue'
 import QuickLaunchTab from './views/quicklaunch/QuickLaunchTab.vue'
 const SettingsDialog = defineAsyncComponent(() => import('./views/settings/SettingsDialog.vue'))
@@ -131,7 +122,7 @@ const closeActionDialogRef = ref(null)
 
 const { currentTheme, changeTheme, loadTheme } = useTheme()
 const { defaultShell, allowDebug, changeDefaultShell, changeCloseAction, changeAllowDebug, loadSettings } = useSettings()
-const { sendCommand, recordHistory } = useTerminalEvent()
+const { sendCommand } = useTerminalEvent()
 
 const {
   tabs, activeTabId, terminalTabs, appTabs, quickLaunchTab, toolTabs,
@@ -195,14 +186,10 @@ const handleTerminalCommand = (command) => {
 provide('activeNav', activeNav)
 provide('switchNav', switchNav)
 provide('handleTerminalCommand', handleTerminalCommand)
+provide('addTerminalTab', addTerminalTab)
+provide('defaultShell', defaultShell)
 provide('allowDebug', allowDebug)
 provide('changeAllowDebug', changeAllowDebug)
-
-const handleCommandExecuted = (data) => {
-  if (data && data.command) {
-    recordHistory(data.command)
-  }
-}
 
 const handleTabMouseDown = (event, tab) => {
   if (event.button === 1 && tab.closable !== false) {
@@ -487,17 +474,6 @@ onUnmounted(() => {
 .tab-close:hover {
   background-color: var(--scrollbar-thumb);
   color: #fff;
-}
-
-.tab-add {
-  flex-shrink: 0;
-  background-color: var(--bg-tertiary) !important;
-  border-color: var(--border-light) !important;
-  color: var(--text-muted) !important;
-}
-
-.tab-add:hover {
-  color: var(--accent) !important;
 }
 
 .main-tabs-body {

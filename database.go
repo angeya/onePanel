@@ -134,13 +134,6 @@ func createTables(db *sql.DB) error {
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (category_id) REFERENCES shortcut_category(id) ON DELETE SET NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS command_history (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			command TEXT NOT NULL,
-			shell TEXT DEFAULT 'cmd.exe',
-			work_dir TEXT DEFAULT '',
-			executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)`,
 		`CREATE TABLE IF NOT EXISTS app_config (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			config_key TEXT NOT NULL UNIQUE,
@@ -177,7 +170,6 @@ func createTables(db *sql.DB) error {
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (group_id) REFERENCES shortcut_cmd_group(id) ON DELETE SET NULL
 		)`,
-		`CREATE INDEX IF NOT EXISTS idx_command_history_executed_at ON command_history(executed_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_shortcut_command_category_id ON shortcut_command(category_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_sub_app_dir_name ON sub_app(dir_name)`,
 		`CREATE TABLE IF NOT EXISTS ssh_server (

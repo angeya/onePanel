@@ -122,7 +122,7 @@ const props = defineProps({
   theme: { type: String, default: 'dark' }
 })
 
-const emit = defineEmits(['commandExecuted'])
+const emit = defineEmits([])
 
 const terminalRef = ref(null)
 const isRunning = ref(false)
@@ -187,9 +187,6 @@ const initTerminal = () => {
   onDataDisposable = terminal.onData((data) => {
     if (isRunning.value) {
       if (data === '\r') {
-        if (currentLine.trim()) {
-          emit('commandExecuted', { command: currentLine.trim() })
-        }
         currentLine = ''
       } else if (data === '\x7f') {
         currentLine = currentLine.slice(0, -1)

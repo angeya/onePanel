@@ -84,27 +84,6 @@ type ShortcutCmd struct {
 }
 
 /**
- * 命令历史记录模型
- * 对应 command_history 表，记录终端中执行过的命令
- */
-type CommandHistory struct {
-	Id         int64  `json:"id"`
-	Command    string `json:"command"`
-	Shell      string `json:"shell"`
-	WorkDir    string `json:"workDir"`
-	ExecutedAt string `json:"executedAt"`
-}
-
-/**
- * 命令历史查询结果
- * 包含分页后的历史记录列表和总数
- */
-type HistoryResult struct {
-	Histories []CommandHistory `json:"histories"`
-	Total     int64            `json:"total"`
-}
-
-/**
  * 网络端口信息模型
  * 对应 netstat 命令输出解析后的结构
  */

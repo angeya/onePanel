@@ -1,6 +1,11 @@
 <template>
   <div class="sub-panel-content">
-    <div class="sub-panel-title">终端</div>
+    <div class="sub-panel-header">
+      <span class="sub-panel-title">终端</span>
+      <el-button size="small" @click="handleAddTerminal" plain>
+        <el-icon><Plus /></el-icon>
+      </el-button>
+    </div>
     <el-tabs v-model="localSubTab" class="sub-tabs">
       <el-tab-pane label="快捷命令" name="shortcuts">
         <ShortcutPanel @execute-command="handleTerminalCommand" />
@@ -8,22 +13,25 @@
       <el-tab-pane label="服务器列表" name="sshkey">
         <SSHKeyPanel @execute-command="handleTerminalCommand" />
       </el-tab-pane>
-      <el-tab-pane label="历史" name="history">
-        <HistoryPanel @execute-command="handleTerminalCommand" />
-      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script setup>
 import { ref, inject } from 'vue'
+import { Plus } from '@element-plus/icons-vue'
 import ShortcutPanel from '../terminal/ShortcutPanel.vue'
 import SSHKeyPanel from '../terminal/SSHKeyPanel.vue'
-import HistoryPanel from '../terminal/HistoryPanel.vue'
 
 const handleTerminalCommand = inject('handleTerminalCommand')
+const addTerminalTab = inject('addTerminalTab')
+const defaultShell = inject('defaultShell')
 
 const localSubTab = ref('shortcuts')
+
+const handleAddTerminal = () => {
+  addTerminalTab(defaultShell.value)
+}
 </script>
 
 <style scoped>
@@ -34,11 +42,17 @@ const localSubTab = ref('shortcuts')
   overflow: hidden;
 }
 
+.sub-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 12px 0;
+}
+
 .sub-panel-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  padding: 12px 12px 0;
 }
 
 .sub-tabs {

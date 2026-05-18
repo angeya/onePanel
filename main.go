@@ -32,7 +32,6 @@ func main() {
 	ptyService := NewPtyService()
 	staticServer := NewStaticServer()
 	shortcutService := NewShortcutService(database)
-	historyService := NewHistoryService(database)
 	appService := NewAppService(database, staticServer)
 	shortcutCmdService := NewShortcutCmdService(database)
 	sshKeyService := NewSSHKeyService(database)
@@ -110,7 +109,6 @@ func main() {
 			app,
 			ptyService,
 			shortcutService,
-			historyService,
 			staticServer,
 			appService,
 			shortcutCmdService,
