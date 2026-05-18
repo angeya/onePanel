@@ -10,8 +10,8 @@
       <el-tab-pane label="快捷命令" name="shortcuts">
         <ShortcutPanel @execute-command="handleTerminalCommand" />
       </el-tab-pane>
-      <el-tab-pane label="服务器列表" name="sshkey">
-        <SSHKeyPanel @execute-command="handleTerminalCommand" />
+      <el-tab-pane label="服务器列表" name="serverlist">
+        <ServerListPanel @execute-command="handleTerminalCommand" />
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -21,7 +21,7 @@
 import { ref, inject } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import ShortcutPanel from '../terminal/ShortcutPanel.vue'
-import SSHKeyPanel from '../terminal/SSHKeyPanel.vue'
+import ServerListPanel from '../terminal/ServerListPanel.vue'
 
 const handleTerminalCommand = inject('handleTerminalCommand')
 const addTerminalTab = inject('addTerminalTab')

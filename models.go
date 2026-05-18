@@ -99,10 +99,10 @@ type PortInfo struct {
 }
 
 /**
- * SSH 会话分类模型
- * 对应 ssh_session_category 表，用于服务器列表的分类管理
+ * 服务器分类模型
+ * 对应 server_category 表，用于服务器列表的分类管理
  */
-type SSHSessionCategory struct {
+type ServerCategory struct {
 	Id        int64  `json:"id"`
 	Name      string `json:"name"`
 	SortOrder int    `json:"sortOrder"`
@@ -111,10 +111,10 @@ type SSHSessionCategory struct {
 }
 
 /**
- * SSH 服务器模型
- * 对应 ssh_server 表，记录远程服务器会话信息
+ * 服务器会话模型
+ * 对应 server_session 表，记录远程服务器会话信息
  */
-type SSHServer struct {
+type ServerSession struct {
 	Id          int64  `json:"id"`
 	CategoryId  *int64 `json:"categoryId"`
 	SessionName string `json:"sessionName"`

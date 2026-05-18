@@ -172,7 +172,7 @@ func createTables(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_shortcut_command_category_id ON shortcut_command(category_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_sub_app_dir_name ON sub_app(dir_name)`,
-		`CREATE TABLE IF NOT EXISTS ssh_server (
+		`CREATE TABLE IF NOT EXISTS server_session (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			category_id INTEGER,
 			session_name TEXT DEFAULT '',
@@ -183,10 +183,10 @@ func createTables(db *sql.DB) error {
 			key_deployed INTEGER DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (category_id) REFERENCES ssh_session_category(id) ON DELETE SET NULL
+			FOREIGN KEY (category_id) REFERENCES server_category(id) ON DELETE SET NULL
 		)`,
-		`CREATE INDEX IF NOT EXISTS idx_ssh_server_host_user ON ssh_server(host, user)`,
-		`CREATE TABLE IF NOT EXISTS ssh_session_category (
+		`CREATE INDEX IF NOT EXISTS idx_server_session_host_user ON server_session(host, user)`,
+		`CREATE TABLE IF NOT EXISTS server_category (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
 			sort_order INTEGER DEFAULT 0,
@@ -208,6 +208,8 @@ func createTables(db *sql.DB) error {
 		`ALTER TABLE ssh_server ADD COLUMN category_id INTEGER DEFAULT NULL`,
 		`ALTER TABLE ssh_server ADD COLUMN session_name TEXT DEFAULT ''`,
 		`ALTER TABLE ssh_server ADD COLUMN use_key_login INTEGER DEFAULT 0`,
+		`ALTER TABLE ssh_session_category RENAME TO server_category`,
+		`ALTER TABLE ssh_server RENAME TO server_session`,
 	}
 
 	for _, stmt := range migrations {

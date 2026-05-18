@@ -34,7 +34,7 @@ func main() {
 	shortcutService := NewShortcutService(database)
 	appService := NewAppService(database, staticServer)
 	shortcutCmdService := NewShortcutCmdService(database)
-	sshKeyService := NewSSHKeyService(database)
+	serverListService := NewServerListService(database)
 	toolService := NewToolService()
 	settingService := NewSettingService(database)
 
@@ -112,7 +112,7 @@ func main() {
 			staticServer,
 			appService,
 			shortcutCmdService,
-			sshKeyService,
+			serverListService,
 			toolService,
 			settingService,
 		},

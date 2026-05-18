@@ -1,11 +1,11 @@
 <template>
-  <div class="ssh-panel">
+  <div class="server-list-panel">
     <div class="panel-header">
-      <el-button size="small" type="primary" @click="showAddDialog" plain>
+      <el-button size="small" type="primary" @click="sessionDialogRef.show()" plain>
         <el-icon><Plus /></el-icon>
         新增会话
       </el-button>
-      <el-button size="small" @click="showCategoryDialog" plain>
+      <el-button size="small" @click="categoryDialogRef.show()" plain>
         <el-icon><FolderAdd /></el-icon>
         新增分类
       </el-button>
@@ -63,84 +63,21 @@
       <el-empty v-if="servers.length === 0" description="暂无会话" :image-size="50" />
     </div>
 
-    <el-dialog
-      v-model="sessionDialogVisible"
-      :title="isEditing ? '编辑会话' : '新增会话'"
-      width="420px"
-      :close-on-click-modal="false"
-    >
-      <el-form :model="sessionForm" label-width="100px" size="default">
-        <el-form-item label="会话名称">
-          <el-input v-model="sessionForm.sessionName" placeholder="可选，默认使用 用户名@主机名" />
-        </el-form-item>
-        <el-form-item label="所属分类">
-          <el-select v-model="sessionForm.categoryId" placeholder="请选择分类" clearable style="width: 100%">
-            <el-option
-              v-for="cat in categories"
-              :key="cat.id"
-              :label="cat.name"
-              :value="cat.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="主机地址">
-          <el-input v-model="sessionForm.host" placeholder="如 192.168.1.100" />
-        </el-form-item>
-        <el-form-item label="端口">
-          <el-input-number v-model="sessionForm.port" :min="1" :max="65535" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="用户名">
-          <el-input v-model="sessionForm.user" placeholder="如 root" />
-        </el-form-item>
-        <el-form-item label="密钥登录">
-          <el-checkbox v-model="sessionForm.useKeyLogin">
-            以后使用密钥免密登录
-          </el-checkbox>
-          <div v-if="sessionForm.useKeyLogin" class="key-hint">
-            首次登录需输入密码，登录成功后自动部署公钥
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="sessionDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSaveSession" :loading="savingSession">
-          {{ isEditing ? '保存' : '确认并登录' }}
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog
-      v-model="renameDialogVisible"
-      title="重命名会话"
-      width="360px"
-      :close-on-click-modal="false"
-    >
-      <el-input v-model="renameValue" placeholder="请输入新的会话名称" @keyup.enter="handleRename" />
-      <template #footer>
-        <el-button @click="renameDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleRename">确定</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog
-      v-model="categoryDialogVisible"
-      title="管理分类"
-      width="380px"
-    >
-      <div class="category-manage">
-        <div class="category-add-row">
-          <el-input v-model="newCategoryName" placeholder="分类名称" size="default" />
-          <el-button type="primary" @click="addCategory" size="default">添加</el-button>
-        </div>
-        <div class="category-list">
-          <div v-for="cat in categories" :key="cat.id" class="category-manage-item">
-            <span>{{ cat.name }}</span>
-            <el-icon class="action-icon" @click="deleteCategory(cat.id)"><Delete /></el-icon>
-          </div>
-          <el-empty v-if="categories.length === 0" description="暂无分类" :image-size="40" />
-        </div>
-      </div>
-    </el-dialog>
+    <ServerSessionDialog
+      ref="sessionDialogRef"
+      :categories="categories"
+      @saved="onDialogSaved"
+      @login="handleLogin"
+    />
+    <ServerRenameDialog
+      ref="renameDialogRef"
+      @saved="onDialogSaved"
+    />
+    <ServerCategoryDialog
+      ref="categoryDialogRef"
+      :categories="categories"
+      @saved="onDialogSaved"
+    />
 
     <div
       v-if="contextMenuVisible"
@@ -171,72 +108,41 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   GetServers,
-  AddServer,
-  UpdateServer,
   DeleteServer,
-  RenameServer,
   GetLoginCommand,
   DeployKey,
-  GetSessionCategories,
-  CreateSessionCategory,
-  DeleteSessionCategory
-} from '../../../wailsjs/go/main/SSHKeyService'
+  GetSessionCategories
+} from '../../../wailsjs/go/main/ServerListService'
+import ServerSessionDialog from './ServerSessionDialog.vue'
+import ServerRenameDialog from './ServerRenameDialog.vue'
+import ServerCategoryDialog from './ServerCategoryDialog.vue'
 
 const emit = defineEmits(['executeCommand'])
 
 const categories = ref([])
 const servers = ref([])
 const expandedCategories = ref(new Set())
-
-const sessionDialogVisible = ref(false)
-const isEditing = ref(false)
-const editingId = ref(null)
-const savingSession = ref(false)
-const sessionForm = ref({
-  sessionName: '',
-  categoryId: null,
-  host: '',
-  port: 22,
-  user: '',
-  useKeyLogin: true
-})
-
-const renameDialogVisible = ref(false)
-const renameValue = ref('')
-const renameTarget = ref(null)
-
-const categoryDialogVisible = ref(false)
-const newCategoryName = ref('')
+const sessionDialogRef = ref(null)
+const renameDialogRef = ref(null)
+const categoryDialogRef = ref(null)
 
 const contextMenuVisible = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
 const contextMenuTarget = ref(null)
 
-/**
- * 获取未分类的会话列表
- */
 const uncategorizedSessions = computed(() => {
   return servers.value.filter((s) => !s.categoryId)
 })
 
-/**
- * 按分类 ID 获取会话列表
- */
 const getSessionsByCategory = (categoryId) => {
   return servers.value.filter((s) => s.categoryId === categoryId)
 }
 
-/**
- * 获取分类下会话数量
- */
 const getSessionCount = (categoryId) => {
   return servers.value.filter((s) => s.categoryId === categoryId).length
 }
 
-/**
- * 展开/折叠分类
- */
 const toggleCategory = (categoryId) => {
   const newSet = new Set(expandedCategories.value)
   if (newSet.has(categoryId)) {
@@ -247,9 +153,6 @@ const toggleCategory = (categoryId) => {
   expandedCategories.value = newSet
 }
 
-/**
- * 加载分类数据
- */
 const loadCategories = async () => {
   try {
     const result = await GetSessionCategories()
@@ -259,9 +162,6 @@ const loadCategories = async () => {
   }
 }
 
-/**
- * 加载服务器列表
- */
 const loadServers = async () => {
   try {
     const result = await GetServers()
@@ -271,94 +171,10 @@ const loadServers = async () => {
   }
 }
 
-/**
- * 显示新增会话对话框
- */
-const showAddDialog = () => {
-  isEditing.value = false
-  editingId.value = null
-  sessionForm.value = {
-    sessionName: '',
-    categoryId: null,
-    host: '',
-    port: 22,
-    user: '',
-    useKeyLogin: true
-  }
-  sessionDialogVisible.value = true
+const onDialogSaved = async () => {
+  await Promise.all([loadCategories(), loadServers()])
 }
 
-/**
- * 显示编辑会话对话框
- */
-const showEditDialog = (server) => {
-  isEditing.value = true
-  editingId.value = server.id
-  sessionForm.value = {
-    sessionName: server.sessionName,
-    categoryId: server.categoryId,
-    host: server.host,
-    port: server.port,
-    user: server.user,
-    useKeyLogin: server.useKeyLogin
-  }
-  sessionDialogVisible.value = true
-}
-
-/**
- * 保存会话（新增或编辑）
- * 新增时确认后直接发起 SSH 登录
- */
-const handleSaveSession = async () => {
-  if (!sessionForm.value.host) {
-    ElMessage.warning('请输入主机地址')
-    return
-  }
-  if (!sessionForm.value.user) {
-    ElMessage.warning('请输入用户名')
-    return
-  }
-
-  savingSession.value = true
-  try {
-    if (isEditing.value) {
-      await UpdateServer(
-        editingId.value,
-        sessionForm.value.categoryId,
-        sessionForm.value.sessionName,
-        sessionForm.value.host,
-        sessionForm.value.port,
-        sessionForm.value.user,
-        sessionForm.value.useKeyLogin
-      )
-      ElMessage.success('更新成功')
-      sessionDialogVisible.value = false
-      await loadServers()
-    } else {
-      const server = await AddServer(
-        sessionForm.value.categoryId,
-        sessionForm.value.sessionName,
-        sessionForm.value.host,
-        sessionForm.value.port,
-        sessionForm.value.user,
-        sessionForm.value.useKeyLogin
-      )
-      sessionDialogVisible.value = false
-      await loadServers()
-      handleLogin(server)
-    }
-  } catch (err) {
-    ElMessage.error('保存失败: ' + err)
-  } finally {
-    savingSession.value = false
-  }
-}
-
-/**
- * 双击登录服务器
- * 向终端发送 SSH 登录命令
- * 如果勾选了密钥登录且密钥未部署，登录后自动部署公钥
- */
 const handleLogin = async (server) => {
   try {
     const cmd = await GetLoginCommand(server.id)
@@ -372,10 +188,6 @@ const handleLogin = async (server) => {
   }
 }
 
-/**
- * 提示用户输入密码以部署公钥
- * 在终端中用户已输入密码登录后，再通过后端部署公钥
- */
 const promptDeployKey = async (server) => {
   try {
     await ElMessageBox.prompt(
@@ -403,9 +215,6 @@ const promptDeployKey = async (server) => {
   }
 }
 
-/**
- * 显示右键菜单
- */
 const showContextMenu = (event, server) => {
   contextMenuTarget.value = server
   contextMenuX.value = event.clientX
@@ -413,9 +222,6 @@ const showContextMenu = (event, server) => {
   contextMenuVisible.value = true
 }
 
-/**
- * 处理右键菜单操作
- */
 const handleContextMenuAction = (action) => {
   contextMenuVisible.value = false
   const server = contextMenuTarget.value
@@ -423,12 +229,10 @@ const handleContextMenuAction = (action) => {
 
   switch (action) {
     case 'rename':
-      renameValue.value = server.sessionName
-      renameTarget.value = server
-      renameDialogVisible.value = true
+      renameDialogRef.value.show(server)
       break
     case 'edit':
-      showEditDialog(server)
+      sessionDialogRef.value.show(server)
       break
     case 'delete':
       handleDeleteServer(server)
@@ -436,28 +240,6 @@ const handleContextMenuAction = (action) => {
   }
 }
 
-/**
- * 重命名会话
- */
-const handleRename = async () => {
-  if (!renameValue.value.trim()) {
-    ElMessage.warning('会话名称不能为空')
-    return
-  }
-
-  try {
-    await RenameServer(renameTarget.value.id, renameValue.value.trim())
-    ElMessage.success('重命名成功')
-    renameDialogVisible.value = false
-    await loadServers()
-  } catch (err) {
-    ElMessage.error('重命名失败: ' + err)
-  }
-}
-
-/**
- * 删除会话
- */
 const handleDeleteServer = async (server) => {
   try {
     await ElMessageBox.confirm(
@@ -473,54 +255,6 @@ const handleDeleteServer = async (server) => {
   }
 }
 
-/**
- * 显示分类管理对话框
- */
-const showCategoryDialog = () => {
-  newCategoryName.value = ''
-  categoryDialogVisible.value = true
-}
-
-/**
- * 添加分类
- */
-const addCategory = async () => {
-  if (!newCategoryName.value.trim()) {
-    ElMessage.warning('请输入分类名称')
-    return
-  }
-  try {
-    await CreateSessionCategory(newCategoryName.value.trim(), 0)
-    newCategoryName.value = ''
-    ElMessage.success('分类创建成功')
-    await loadCategories()
-  } catch (err) {
-    ElMessage.error('创建分类失败: ' + err)
-  }
-}
-
-/**
- * 删除分类
- */
-const deleteCategory = async (id) => {
-  try {
-    await ElMessageBox.confirm(
-      '删除分类后，该分类下的会话将变为未分类，确定删除？',
-      '提示',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
-    )
-    await DeleteSessionCategory(id)
-    ElMessage.success('分类删除成功')
-    await loadCategories()
-    await loadServers()
-  } catch {
-    // 用户取消
-  }
-}
-
-/**
- * 点击其他区域关闭右键菜单
- */
 const handleClickOutside = () => {
   contextMenuVisible.value = false
 }
@@ -537,7 +271,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.ssh-panel {
+.server-list-panel {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -658,13 +392,6 @@ onBeforeUnmount(() => {
   background-color: var(--bg-active);
 }
 
-.key-hint {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
-  line-height: 1.4;
-}
-
 .context-menu {
   position: fixed;
   z-index: 9999;
@@ -697,51 +424,5 @@ onBeforeUnmount(() => {
 
 .context-menu-item.danger:hover {
   background-color: var(--el-color-danger-light-9);
-}
-
-.category-manage {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.category-add-row {
-  display: flex;
-  gap: 8px;
-}
-
-.category-add-row .el-input {
-  flex: 1;
-}
-
-.category-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.category-manage-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px;
-  border-radius: 4px;
-  color: var(--text-primary);
-  font-size: 13px;
-}
-
-.category-manage-item:hover {
-  background-color: var(--bg-hover);
-}
-
-.action-icon {
-  cursor: pointer;
-  color: var(--text-muted);
-  padding: 2px;
-  border-radius: 4px;
-}
-
-.action-icon:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-active);
 }
 </style>
