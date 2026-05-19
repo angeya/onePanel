@@ -136,6 +136,7 @@ let searchResultsDisposable = null
 let ptyId = ''
 let currentLine = ''
 let resizeObserver = null
+let sshHost = null
 
 /**
  * 初始化 xterm.js 终端实例
@@ -242,11 +243,73 @@ const startTerminal = async () => {
 
 /**
  * 处理后端 PTY 输出数据
+ * 同时检测 SSH 连接/断开状态以更新标签页标题
  */
 const handlePtyOutput = (data) => {
   if (terminal) {
     terminal.write(data)
   }
+  detectSshState(data)
+}
+
+/**
+ * 检测 SSH 连接/断开状态
+ * 通过终端输出中的特征字符串判断
+ */
+const detectSshState = (data) => {
+  if (sshHost) {
+    const disconnectPatterns = [
+      'Connection to ',
+      'connection closed',
+      'Disconnected from',
+      'Network error: Connection',
+      'Connection timed out',
+      'Connection refused',
+      'No route to host',
+      'broken pipe'
+    ]
+    const lowerData = data.toLowerCase()
+    for (const pattern of disconnectPatterns) {
+      if (lowerData.includes(pattern.toLowerCase())) {
+        sshHost = null
+        emitTabTitleChange(null)
+        return
+      }
+    }
+  } else if (sshHost === null) {
+    const connectIndicators = [
+      'Last login',
+      'Welcome to'
+    ]
+    for (const indicator of connectIndicators) {
+      if (data.includes(indicator)) {
+        emitTabTitleChange('connected')
+        return
+      }
+    }
+  }
+}
+
+/**
+ * 接收外部指定的 SSH 主机地址
+ * 由 ServerListPanel 在发送 SSH 命令时触发
+ */
+const handleSshConnect = (event) => {
+  if (event.detail.tabId === props.tabId) {
+    sshHost = event.detail.host
+    emitTabTitleChange(sshHost)
+  }
+}
+
+/**
+ * 通知 App.vue 更新标签页标题
+ * host 为 null 时恢复默认标题
+ */
+const emitTabTitleChange = (host) => {
+  const event = new CustomEvent('tab-title-change', {
+    detail: { tabId: props.tabId, host }
+  })
+  window.dispatchEvent(event)
 }
 
 /**
@@ -304,6 +367,7 @@ const handleSearchCloseEvent = (event) => {
 onMounted(() => {
   initTerminal()
   window.addEventListener('terminal-send-command', handleSendCommandEvent)
+  window.addEventListener('tab-ssh-connect', handleSshConnect)
   window.addEventListener('tab-search', handleSearchEvent)
   window.addEventListener('tab-search-close', handleSearchCloseEvent)
 })
@@ -316,6 +380,7 @@ watch(() => props.theme, (newTheme) => {
 
 onUnmounted(() => {
   window.removeEventListener('terminal-send-command', handleSendCommandEvent)
+  window.removeEventListener('tab-ssh-connect', handleSshConnect)
   window.removeEventListener('tab-search', handleSearchEvent)
   window.removeEventListener('tab-search-close', handleSearchCloseEvent)
 

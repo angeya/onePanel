@@ -7,7 +7,7 @@
   >
     <el-form :model="form" label-width="100px" size="default">
       <el-form-item label="会话名称">
-        <el-input v-model="form.sessionName" placeholder="可选，默认使用 用户名@主机名" />
+        <el-input v-model="form.sessionName" placeholder="可选，默认使用 主机(用户名)" />
       </el-form-item>
       <el-form-item label="所属分类">
         <el-select v-model="form.categoryId" placeholder="请选择分类" clearable style="width: 100%">
@@ -28,17 +28,27 @@
       <el-form-item label="用户名">
         <el-input v-model="form.user" placeholder="如 root" />
       </el-form-item>
-      <el-form-item label="密钥登录">
+      <el-form-item label="免密登录">
         <el-checkbox v-model="form.useKeyLogin">
-          以后使用密钥免密登录
+          记住登录方式，以后免输入密码
         </el-checkbox>
-        <div v-if="form.useKeyLogin" class="key-hint">
-          首次登录需输入密码，登录成功后自动部署公钥
+      </el-form-item>
+      <el-form-item v-if="form.useKeyLogin && !isEditing" label="登录密码">
+        <el-input v-model="form.password" type="password" show-password placeholder="输入服务器登录密码" />
+        <div class="key-hint">
+          首次登录需输入密码，之后可免密登录
         </div>
       </el-form-item>
+      <div v-if="setupError" class="setup-error">{{ setupError }}</div>
     </el-form>
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
+      <el-button
+        v-if="setupError"
+        @click="handleSkipSetup"
+      >
+        跳过，直接登录
+      </el-button>
       <el-button type="primary" @click="handleSave" :loading="saving">
         {{ isEditing ? '保存' : '确认并登录' }}
       </el-button>
@@ -49,7 +59,7 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { AddServer, UpdateServer } from '../../../wailsjs/go/main/ServerListService'
+import { AddServer, UpdateServer, DeployKey } from '../../../wailsjs/go/main/ServerListService'
 
 const props = defineProps({
   categories: { type: Array, required: true }
@@ -61,6 +71,8 @@ const visible = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
 const saving = ref(false)
+const setupError = ref('')
+const pendingServer = ref(null)
 const form = ref(getDefaultForm())
 
 function getDefaultForm() {
@@ -70,7 +82,8 @@ function getDefaultForm() {
     host: '',
     port: 22,
     user: '',
-    useKeyLogin: true
+    useKeyLogin: true,
+    password: ''
   }
 }
 
@@ -84,13 +97,16 @@ const show = (server) => {
       host: server.host,
       port: server.port,
       user: server.user,
-      useKeyLogin: server.useKeyLogin
+      useKeyLogin: server.useKeyLogin,
+      password: ''
     }
   } else {
     isEditing.value = false
     editingId.value = null
     form.value = getDefaultForm()
   }
+  setupError.value = ''
+  pendingServer.value = null
   visible.value = true
 }
 
@@ -105,6 +121,7 @@ const handleSave = async () => {
   }
 
   saving.value = true
+  setupError.value = ''
   try {
     if (isEditing.value) {
       await UpdateServer(
@@ -128,14 +145,35 @@ const handleSave = async () => {
         form.value.user,
         form.value.useKeyLogin
       )
-      visible.value = false
       emit('saved')
+      pendingServer.value = server
+
+      if (form.value.useKeyLogin && form.value.password) {
+        try {
+          await DeployKey(server.id, form.value.password)
+          ElMessage.success('设置成功，后续可免密登录')
+          emit('saved')
+        } catch (err) {
+          setupError.value = '免密登录设置失败: ' + err + '，请检查密码是否正确后重试'
+          saving.value = false
+          return
+        }
+      }
+
+      visible.value = false
       emit('login', server)
     }
   } catch (err) {
     ElMessage.error('保存失败: ' + err)
   } finally {
     saving.value = false
+  }
+}
+
+const handleSkipSetup = () => {
+  if (pendingServer.value) {
+    visible.value = false
+    emit('login', pendingServer.value)
   }
 }
 
@@ -147,6 +185,13 @@ defineExpose({ show })
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 4px;
+  line-height: 1.4;
+}
+
+.setup-error {
+  font-size: 12px;
+  color: var(--el-color-danger);
+  margin: -4px 0 0 100px;
   line-height: 1.4;
 }
 </style>

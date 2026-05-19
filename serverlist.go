@@ -408,7 +408,7 @@ func (s *ServerListService) DeleteSessionCategory(id int64) error {
  */
 func (s *ServerListService) GetServers() ([]ServerSession, error) {
 	rows, err := s.db.DB().Query(
-		"SELECT id, category_id, session_name, host, port, user, use_key_login, "+
+		"SELECT id, category_id, session_name, host, port, user, use_key_login, " +
 			"key_deployed, created_at, updated_at FROM server_session ORDER BY id",
 	)
 	if err != nil {
@@ -470,7 +470,7 @@ func (s *ServerListService) GetServer(id int64) (*ServerSession, error) {
 
 /**
  * 添加服务器会话记录
- * sessionName 为空时使用 host@user 格式
+ * sessionName 为空时由前端展示默认名称
  * 如果同主机同用户已存在，则返回已有记录
  */
 func (s *ServerListService) AddServer(
@@ -484,9 +484,6 @@ func (s *ServerListService) AddServer(
 	}
 	if port <= 0 {
 		port = 22
-	}
-	if sessionName == "" {
-		sessionName = fmt.Sprintf("%s@%s", user, host)
 	}
 
 	var existingId int64
@@ -548,9 +545,6 @@ func (s *ServerListService) UpdateServer(
 	}
 	if port <= 0 {
 		port = 22
-	}
-	if sessionName == "" {
-		sessionName = fmt.Sprintf("%s@%s", user, host)
 	}
 
 	now := NowFormatted()

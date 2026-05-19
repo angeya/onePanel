@@ -163,6 +163,7 @@ provide('addAppTab', addAppTab)
 provide('addToolTab', addToolTab)
 provide('addQuickLaunchTab', addQuickLaunchTab)
 provide('quickLaunchTabRef', quickLaunchTabRef)
+provide('sendCommand', sendCommand)
 
 const switchNav = (key) => {
   activeNav.value = key
@@ -361,6 +362,22 @@ const handleContextMenu = (e) => {
   }
 }
 
+/**
+ * 监听终端标签页标题变更事件
+ * SSH 连接时更新为服务器 IP，断开时恢复默认标题
+ */
+const handleTabTitleChange = (event) => {
+  const { tabId, host } = event.detail
+  const tab = tabs.value.find(t => t.id === tabId)
+  if (!tab) return
+  if (host) {
+    tab.title = host
+  } else {
+    const match = tab.id.match(/terminal-\d+-(\d+)/)
+    tab.title = `终端 ${match ? match[1] : ''}`
+  }
+}
+
 onMounted(async () => {
   await Promise.all([loadTheme(), loadSettings()])
   appService.loadApps()
@@ -368,6 +385,7 @@ onMounted(async () => {
   qlService.loadQlCmds()
   window.addEventListener('keydown', handleGlobalKeyDown, true)
   window.addEventListener('tab-search-result', handleSearchResult)
+  window.addEventListener('tab-title-change', handleTabTitleChange)
   window.addEventListener('contextmenu', handleContextMenu)
   EventsOn('close-requested', handleCloseRequested)
 })
@@ -375,6 +393,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeyDown, true)
   window.removeEventListener('tab-search-result', handleSearchResult)
+  window.removeEventListener('tab-title-change', handleTabTitleChange)
   window.removeEventListener('contextmenu', handleContextMenu)
 })
 </script>

@@ -30,6 +30,7 @@ export function useAppTabs() {
 
   /**
    * 添加终端 tab
+   * 返回新 tab 的 id
    */
   const addTerminalTab = (shell = 'cmd.exe') => {
     tabCounter++
@@ -42,6 +43,7 @@ export function useAppTabs() {
       closable: true
     })
     activeTabId.value = id
+    return id
   }
 
   /**

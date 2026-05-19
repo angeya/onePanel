@@ -1,255 +1,400 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>编解码</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-      background: #1e1e2e;
-      color: #cdd6f4;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .header {
-      padding: 12px 20px;
-      background: #181825;
-      border-bottom: 1px solid #313244;
-      display: flex;
-      align-items: center;
-    }
-    .header h1 { font-size: 16px; font-weight: 600; }
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      border-bottom: 1px solid #313244;
-    }
-    .section:last-child { border-bottom: none; }
-    .section-header {
-      padding: 8px 20px;
-      background: #181825;
-      font-size: 14px;
-      font-weight: 500;
-      color: #89b4fa;
-      border-bottom: 1px solid #313244;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .section-header .actions { margin-left: auto; display: flex; gap: 6px; }
-    .section-header button {
-      padding: 4px 10px;
-      border: 1px solid #45475a;
-      border-radius: 4px;
-      background: #313244;
-      color: #cdd6f4;
-      cursor: pointer;
-      font-size: 12px;
-      transition: background 0.2s;
-    }
-    .section-header button:hover { background: #45475a; }
-    .section-header button.active { background: #89b4fa; color: #1e1e2e; border-color: #89b4fa; }
-    .section-body {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-    }
-    .panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid #313244;
-    }
-    .panel:last-child { border-right: none; }
-    .panel-label {
-      padding: 6px 16px;
-      font-size: 12px;
-      color: #a6adc8;
-      background: #181825;
-      border-bottom: 1px solid #313244;
-    }
-    .panel textarea {
-      flex: 1;
-      width: 100%;
-      padding: 12px 16px;
-      border: none;
-      outline: none;
-      resize: none;
-      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      background: #1e1e2e;
-      color: #cdd6f4;
-    }
-    .panel textarea::placeholder { color: #585b70; }
-    .panel textarea.error { color: #f38ba8; }
-    .panel .error-msg {
-      padding: 4px 16px;
-      font-size: 11px;
-      color: #f38ba8;
-      background: #181825;
-      border-top: 1px solid #313244;
-      min-height: 22px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编解码工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 28px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            background: linear-gradient(90deg, #a78bfa, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(12px);
+            transition: box-shadow 0.3s;
+        }
+
+        .section:hover {
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.12);
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title .icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .section-title .icon.base64 {
+            background: linear-gradient(135deg, #a78bfa, #7c3aed);
+        }
+
+        .section-title .icon.uri {
+            background: linear-gradient(135deg, #34d399, #059669);
+        }
+
+        .codec-row {
+            display: flex;
+            align-items: stretch;
+            gap: 16px;
+        }
+
+        .textarea-wrap {
+            flex: 5;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .textarea-wrap label {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-bottom: 6px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        textarea {
+            width: 100%;
+            flex: 1;
+            min-height: 160px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            color: #e5e7eb;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            padding: 14px 16px;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.25s, box-shadow 0.25s;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            border-color: rgba(139, 92, 246, 0.6);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+        }
+
+        textarea::placeholder {
+            color: #4b5563;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 4px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0);
+            transition: background 0.25s;
+        }
+
+        .btn:hover::after {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn.encode {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
+        }
+
+        .btn.encode:hover {
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+        }
+
+        .btn.decode {
+            background: linear-gradient(135deg, #059669, #34d399);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.35);
+        }
+
+        .btn.decode:hover {
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.5);
+        }
+
+        .btn.copy {
+            background: rgba(255, 255, 255, 0.08);
+            color: #9ca3af;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 6px 20px;
+            font-size: 0.78rem;
+        }
+
+        .btn.copy:hover {
+            color: #e5e7eb;
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #fff;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(-12px);
+            transition: all 0.35s;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #059669, #34d399);
+            box-shadow: 0 4px 20px rgba(5, 150, 105, 0.4);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #dc2626, #f87171);
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+        }
+
+        .toast.info {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .codec-row {
+                flex-direction: column;
+            }
+
+            .btn-group {
+                flex-direction: row;
+                justify-content: center;
+                padding: 4px 0;
+            }
+
+            body {
+                padding: 20px 12px;
+            }
+
+            .section {
+                padding: 20px 16px;
+            }
+
+            textarea {
+                min-height: 120px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="header">
-    <h1>编解码</h1>
-  </div>
-  <div class="main">
-    <div class="section">
-      <div class="section-header">
-        URI 编解码
-        <div class="actions">
-          <button onclick="swapUri()">交换</button>
-          <button onclick="clearUri()">清空</button>
+    <div class="container">
+        <h1>编解码</h1>
+
+        <!-- Base64 Section -->
+        <div class="section">
+            <div class="section-title">
+                <span class="icon base64">B</span>
+                Base64 编解码
+            </div>
+            <div class="codec-row">
+                <div class="textarea-wrap">
+                    <label>输入</label>
+                    <textarea id="b64Input" placeholder="在此输入需要编码或解码的文本..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn encode" onclick="base64Encode()">编码</button>
+                    <button class="btn decode" onclick="base64Decode()">解码</button>
+                    <button class="btn copy" onclick="copyOutput('b64Output')">复制结果</button>
+                </div>
+                <div class="textarea-wrap">
+                    <label>输出</label>
+                    <textarea id="b64Output" placeholder="结果将显示在这里..." readonly></textarea>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="section-body">
-        <div class="panel">
-          <div class="panel-label">编码后</div>
-          <textarea id="uri-encoded" placeholder="输入 URI 编码后的字符串..." spellcheck="false"></textarea>
-          <div class="error-msg" id="uri-encoded-err"></div>
+
+        <!-- URI Section -->
+        <div class="section">
+            <div class="section-title">
+                <span class="icon uri">U</span>
+                URI 编解码
+            </div>
+            <div class="codec-row">
+                <div class="textarea-wrap">
+                    <label>输入</label>
+                    <textarea id="uriInput" placeholder="在此输入需要编码或解码的 URI..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn encode" onclick="uriEncode()">编码</button>
+                    <button class="btn decode" onclick="uriDecode()">解码</button>
+                    <button class="btn copy" onclick="copyOutput('uriOutput')">复制结果</button>
+                </div>
+                <div class="textarea-wrap">
+                    <label>输出</label>
+                    <textarea id="uriOutput" placeholder="结果将显示在这里..." readonly></textarea>
+                </div>
+            </div>
         </div>
-        <div class="panel">
-          <div class="panel-label">解码后</div>
-          <textarea id="uri-decoded" placeholder="输入原始字符串..." spellcheck="false"></textarea>
-          <div class="error-msg" id="uri-decoded-err"></div>
-        </div>
-      </div>
     </div>
 
-    <div class="section">
-      <div class="section-header">
-        Base64 编解码
-        <div class="actions">
-          <button onclick="swapBase64()">交换</button>
-          <button onclick="clearBase64()">清空</button>
-        </div>
-      </div>
-      <div class="section-body">
-        <div class="panel">
-          <div class="panel-label">编码后</div>
-          <textarea id="base64-encoded" placeholder="输入 Base64 编码后的字符串..." spellcheck="false"></textarea>
-          <div class="error-msg" id="base64-encoded-err"></div>
-        </div>
-        <div class="panel">
-          <div class="panel-label">解码后</div>
-          <textarea id="base64-decoded" placeholder="输入原始字符串..." spellcheck="false"></textarea>
-          <div class="error-msg" id="base64-decoded-err"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+    <div class="toast" id="toast"></div>
 
-  <script>
-    var uriEncodedEl = document.getElementById('uri-encoded');
-    var uriDecodedEl = document.getElementById('uri-decoded');
-    var uriEncodedErr = document.getElementById('uri-encoded-err');
-    var uriDecodedErr = document.getElementById('uri-decoded-err');
+    <script>
+        function showToast(message, type) {
+            var toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(function () {
+                toast.classList.remove('show');
+            }, 2000);
+        }
 
-    var base64EncodedEl = document.getElementById('base64-encoded');
-    var base64DecodedEl = document.getElementById('base64-decoded');
-    var base64EncodedErr = document.getElementById('base64-encoded-err');
-    var base64DecodedErr = document.getElementById('base64-decoded-err');
+        function base64Encode() {
+            var input = document.getElementById('b64Input').value;
+            if (!input) {
+                showToast('请输入需要编码的文本', 'error');
+                return;
+            }
+            try {
+                var encoded = btoa(unescape(encodeURIComponent(input)));
+                document.getElementById('b64Output').value = encoded;
+                showToast('Base64 编码成功', 'success');
+            } catch (e) {
+                showToast('编码失败: ' + e.message, 'error');
+            }
+        }
 
-    var uriFromEncoded = false;
-    var uriFromDecoded = false;
-    var base64FromEncoded = false;
-    var base64FromDecoded = false;
+        function base64Decode() {
+            var input = document.getElementById('b64Input').value;
+            if (!input) {
+                showToast('请输入需要解码的文本', 'error');
+                return;
+            }
+            try {
+                var decoded = decodeURIComponent(escape(atob(input.trim())));
+                document.getElementById('b64Output').value = decoded;
+                showToast('Base64 解码成功', 'success');
+            } catch (e) {
+                showToast('解码失败: 输入不是有效的 Base64 字符串', 'error');
+            }
+        }
 
-    uriEncodedEl.addEventListener('input', function() {
-      if (uriFromDecoded) { uriFromDecoded = false; return; }
-      var val = uriEncodedEl.value;
-      if (!val) { uriDecodedEl.value = ''; uriEncodedErr.textContent = ''; return; }
-      uriFromEncoded = true;
-      try {
-        uriDecodedEl.value = decodeURIComponent(val);
-        uriEncodedErr.textContent = '';
-      } catch (err) {
-        uriEncodedErr.textContent = '解码失败: ' + err.message;
-      }
-    });
+        function uriEncode() {
+            var input = document.getElementById('uriInput').value;
+            if (!input) {
+                showToast('请输入需要编码的 URI', 'error');
+                return;
+            }
+            try {
+                var encoded = encodeURIComponent(input);
+                document.getElementById('uriOutput').value = encoded;
+                showToast('URI 编码成功', 'success');
+            } catch (e) {
+                showToast('编码失败: ' + e.message, 'error');
+            }
+        }
 
-    uriDecodedEl.addEventListener('input', function() {
-      if (uriFromEncoded) { uriFromEncoded = false; return; }
-      var val = uriDecodedEl.value;
-      if (!val) { uriEncodedEl.value = ''; uriDecodedErr.textContent = ''; return; }
-      uriFromDecoded = true;
-      try {
-        uriEncodedEl.value = encodeURIComponent(val);
-        uriDecodedErr.textContent = '';
-      } catch (err) {
-        uriDecodedErr.textContent = '编码失败: ' + err.message;
-      }
-    });
+        function uriDecode() {
+            var input = document.getElementById('uriInput').value;
+            if (!input) {
+                showToast('请输入需要解码的 URI', 'error');
+                return;
+            }
+            try {
+                var decoded = decodeURIComponent(input.trim());
+                document.getElementById('uriOutput').value = decoded;
+                showToast('URI 解码成功', 'success');
+            } catch (e) {
+                showToast('解码失败: 输入不是有效的编码 URI', 'error');
+            }
+        }
 
-    base64EncodedEl.addEventListener('input', function() {
-      if (base64FromDecoded) { base64FromDecoded = false; return; }
-      var val = base64EncodedEl.value.trim();
-      if (!val) { base64DecodedEl.value = ''; base64EncodedErr.textContent = ''; return; }
-      base64FromEncoded = true;
-      try {
-        base64DecodedEl.value = atob(val);
-        base64EncodedErr.textContent = '';
-      } catch (err) {
-        base64EncodedErr.textContent = '解码失败: 无效的 Base64 字符串';
-      }
-    });
-
-    base64DecodedEl.addEventListener('input', function() {
-      if (base64FromEncoded) { base64FromEncoded = false; return; }
-      var val = base64DecodedEl.value;
-      if (!val) { base64EncodedEl.value = ''; base64DecodedErr.textContent = ''; return; }
-      base64FromDecoded = true;
-      try {
-        base64EncodedEl.value = btoa(val);
-        base64DecodedErr.textContent = '';
-      } catch (err) {
-        base64DecodedErr.textContent = '编码失败: 包含非 Latin1 字符，请先使用 URI 编码';
-      }
-    });
-
-    function swapUri() {
-      var tmp = uriEncodedEl.value;
-      uriEncodedEl.value = uriDecodedEl.value;
-      uriDecodedEl.value = tmp;
-      uriEncodedErr.textContent = '';
-      uriDecodedErr.textContent = '';
-    }
-
-    function clearUri() {
-      uriEncodedEl.value = '';
-      uriDecodedEl.value = '';
-      uriEncodedErr.textContent = '';
-      uriDecodedErr.textContent = '';
-    }
-
-    function swapBase64() {
-      var tmp = base64EncodedEl.value;
-      base64EncodedEl.value = base64DecodedEl.value;
-      base64DecodedEl.value = tmp;
-      base64EncodedErr.textContent = '';
-      base64DecodedErr.textContent = '';
-    }
-
-    function clearBase64() {
-      base64EncodedEl.value = '';
-      base64DecodedEl.value = '';
-      base64EncodedErr.textContent = '';
-      base64DecodedErr.textContent = '';
-    }
-  </script>
+        function copyOutput(id) {
+            var output = document.getElementById(id);
+            if (!output.value) {
+                showToast('没有可复制的内容', 'info');
+                return;
+            }
+            navigator.clipboard.writeText(output.value).then(function () {
+                showToast('已复制到剪贴板', 'success');
+            }).catch(function () {
+                output.select();
+                document.execCommand('copy');
+                showToast('已复制到剪贴板', 'success');
+            });
+        }
+    </script>
 </body>
 </html>

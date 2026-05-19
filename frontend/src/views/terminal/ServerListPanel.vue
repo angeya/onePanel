@@ -30,12 +30,8 @@
             @contextmenu.prevent="showContextMenu($event, server)"
           >
             <div class="session-info">
-              <span class="session-name">{{ server.sessionName }}</span>
+              <span class="session-name">{{ getDisplayName(server) }}</span>
               <span class="session-detail">{{ server.user }}@{{ server.host }}{{ server.port !== 22 ? ':' + server.port : '' }}</span>
-            </div>
-            <div class="session-badges">
-              <el-tag v-if="server.keyDeployed" type="success" size="small" effect="dark">密钥</el-tag>
-              <el-tag v-else-if="server.useKeyLogin" type="warning" size="small" effect="dark">待部署</el-tag>
             </div>
             <el-icon class="more-icon" @click.stop="showContextMenu($event, server)"><MoreFilled /></el-icon>
           </div>
@@ -50,12 +46,8 @@
         @contextmenu.prevent="showContextMenu($event, server)"
       >
         <div class="session-info">
-          <span class="session-name">{{ server.sessionName }}</span>
+          <span class="session-name">{{ getDisplayName(server) }}</span>
           <span class="session-detail">{{ server.user }}@{{ server.host }}{{ server.port !== 22 ? ':' + server.port : '' }}</span>
-        </div>
-        <div class="session-badges">
-          <el-tag v-if="server.keyDeployed" type="success" size="small" effect="dark">密钥</el-tag>
-          <el-tag v-else-if="server.useKeyLogin" type="warning" size="small" effect="dark">待部署</el-tag>
         </div>
         <el-icon class="more-icon" @click.stop="showContextMenu($event, server)"><MoreFilled /></el-icon>
       </div>
@@ -77,6 +69,11 @@
       ref="categoryDialogRef"
       :categories="categories"
       @saved="onDialogSaved"
+    />
+    <ServerDeployKeyDialog
+      ref="deployKeyDialogRef"
+      @deployed="onDeployKeySuccess"
+      @skip="onDeployKeySkip"
     />
 
     <div
@@ -101,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, inject } from 'vue'
 import {
   Plus, FolderAdd, Edit, Delete, ArrowDown, ArrowRight, MoreFilled, Setting
 } from '@element-plus/icons-vue'
@@ -110,14 +107,18 @@ import {
   GetServers,
   DeleteServer,
   GetLoginCommand,
-  DeployKey,
   GetSessionCategories
 } from '../../../wailsjs/go/main/ServerListService'
 import ServerSessionDialog from './ServerSessionDialog.vue'
 import ServerRenameDialog from './ServerRenameDialog.vue'
 import ServerCategoryDialog from './ServerCategoryDialog.vue'
+import ServerDeployKeyDialog from './ServerDeployKeyDialog.vue'
 
 const emit = defineEmits(['executeCommand'])
+
+const addTerminalTab = inject('addTerminalTab')
+const defaultShell = inject('defaultShell')
+const sendCommand = inject('sendCommand')
 
 const categories = ref([])
 const servers = ref([])
@@ -125,11 +126,21 @@ const expandedCategories = ref(new Set())
 const sessionDialogRef = ref(null)
 const renameDialogRef = ref(null)
 const categoryDialogRef = ref(null)
+const deployKeyDialogRef = ref(null)
 
 const contextMenuVisible = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
 const contextMenuTarget = ref(null)
+
+const pendingLoginServer = ref(null)
+
+const getDisplayName = (server) => {
+  if (server.sessionName) {
+    return server.sessionName
+  }
+  return `${server.host} (${server.user})`
+}
 
 const uncategorizedSessions = computed(() => {
   return servers.value.filter((s) => !s.categoryId)
@@ -176,42 +187,42 @@ const onDialogSaved = async () => {
 }
 
 const handleLogin = async (server) => {
+  if (server.useKeyLogin && !server.keyDeployed) {
+    pendingLoginServer.value = server
+    deployKeyDialogRef.value.show(server)
+    return
+  }
+  doLogin(server)
+}
+
+const doLogin = async (server) => {
   try {
     const cmd = await GetLoginCommand(server.id)
-    emit('executeCommand', cmd + '\r')
-
-    if (server.useKeyLogin && !server.keyDeployed) {
-      promptDeployKey(server)
-    }
+    const tabId = addTerminalTab(defaultShell.value)
+    const host = server.host
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('tab-ssh-connect', {
+        detail: { tabId, host }
+      }))
+      sendCommand(tabId, cmd + '\r')
+    }, 300)
   } catch (err) {
     ElMessage.error('获取登录命令失败: ' + err)
   }
 }
 
-const promptDeployKey = async (server) => {
-  try {
-    await ElMessageBox.prompt(
-      `已向终端发送 SSH 登录命令。如需自动部署公钥以实现免密登录，请输入服务器密码：`,
-      '部署公钥 - ' + server.sessionName,
-      {
-        confirmButtonText: '部署',
-        cancelButtonText: '跳过',
-        inputType: 'password',
-        inputPlaceholder: '输入服务器登录密码'
-      }
-    ).then(async ({ value }) => {
-      if (value) {
-        try {
-          await DeployKey(server.id, value)
-          ElMessage.success('公钥部署成功，后续可免密登录')
-          await loadServers()
-        } catch (err) {
-          ElMessage.error('部署失败: ' + err)
-        }
-      }
-    }).catch(() => {})
-  } catch {
-    // 用户跳过
+const onDeployKeySuccess = async () => {
+  await loadServers()
+  if (pendingLoginServer.value) {
+    doLogin(pendingLoginServer.value)
+    pendingLoginServer.value = null
+  }
+}
+
+const onDeployKeySkip = () => {
+  if (pendingLoginServer.value) {
+    doLogin(pendingLoginServer.value)
+    pendingLoginServer.value = null
   }
 }
 
@@ -243,7 +254,7 @@ const handleContextMenuAction = (action) => {
 const handleDeleteServer = async (server) => {
   try {
     await ElMessageBox.confirm(
-      `确定删除会话 "${server.sessionName}"？`,
+      `确定删除会话 "${getDisplayName(server)}"？`,
       '提示',
       { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
     )
@@ -367,10 +378,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.session-badges {
-  flex-shrink: 0;
 }
 
 .more-icon {
