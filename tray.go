@@ -15,35 +15,25 @@ var (
 	user32tray = syscall.NewLazyDLL("user32.dll")
 	kernel32   = syscall.NewLazyDLL("kernel32.dll")
 
-	procShellNotifyIconW       = shell32.NewProc("Shell_NotifyIconW")
-	procCreateWindowExW        = user32tray.NewProc("CreateWindowExW")
-	procDefWindowProcW         = user32tray.NewProc("DefWindowProcW")
-	procRegisterClassExW       = user32tray.NewProc("RegisterClassExW")
-	procDestroyWindow          = user32tray.NewProc("DestroyWindow")
-	procPostQuitMessage        = user32tray.NewProc("PostQuitMessage")
-	procGetMessageW            = user32tray.NewProc("GetMessageW")
-	procTranslateMessage       = user32tray.NewProc("TranslateMessage")
-	procDispatchMessageW       = user32tray.NewProc("DispatchMessageW")
-	procSetForegroundWindow    = user32tray.NewProc("SetForegroundWindow")
-	procLoadImageW             = user32tray.NewProc("LoadImageW")
-	procPostMessageW           = user32tray.NewProc("PostMessageW")
-	procGetModuleHandleW       = kernel32.NewProc("GetModuleHandleW")
-	procLoadIconW              = user32tray.NewProc("LoadIconW")
-	procCreatePopupMenu        = user32tray.NewProc("CreatePopupMenu")
-	procAppendMenuW            = user32tray.NewProc("AppendMenuW")
-	procTrackPopupMenu         = user32tray.NewProc("TrackPopupMenu")
-	procDestroyMenu            = user32tray.NewProc("DestroyMenu")
-	procGetCursorPos           = user32tray.NewProc("GetCursorPos")
-	procDestroyIcon            = user32tray.NewProc("DestroyIcon")
-	procCreateCompatibleDC     = user32tray.NewProc("CreateCompatibleDC")
-	procCreateCompatibleBitmap = user32tray.NewProc("CreateCompatibleBitmap")
-	procSelectObject           = user32tray.NewProc("SelectObject")
-	procDrawIconEx             = user32tray.NewProc("DrawIconEx")
-	procSetMenuItemBitmaps     = user32tray.NewProc("SetMenuItemBitmaps")
-	procDeleteDC               = user32tray.NewProc("DeleteDC")
-	procDeleteObject           = user32tray.NewProc("DeleteObject")
-	procGetDC                  = user32tray.NewProc("GetDC")
-	procReleaseDC              = user32tray.NewProc("ReleaseDC")
+	procShellNotifyIconW    = shell32.NewProc("Shell_NotifyIconW")
+	procCreateWindowExW     = user32tray.NewProc("CreateWindowExW")
+	procDefWindowProcW      = user32tray.NewProc("DefWindowProcW")
+	procRegisterClassExW    = user32tray.NewProc("RegisterClassExW")
+	procDestroyWindow       = user32tray.NewProc("DestroyWindow")
+	procPostQuitMessage     = user32tray.NewProc("PostQuitMessage")
+	procGetMessageW         = user32tray.NewProc("GetMessageW")
+	procTranslateMessage    = user32tray.NewProc("TranslateMessage")
+	procDispatchMessageW    = user32tray.NewProc("DispatchMessageW")
+	procSetForegroundWindow = user32tray.NewProc("SetForegroundWindow")
+	procLoadImageW          = user32tray.NewProc("LoadImageW")
+	procPostMessageW        = user32tray.NewProc("PostMessageW")
+	procGetModuleHandleW    = kernel32.NewProc("GetModuleHandleW")
+	procCreatePopupMenu     = user32tray.NewProc("CreatePopupMenu")
+	procAppendMenuW         = user32tray.NewProc("AppendMenuW")
+	procTrackPopupMenu      = user32tray.NewProc("TrackPopupMenu")
+	procDestroyMenu         = user32tray.NewProc("DestroyMenu")
+	procGetCursorPos        = user32tray.NewProc("GetCursorPos")
+	procDestroyIcon         = user32tray.NewProc("DestroyIcon")
 
 	cwUseDefault uintptr
 )
@@ -79,8 +69,6 @@ const (
 	MAKEINTRESOURCE = 1
 
 	MF_SEPARATOR = 0x00000800
-
-	DI_NORMAL = 0x0003
 )
 
 type NOTIFYICONDATA struct {
@@ -130,7 +118,6 @@ type TrayManager struct {
 	onShow      func()
 	onQuit      func()
 	initialized bool
-	menuBmps    []syscall.Handle
 }
 
 /**
@@ -268,10 +255,6 @@ func (t *TrayManager) wndProc(hWnd syscall.Handle, msg uint32, wParam, lParam ui
 		if t.hIcon != 0 {
 			procDestroyIcon.Call(uintptr(t.hIcon))
 		}
-		for _, hBmp := range t.menuBmps {
-			procDeleteObject.Call(uintptr(hBmp))
-		}
-		t.menuBmps = nil
 		procPostQuitMessage.Call(0)
 	}
 	ret, _, _ := procDefWindowProcW.Call(uintptr(hWnd), uintptr(msg), wParam, lParam)
@@ -280,7 +263,7 @@ func (t *TrayManager) wndProc(hWnd syscall.Handle, msg uint32, wParam, lParam ui
 
 /**
  * 显示右键菜单
- * 在托盘图标位置弹出上下文菜单，菜单项带图标
+ * 在托盘图标位置弹出上下文菜单
  */
 func (t *TrayManager) showContextMenu() {
 	hMenu, _, _ := procCreatePopupMenu.Call()
@@ -291,19 +274,6 @@ func (t *TrayManager) showContextMenu() {
 	procAppendMenuW.Call(hMenu, 0, IDM_SHOW, uintptr(unsafe.Pointer(showText)))
 	procAppendMenuW.Call(hMenu, MF_SEPARATOR, 0, 0)
 	procAppendMenuW.Call(hMenu, 0, IDM_QUIT, uintptr(unsafe.Pointer(quitText)))
-
-	if t.hIcon != 0 {
-		hBmpShow := t.iconToBitmap(t.hIcon, 16, 16)
-		if hBmpShow != 0 {
-			procSetMenuItemBitmaps.Call(hMenu, 0, 0x00000400, uintptr(hBmpShow), uintptr(hBmpShow))
-			t.menuBmps = append(t.menuBmps, hBmpShow)
-		}
-		hBmpQuit := t.loadSystemMenuBitmap(0x7F02, 16, 16)
-		if hBmpQuit != 0 {
-			procSetMenuItemBitmaps.Call(hMenu, 2, 0x00000400, uintptr(hBmpQuit), uintptr(hBmpQuit))
-			t.menuBmps = append(t.menuBmps, hBmpQuit)
-		}
-	}
 
 	var pt struct{ X, Y int32 }
 	procGetCursorPos.Call(uintptr(unsafe.Pointer(&pt)))
@@ -318,50 +288,6 @@ func (t *TrayManager) showContextMenu() {
 	)
 
 	procDestroyMenu.Call(hMenu)
-}
-
-/**
- * 将 HICON 转换为 HBITMAP
- * 创建兼容 DC 和位图，将图标绘制到位图上
- */
-func (t *TrayManager) iconToBitmap(hIcon syscall.Handle, width, height int) syscall.Handle {
-	hScreenDC, _, _ := procGetDC.Call(0)
-	if hScreenDC == 0 {
-		return 0
-	}
-	defer procReleaseDC.Call(0, hScreenDC)
-
-	hMemDC, _, _ := procCreateCompatibleDC.Call(hScreenDC)
-	if hMemDC == 0 {
-		return 0
-	}
-
-	hBmp, _, _ := procCreateCompatibleBitmap.Call(hScreenDC, uintptr(width), uintptr(height))
-	if hBmp == 0 {
-		procDeleteDC.Call(hMemDC)
-		return 0
-	}
-
-	oldBmp, _, _ := procSelectObject.Call(hMemDC, uintptr(hBmp))
-
-	procDrawIconEx.Call(hMemDC, 0, 0, uintptr(hIcon), uintptr(width), uintptr(height), 0, 0, DI_NORMAL)
-
-	procSelectObject.Call(hMemDC, oldBmp)
-	procDeleteDC.Call(hMemDC)
-
-	return syscall.Handle(hBmp)
-}
-
-/**
- * 加载系统菜单图标并转换为 HBITMAP
- * 使用 OIC_HICONS_HAND(0x7F02) 等系统预定义图标
- */
-func (t *TrayManager) loadSystemMenuBitmap(iconRes uintptr, width, height int) syscall.Handle {
-	hIcon, _, _ := procLoadIconW.Call(0, iconRes)
-	if hIcon == 0 {
-		return 0
-	}
-	return t.iconToBitmap(syscall.Handle(hIcon), width, height)
 }
 
 /**

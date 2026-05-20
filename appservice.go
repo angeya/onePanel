@@ -187,8 +187,6 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 		return nil, fmt.Errorf("获取应用目录失败")
 	}
 
-	a.db.DB().Exec("DELETE FROM sub_app WHERE app_type = 'static'")
-
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -197,7 +195,7 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 		return nil, fmt.Errorf("读取应用目录失败: %w", err)
 	}
 
-	var apps []SubApp
+	scannedDirs := make(map[string]bool)
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -211,23 +209,19 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 			continue
 		}
 
+		scannedDirs[dirName] = true
 		displayName := dirName
 		iconPath := a.resolveIconPath(subDir)
 		entryUrl := fmt.Sprintf("/%s/index.html", dirName)
 
-		app, created := a.upsertStaticApp(dirName, displayName, iconPath, entryUrl)
-		if created || app.Id > 0 {
-			apps = append(apps, app)
-		}
+		a.upsertStaticApp(dirName, displayName, iconPath, entryUrl)
 	}
 
-	if apps == nil {
-		apps = []SubApp{}
-	}
+	a.cleanupMissingStaticApps(scannedDirs)
 
 	allApps, err := a.GetApps()
 	if err != nil {
-		return apps, nil
+		return []SubApp{}, nil
 	}
 	return allApps, nil
 }
@@ -316,6 +310,34 @@ func (a *AppService) GetApps() ([]SubApp, error) {
 		apps = []SubApp{}
 	}
 	return apps, nil
+}
+
+/**
+ * 清理目录已不存在的静态应用
+ * 保留扫描到的目录对应的记录，删除其余静态应用
+ */
+func (a *AppService) cleanupMissingStaticApps(scannedDirs map[string]bool) {
+	rows, err := a.db.DB().Query("SELECT id, dir_name FROM sub_app WHERE app_type = 'static'")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var toDelete []int64
+	for rows.Next() {
+		var id int64
+		var dirName string
+		if err := rows.Scan(&id, &dirName); err != nil {
+			continue
+		}
+		if !scannedDirs[dirName] {
+			toDelete = append(toDelete, id)
+		}
+	}
+
+	for _, id := range toDelete {
+		a.db.DB().Exec("DELETE FROM sub_app WHERE id = ?", id)
+	}
 }
 
 /**

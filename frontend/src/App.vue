@@ -355,8 +355,14 @@ const handleCloseRequested = async () => {
 /**
  * 全局右键菜单拦截处理器
  * 当 allowDebug 为 false 时，阻止主页面浏览器默认右键菜单弹出
+ * 终端区域始终阻止浏览器默认菜单（终端有自己的右键粘贴功能）
  */
 const handleContextMenu = (e) => {
+  const terminalEl = e.target?.closest?.('.terminal-tab-container')
+  if (terminalEl) {
+    e.preventDefault()
+    return
+  }
   if (!allowDebug.value) {
     e.preventDefault()
   }

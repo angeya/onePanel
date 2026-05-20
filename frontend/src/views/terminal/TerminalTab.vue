@@ -180,6 +180,16 @@ const initTerminal = () => {
 
   terminal.open(terminalRef.value)
 
+  terminal.element.addEventListener('contextmenu', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    navigator.clipboard.readText().then(text => {
+      if (text && isRunning.value && ptyId) {
+        Write(ptyId, text).catch(() => {})
+      }
+    }).catch(() => {})
+  })
+
   nextTick(() => {
     fitAddon.fit()
     startTerminal()

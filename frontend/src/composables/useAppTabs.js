@@ -30,7 +30,6 @@ export function useAppTabs() {
 
   /**
    * 添加终端 tab
-   * 返回新 tab 的 id
    */
   const addTerminalTab = (shell = 'cmd.exe') => {
     tabCounter++
@@ -43,13 +42,13 @@ export function useAppTabs() {
       closable: true
     })
     activeTabId.value = id
-    return id
   }
 
   /**
    * 添加应用 tab（如已存在则切换）
    */
   const addAppTab = (appId, displayName, url) => {
+    console.log(`添加应用 tab: ${appId}, ${displayName}, ${Object.assign({}, tabs.value)}`)
     const existing = tabs.value.find(t => t.type === 'app' && t.appId === appId)
     if (existing) {
       activeTabId.value = existing.id

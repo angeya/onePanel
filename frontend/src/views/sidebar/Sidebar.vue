@@ -15,7 +15,7 @@
       </div>
       <div class="nav-bottom">
         <div class="nav-settings" title="系统设置" @click="openSettings">
-          <el-icon :size="18"><Setting /></el-icon>
+          <el-icon :size="20"><Setting /></el-icon>
         </div>
         <div class="version-info" title="oneWin v0.0.1">v0.0.1</div>
       </div>
@@ -162,16 +162,20 @@ onUnmounted(() => {
 .left-panel {
   display: flex;
   flex-shrink: 0;
+  height: 100%;
   background-color: var(--bg-primary);
+  position: relative;
 }
 
 .nav-column {
   width: 56px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   border-right: 1px solid var(--border-color);
   flex-shrink: 0;
+  position: relative;
 }
 
 .nav-logo {
@@ -195,7 +199,10 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 8px 0;
+  padding-bottom: 70px;
   gap: 4px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .nav-item {
@@ -226,6 +233,12 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--bg-primary);
 }
 
 .nav-settings {
@@ -236,7 +249,7 @@ onUnmounted(() => {
   justify-content: center;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--text-dimmed);
+  color: var(--text-muted);
   transition: all 0.15s;
 }
 

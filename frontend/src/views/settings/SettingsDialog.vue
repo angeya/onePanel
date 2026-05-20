@@ -2,8 +2,9 @@
   <el-dialog
     v-model="visible"
     title="系统设置"
-    width="480px"
+    width="520px"
     :close-on-click-modal="false"
+    top="5vh"
   >
     <div class="settings-content">
       <div class="setting-section">
@@ -225,6 +226,26 @@ defineExpose({ loadSettings, open })
   display: flex;
   flex-direction: column;
   gap: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 4px 12px 4px 4px;
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-dimmed);
 }
 
 .setting-section {
