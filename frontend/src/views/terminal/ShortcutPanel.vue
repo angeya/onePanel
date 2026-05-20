@@ -1,7 +1,7 @@
 <template>
   <div class="shortcut-panel">
     <div class="panel-header">
-      <el-button size="small" type="primary" @click="commandDialogRef.show()" plain>
+      <el-button size="small" @click="commandDialogRef.show()" plain>
         <el-icon><Plus /></el-icon>
         新增
       </el-button>

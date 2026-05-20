@@ -1,7 +1,7 @@
 <template>
   <div class="server-list-panel">
     <div class="panel-header">
-      <el-button size="small" type="primary" @click="sessionDialogRef.show()" plain>
+      <el-button size="small" @click="sessionDialogRef.show()" plain>
         <el-icon><Plus /></el-icon>
         新增会话
       </el-button>

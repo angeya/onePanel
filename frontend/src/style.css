@@ -278,6 +278,27 @@ body {
     border-color: var(--border-light);
 }
 
+.el-button--primary.is-plain {
+    --el-button-bg-color: var(--bg-tertiary);
+    --el-button-border-color: var(--border-light);
+    --el-button-text-color: var(--accent);
+    --el-button-hover-bg-color: var(--accent);
+    --el-button-hover-border-color: var(--accent);
+    --el-button-hover-text-color: #ffffff;
+    --el-button-active-bg-color: var(--accent-hover);
+    --el-button-active-border-color: var(--accent-hover);
+    --el-button-active-text-color: #ffffff;
+}
+
+.el-button--default.is-plain {
+    --el-button-bg-color: var(--bg-tertiary);
+    --el-button-border-color: var(--border-light);
+    --el-button-text-color: var(--text-secondary);
+    --el-button-hover-bg-color: var(--bg-hover);
+    --el-button-hover-border-color: var(--text-muted);
+    --el-button-hover-text-color: var(--text-primary);
+}
+
 .search-highlight {
     background-color: #FFC800;
     color: #000;
