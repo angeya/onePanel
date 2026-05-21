@@ -199,13 +199,24 @@ const doLogin = async (server) => {
   try {
     const cmd = await GetLoginCommand(server.id)
     const tabId = addTerminalTab(defaultShell.value)
+    if (!tabId) {
+      throw new Error('创建终端标签页失败')
+    }
+
     const host = server.host
-    setTimeout(() => {
+    const handleReady = (event) => {
+      if (event.detail.tabId !== tabId) {
+        return
+      }
+
+      window.removeEventListener('terminal-ready', handleReady)
       window.dispatchEvent(new CustomEvent('tab-ssh-connect', {
         detail: { tabId, host }
       }))
       sendCommand(tabId, cmd + '\r')
-    }, 300)
+    }
+
+    window.addEventListener('terminal-ready', handleReady)
   } catch (err) {
     ElMessage.error('获取登录命令失败: ' + err)
   }

@@ -246,6 +246,9 @@ const startTerminal = async () => {
     isRunning.value = true
     EventsOn('pty-output-' + ptyId, handlePtyOutput)
     EventsOn('pty-exit-' + ptyId, handlePtyExit)
+    window.dispatchEvent(new CustomEvent('terminal-ready', {
+      detail: { tabId: props.tabId }
+    }))
   } catch (err) {
     terminal.writeln('\r\n\x1b[31m' + err + '\x1b[0m')
   }

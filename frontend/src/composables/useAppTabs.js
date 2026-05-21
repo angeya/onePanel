@@ -42,6 +42,7 @@ export function useAppTabs() {
       closable: true
     })
     activeTabId.value = id
+    return id
   }
 
   /**
