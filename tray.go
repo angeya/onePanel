@@ -311,7 +311,7 @@ func (t *TrayManager) loadIcon() syscall.Handle {
 	iconPath := t.findIconFile()
 	if iconPath != "" {
 		iconPathPtr, _ := syscall.UTF16PtrFromString(iconPath)
-		hIcon, _, _ := procLoadImageW.Call(
+		hIcon, _, _ = procLoadImageW.Call(
 			0,
 			uintptr(unsafe.Pointer(iconPathPtr)),
 			IMAGE_ICON,
@@ -323,7 +323,13 @@ func (t *TrayManager) loadIcon() syscall.Handle {
 		}
 	}
 
-	hIcon, _, _ = procLoadIconW.Call(0, uintptr(0x7F00))
+	hIcon, _, _ = procLoadImageW.Call(
+		0,
+		uintptr(0x7F00),
+		IMAGE_ICON,
+		0, 0,
+		LR_DEFAULTSIZE|LR_SHARED,
+	)
 	return syscall.Handle(hIcon)
 }
 
