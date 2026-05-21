@@ -7,7 +7,7 @@
       </el-button>
       <el-button size="small" @click="categoryDialogRef.show()" plain>
         <el-icon><FolderAdd /></el-icon>
-        新增分类
+        管理分类
       </el-button>
     </div>
 

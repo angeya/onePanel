@@ -449,4 +449,21 @@ defineExpose({})
 .terminal-content :deep(.xterm-viewport) {
   overflow-y: auto !important;
 }
+
+.terminal-content :deep(.xterm-viewport::-webkit-scrollbar) {
+  width: 6px;
+}
+
+.terminal-content :deep(.xterm-viewport::-webkit-scrollbar-track) {
+  background: transparent;
+}
+
+.terminal-content :deep(.xterm-viewport::-webkit-scrollbar-thumb) {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.terminal-content :deep(.xterm-viewport::-webkit-scrollbar-thumb:hover) {
+  background-color: var(--text-dimmed);
+}
 </style>

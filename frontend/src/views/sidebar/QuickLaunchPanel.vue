@@ -2,11 +2,12 @@
   <div class="sub-panel-content">
     <div class="sub-panel-header">
       <span class="sub-panel-title">快速启动</span>
-      <el-button size="small" @click="openQlDialog('add')" plain>
-        <el-icon><Plus /></el-icon>
-      </el-button>
     </div>
     <div class="sub-panel-toolbar">
+      <el-button size="small" @click="openQlDialog('add')" plain>
+        <el-icon><Plus /></el-icon>
+        新增
+      </el-button>
       <el-button size="small" @click="openQlDialog('category')" plain>
         <el-icon><FolderAdd /></el-icon>
         管理分类

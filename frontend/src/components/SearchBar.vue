@@ -55,6 +55,10 @@ watch(() => props.visible, (val) => {
 })
 
 const onInput = () => {
+  if (!keyword.value) {
+    matchInfo.value = ''
+    isUnsupported.value = false
+  }
   emit('search', keyword.value)
 }
 

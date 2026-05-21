@@ -282,8 +282,13 @@ const handleSearchInput = (keyword) => {
   } else {
     const container = getSearchableContainer()
     if (container) {
-      const result = searchInContainer(container, keyword)
-      if (searchBarRef.value) searchBarRef.value.updateMatchInfo(result.current, result.total)
+      if (keyword) {
+        const result = searchInContainer(container, keyword)
+        if (searchBarRef.value) searchBarRef.value.updateMatchInfo(result.current, result.total)
+      } else {
+        clearHighlights(container)
+        if (searchBarRef.value) searchBarRef.value.clearMatchInfo()
+      }
     }
   }
 }
