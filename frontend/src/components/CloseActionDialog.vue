@@ -5,8 +5,9 @@
     width="400px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
-    :show-close="false"
+    :show-close="true"
     class="close-action-dialog"
+    @close="handleCancel"
     @opened="onOpened"
   >
     <div class="close-action-body">
@@ -42,6 +43,13 @@ const handleClose = (action) => {
   visible.value = false
   if (resolvePromise) {
     resolvePromise({ action, dontAsk: dontAskAgain.value })
+    resolvePromise = null
+  }
+}
+
+const handleCancel = () => {
+  if (resolvePromise) {
+    resolvePromise({ action: 'cancel', dontAsk: false })
     resolvePromise = null
   }
 }

@@ -392,6 +392,9 @@ const handleSearchResult = (event) => {
 
 const handleCloseRequested = async () => {
   const result = await closeActionDialogRef.value.open()
+  if (result.action === 'cancel') {
+    return
+  }
   if (result.dontAsk) {
     await changeCloseAction(result.action)
   }
@@ -403,14 +406,14 @@ const handleCloseRequested = async () => {
 }
 
 const handleContextMenu = (e) => {
-  const terminalEl = e.target?.closest?.('.terminal-tab-container')
-  if (terminalEl) {
-    e.preventDefault()
+  if (allowDebug.value) {
+    const terminalEl = e.target?.closest?.('.terminal-tab-container')
+    if (terminalEl) {
+      e.preventDefault()
+    }
     return
   }
-  if (!allowDebug.value) {
-    e.preventDefault()
-  }
+  e.preventDefault()
 }
 
 const handleTabTitleChange = (event) => {

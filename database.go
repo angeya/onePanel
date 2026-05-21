@@ -56,13 +56,16 @@ func (d *Database) DB() *sql.DB {
 
 /**
  * 获取配置项的值
- * 如果配置项不存在或查询出错，返回空字符串和 nil
+ * 如果配置项不存在返回空字符串，查询出错则返回错误
  */
 func (d *Database) GetConfig(key string) (string, error) {
 	var value string
-	err := d.db.QueryRow("SELECT config_value FROM app_config WHERE config_key = ?").Scan(&value)
+	err := d.db.QueryRow("SELECT config_value FROM app_config WHERE config_key = ?", key).Scan(&value)
 	if err != nil {
-		return "", nil
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
+		return "", fmt.Errorf("查询配置失败: %w", err)
 	}
 	return value, nil
 }

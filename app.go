@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -60,9 +61,12 @@ func (a *App) QuitApp() {
  * 返回 "tray"（最小化到托盘）或 "close"（直接退出）
  * 如果未设置则返回空字符串，前端据此判断是否为首次关闭
  */
-func (a *App) GetCloseAction() string {
-	val, _ := a.db.GetConfig("close_action")
-	return val
+func (a *App) GetCloseAction() (string, error) {
+	val, err := a.db.GetConfig("close_action")
+	if err != nil {
+		return "", err
+	}
+	return val, nil
 }
 
 /**
@@ -193,10 +197,16 @@ func (a *App) OpenLogsDir() error {
 
 /**
  * 设置是否允许调试（右键菜单）
- * 通过 WebView2 API 动态控制默认上下文菜单的启用状态
- * 同时控制主页面的 contextmenu 事件拦截
+ * 同时将设置持久化到数据库，并动态控制 WebView2 上下文菜单
  */
 func (a *App) SetAllowDebug(enabled bool) error {
+	val := "false"
+	if enabled {
+		val = "true"
+	}
+	if err := a.db.SetConfig("allow_debug", val); err != nil {
+		return fmt.Errorf("保存调试设置失败: %w", err)
+	}
 	if err := SetContextMenuEnabled(a.ctx, enabled); err != nil {
 		LogWarn("设置上下文菜单启用状态失败: %v", err)
 		return err

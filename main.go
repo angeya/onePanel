@@ -57,9 +57,13 @@ func main() {
 				LogWarn("初始化上下文菜单控制失败: %v", err)
 			} else {
 				allowDebugVal, _ := database.GetConfig("allow_debug")
-				if allowDebugVal != "true" {
+				if allowDebugVal == "true" {
+					if err := SetContextMenuEnabled(ctx, true); err != nil {
+						LogWarn("启用上下文菜单失败: %v", err)
+					}
+				} else {
 					if err := SetContextMenuEnabled(ctx, false); err != nil {
-						LogWarn("初始化上下文菜单状态失败: %v", err)
+						LogWarn("禁用上下文菜单失败: %v", err)
 					}
 				}
 			}
@@ -82,7 +86,7 @@ func main() {
 			if app.forceQuit {
 				return false
 			}
-			closeAction := app.GetCloseAction()
+			closeAction, _ := app.GetCloseAction()
 			if closeAction == "" || closeAction == "ask" {
 				runtime.EventsEmit(ctx, "close-requested")
 				return true

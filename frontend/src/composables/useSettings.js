@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { GetSetting, SetSetting } from '../../wailsjs/go/main/SettingService'
+import { GetSetting } from '../../wailsjs/go/main/SettingService'
 import { GetCloseAction, SetCloseAction, SetAllowDebug } from '../../wailsjs/go/main/App'
 
 /**
@@ -38,16 +38,11 @@ export function useSettings() {
 
   /**
    * 切换调试开关并持久化
-   * 同时通知后端动态控制 WebView2 右键菜单的启用状态
+   * SetAllowDebug 同时完成数据库持久化和 WebView2 上下文菜单控制
    */
   const changeAllowDebug = async (value) => {
-    try {
-      await SetSetting('allow_debug', value ? 'true' : 'false')
-      allowDebug.value = value
-      await SetAllowDebug(value)
-    } catch (err) {
-      console.error('保存调试开关设置失败:', err)
-    }
+    await SetAllowDebug(value)
+    allowDebug.value = value
   }
 
   /**
@@ -66,9 +61,7 @@ export function useSettings() {
       }
 
       const debug = await GetSetting('allow_debug')
-      if (debug === 'true') {
-        allowDebug.value = true
-      }
+      allowDebug.value = String(debug) === 'true'
     } catch (err) {
       console.error('加载设置失败:', err)
     }

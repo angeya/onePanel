@@ -101,8 +101,7 @@ const visible = ref(false)
 const currentTheme = ref('dark')
 const defaultShell = ref('cmd.exe')
 const currentCloseAction = ref('ask')
-const allowDebug = ref(false)
-
+const allowDebug = inject('allowDebug')
 const changeAllowDebug = inject('changeAllowDebug')
 
 const themes = [
@@ -174,6 +173,7 @@ const saveAllowDebug = async (val) => {
     await changeAllowDebug(val)
     emit('allowDebugChange', val)
   } catch (err) {
+    allowDebug.value = !val
     ElMessage.error('保存调试开关设置失败: ' + err)
   }
 }
@@ -205,9 +205,6 @@ const loadSettings = async () => {
 
     const action = await GetCloseAction()
     if (action) currentCloseAction.value = action
-
-    const debug = await GetSetting('allow_debug')
-    if (debug === 'true') allowDebug.value = true
   } catch (err) {
     console.error('加载设置失败:', err)
   }
