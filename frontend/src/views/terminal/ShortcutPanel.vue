@@ -33,6 +33,7 @@
               <span class="command-text">{{ cmd.commands }}</span>
             </div>
             <div class="command-actions">
+              <el-icon class="action-icon" @click.stop="executeCommandInNewTerminal(cmd)"><VideoPlay /></el-icon>
               <el-icon class="action-icon" @click.stop="commandDialogRef.show(cmd)"><Edit /></el-icon>
               <el-icon class="action-icon" @click.stop="deleteCommand(cmd.id)"><Delete /></el-icon>
             </div>
@@ -51,6 +52,7 @@
           <span class="command-text">{{ cmd.commands }}</span>
         </div>
         <div class="command-actions">
+          <el-icon class="action-icon" @click.stop="executeCommandInNewTerminal(cmd)"><VideoPlay /></el-icon>
           <el-icon class="action-icon" @click.stop="commandDialogRef.show(cmd)"><Edit /></el-icon>
           <el-icon class="action-icon" @click.stop="deleteCommand(cmd.id)"><Delete /></el-icon>
         </div>
@@ -73,8 +75,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { Plus, FolderAdd, Edit, Delete, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
+import { ref, onMounted, computed, inject } from 'vue'
+import {
+  Plus,
+  FolderAdd,
+  Edit,
+  Delete,
+  ArrowDown,
+  ArrowRight,
+  VideoPlay
+} from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   GetCategories,
@@ -84,13 +94,13 @@ import {
 import ShortcutCommandDialog from './ShortcutCommandDialog.vue'
 import ShortcutCategoryDialog from './ShortcutCategoryDialog.vue'
 
-const emit = defineEmits(['executeCommand'])
-
 const categories = ref([])
 const commands = ref([])
 const expandedCategories = ref(new Set())
 const commandDialogRef = ref(null)
 const categoryDialogRef = ref(null)
+
+const executeShortcutCommand = inject('executeShortcutCommand')
 
 const uncategorizedCommands = computed(() => {
   return commands.value.filter((cmd) => !cmd.categoryId)
@@ -147,14 +157,28 @@ const deleteCommand = async (id) => {
     ElMessage.success('删除成功')
     await loadCommands()
   } catch {
-    // 用户取消
   }
 }
 
+const getCommandLines = (cmd) => {
+  return cmd.commands.split('\n').filter((line) => line.trim()).map((line) => line.trim())
+}
+
 const executeCommand = (cmd) => {
-  const commandLines = cmd.commands.split('\n').filter((line) => line.trim())
-  commandLines.forEach((line) => {
-    emit('executeCommand', line.trim())
+  executeShortcutCommand({
+    commandLines: getCommandLines(cmd),
+    commandName: cmd.name,
+    workDir: cmd.workDir,
+    forceNewTerminal: false
+  })
+}
+
+const executeCommandInNewTerminal = (cmd) => {
+  executeShortcutCommand({
+    commandLines: getCommandLines(cmd),
+    commandName: cmd.name,
+    workDir: cmd.workDir,
+    forceNewTerminal: true
   })
 }
 

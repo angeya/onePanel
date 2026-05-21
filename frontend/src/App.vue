@@ -177,11 +177,55 @@ const switchNav = (key) => {
   }
 }
 
-const handleTerminalCommand = (command) => {
-  if (terminalTabs.value.length === 0) {
-    addTerminalTab(defaultShell.value)
+const createTerminalAndRunCommands = (commandLines, title = '') => {
+  const tabId = addTerminalTab(defaultShell.value, title)
+  if (!tabId) {
+    return
   }
-  sendCommand(activeTabId.value, command)
+
+  const handleReady = (event) => {
+    if (event.detail.tabId !== tabId) {
+      return
+    }
+
+    window.removeEventListener('terminal-ready', handleReady)
+    commandLines.forEach((line) => {
+      sendCommand(tabId, line)
+    })
+  }
+
+  window.addEventListener('terminal-ready', handleReady)
+}
+
+const executeShortcutCommand = ({ commandLines, commandName, workDir = '', forceNewTerminal = false }) => {
+  const lines = (commandLines || []).filter((line) => line && line.trim()).map((line) => line.trim())
+  if (lines.length === 0) {
+    return
+  }
+
+  const finalLines = workDir
+    ? [`cd /d ${workDir}`, ...lines]
+    : lines
+
+  const activeTab = tabs.value.find((tab) => tab.id === activeTabId.value)
+  const shouldUseCurrentTerminal = !forceNewTerminal && activeTab?.type === 'terminal'
+
+  if (shouldUseCurrentTerminal) {
+    finalLines.forEach((line) => {
+      sendCommand(activeTab.id, line)
+    })
+    return
+  }
+
+  createTerminalAndRunCommands(finalLines, forceNewTerminal ? commandName : '')
+}
+
+const handleTerminalCommand = (command) => {
+  const line = command?.trim()
+  if (!line) {
+    return
+  }
+  executeShortcutCommand({ commandLines: [line] })
 }
 
 provide('activeNav', activeNav)
@@ -191,6 +235,7 @@ provide('addTerminalTab', addTerminalTab)
 provide('defaultShell', defaultShell)
 provide('allowDebug', allowDebug)
 provide('changeAllowDebug', changeAllowDebug)
+provide('executeShortcutCommand', executeShortcutCommand)
 
 const handleTabMouseDown = (event, tab) => {
   if (event.button === 1 && tab.closable !== false) {
@@ -357,11 +402,6 @@ const handleCloseRequested = async () => {
   }
 }
 
-/**
- * 全局右键菜单拦截处理器
- * 当 allowDebug 为 false 时，阻止主页面浏览器默认右键菜单弹出
- * 终端区域始终阻止浏览器默认菜单（终端有自己的右键粘贴功能）
- */
 const handleContextMenu = (e) => {
   const terminalEl = e.target?.closest?.('.terminal-tab-container')
   if (terminalEl) {
@@ -373,10 +413,6 @@ const handleContextMenu = (e) => {
   }
 }
 
-/**
- * 监听终端标签页标题变更事件
- * SSH 连接时更新为服务器 IP，断开时恢复默认标题
- */
 const handleTabTitleChange = (event) => {
   const { tabId, host } = event.detail
   const tab = tabs.value.find(t => t.id === tabId)
@@ -460,69 +496,54 @@ onUnmounted(() => {
 }
 
 .main-tab-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  white-space: nowrap;
-  font-size: 13px;
-  color: var(--text-muted);
-  background-color: var(--bg-tertiary);
-  transition: all 0.15s;
   min-width: 0;
-}
-
-.main-tab-item:hover {
-  background-color: var(--bg-active);
-  color: var(--text-primary);
+  max-width: 240px;
+  padding: 6px 10px;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  background-color: transparent;
+  user-select: none;
 }
 
 .main-tab-item.active {
-  background-color: var(--bg-active);
   color: var(--text-primary);
-  border-bottom: 2px solid var(--accent);
+  background-color: var(--bg-secondary);
 }
 
 .tab-name {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tab-close {
-  border-radius: 50%;
-  padding: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.main-tab-item:hover .tab-close {
-  opacity: 1;
+  flex-shrink: 0;
+  border-radius: 4px;
 }
 
 .tab-close:hover {
-  background-color: var(--scrollbar-thumb);
-  color: #fff;
+  background-color: var(--bg-hover);
 }
 
 .main-tabs-body {
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
   position: relative;
 }
 
 .app-iframe-wrapper {
   width: 100%;
   height: 100%;
-  position: relative;
 }
 
 .app-iframe {
   width: 100%;
   height: 100%;
   border: none;
+  background-color: #fff;
 }
-
-
 </style>

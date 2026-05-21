@@ -92,7 +92,7 @@ func (s *ShortcutService) DeleteCategory(id int64) error {
  */
 func (s *ShortcutService) GetCommands() ([]ShortcutCommand, error) {
 	rows, err := s.db.DB().Query(
-		"SELECT id, category_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_command ORDER BY sort_order, id",
+		"SELECT id, category_id, name, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_command ORDER BY sort_order, id",
 	)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (s *ShortcutService) GetCommands() ([]ShortcutCommand, error) {
 	for rows.Next() {
 		var cmd ShortcutCommand
 		var categoryId sql.NullInt64
-		if err := rows.Scan(&cmd.Id, &categoryId, &cmd.Name, &cmd.Shell, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt); err != nil {
+		if err := rows.Scan(&cmd.Id, &categoryId, &cmd.Name, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if categoryId.Valid {
@@ -119,7 +119,7 @@ func (s *ShortcutService) GetCommands() ([]ShortcutCommand, error) {
  */
 func (s *ShortcutService) GetCommandsByCategory(categoryId int64) ([]ShortcutCommand, error) {
 	rows, err := s.db.DB().Query(
-		"SELECT id, category_id, name, shell, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_command WHERE category_id = ? ORDER BY sort_order, id",
+		"SELECT id, category_id, name, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_command WHERE category_id = ? ORDER BY sort_order, id",
 		categoryId,
 	)
 	if err != nil {
@@ -131,7 +131,7 @@ func (s *ShortcutService) GetCommandsByCategory(categoryId int64) ([]ShortcutCom
 	for rows.Next() {
 		var cmd ShortcutCommand
 		var catId sql.NullInt64
-		if err := rows.Scan(&cmd.Id, &catId, &cmd.Name, &cmd.Shell, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt); err != nil {
+		if err := rows.Scan(&cmd.Id, &catId, &cmd.Name, &cmd.WorkDir, &cmd.Commands, &cmd.SortOrder, &cmd.CreatedAt, &cmd.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if catId.Valid {
@@ -144,11 +144,9 @@ func (s *ShortcutService) GetCommandsByCategory(categoryId int64) ([]ShortcutCom
 
 /**
  * 创建快捷命令
- * shell 为空时默认使用 cmd.exe
  */
-func (s *ShortcutService) CreateCommand(categoryId *int64, name, shell, workDir, commands string, sortOrder int) (*ShortcutCommand, error) {
+func (s *ShortcutService) CreateCommand(categoryId *int64, name, workDir, commands string, sortOrder int) (*ShortcutCommand, error) {
 	now := NowFormatted()
-	shell = DefaultShell(shell)
 
 	var catId sql.NullInt64
 	if categoryId != nil {
@@ -156,8 +154,8 @@ func (s *ShortcutService) CreateCommand(categoryId *int64, name, shell, workDir,
 	}
 
 	result, err := s.db.DB().Exec(
-		"INSERT INTO shortcut_command (category_id, name, shell, work_dir, commands, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		catId, name, shell, workDir, commands, sortOrder, now, now,
+		"INSERT INTO shortcut_command (category_id, name, work_dir, commands, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		catId, name, workDir, commands, sortOrder, now, now,
 	)
 	if err != nil {
 		return nil, err
@@ -168,7 +166,6 @@ func (s *ShortcutService) CreateCommand(categoryId *int64, name, shell, workDir,
 		Id:         id,
 		CategoryId: categoryId,
 		Name:       name,
-		Shell:      shell,
 		WorkDir:    workDir,
 		Commands:   commands,
 		SortOrder:  sortOrder,
@@ -180,9 +177,8 @@ func (s *ShortcutService) CreateCommand(categoryId *int64, name, shell, workDir,
 /**
  * 更新快捷命令
  */
-func (s *ShortcutService) UpdateCommand(id int64, categoryId *int64, name, shell, workDir, commands string, sortOrder int) error {
+func (s *ShortcutService) UpdateCommand(id int64, categoryId *int64, name, workDir, commands string, sortOrder int) error {
 	now := NowFormatted()
-	shell = DefaultShell(shell)
 
 	var catId sql.NullInt64
 	if categoryId != nil {
@@ -190,8 +186,8 @@ func (s *ShortcutService) UpdateCommand(id int64, categoryId *int64, name, shell
 	}
 
 	_, err := s.db.DB().Exec(
-		"UPDATE shortcut_command SET category_id = ?, name = ?, shell = ?, work_dir = ?, commands = ?, sort_order = ?, updated_at = ? WHERE id = ?",
-		catId, name, shell, workDir, commands, sortOrder, now, id,
+		"UPDATE shortcut_command SET category_id = ?, name = ?, work_dir = ?, commands = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+		catId, name, workDir, commands, sortOrder, now, id,
 	)
 	return err
 }

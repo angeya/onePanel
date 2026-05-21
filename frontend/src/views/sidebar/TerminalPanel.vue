@@ -8,10 +8,10 @@
     </div>
     <el-tabs v-model="localSubTab" class="sub-tabs">
       <el-tab-pane label="快捷命令" name="shortcuts">
-        <ShortcutPanel @execute-command="handleTerminalCommand" />
+        <ShortcutPanel />
       </el-tab-pane>
       <el-tab-pane label="服务器列表" name="serverlist">
-        <ServerListPanel @execute-command="handleTerminalCommand" />
+        <ServerListPanel />
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -23,7 +23,6 @@ import { Plus } from '@element-plus/icons-vue'
 import ShortcutPanel from '../terminal/ShortcutPanel.vue'
 import ServerListPanel from '../terminal/ServerListPanel.vue'
 
-const handleTerminalCommand = inject('handleTerminalCommand')
 const addTerminalTab = inject('addTerminalTab')
 const defaultShell = inject('defaultShell')
 

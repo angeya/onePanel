@@ -114,8 +114,6 @@ import ServerRenameDialog from './ServerRenameDialog.vue'
 import ServerCategoryDialog from './ServerCategoryDialog.vue'
 import ServerDeployKeyDialog from './ServerDeployKeyDialog.vue'
 
-const emit = defineEmits(['executeCommand'])
-
 const addTerminalTab = inject('addTerminalTab')
 const defaultShell = inject('defaultShell')
 const sendCommand = inject('sendCommand')

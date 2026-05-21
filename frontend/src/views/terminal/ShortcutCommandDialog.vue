@@ -19,12 +19,6 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="Shell">
-        <el-select v-model="form.shell" style="width: 100%">
-          <el-option label="cmd.exe" value="cmd.exe" />
-          <el-option label="powershell.exe" value="powershell.exe" />
-        </el-select>
-      </el-form-item>
       <el-form-item label="工作目录">
         <el-input v-model="form.workDir" placeholder="留空则使用默认目录" />
       </el-form-item>
@@ -64,7 +58,6 @@ function getDefaultForm() {
   return {
     name: '',
     categoryId: null,
-    shell: 'cmd.exe',
     workDir: '',
     commands: ''
   }
@@ -77,7 +70,6 @@ const show = (cmd) => {
     form.value = {
       name: cmd.name,
       categoryId: cmd.categoryId,
-      shell: cmd.shell,
       workDir: cmd.workDir,
       commands: cmd.commands
     }
@@ -105,7 +97,6 @@ const handleSave = async () => {
         editingId.value,
         form.value.categoryId,
         form.value.name,
-        form.value.shell,
         form.value.workDir,
         form.value.commands,
         0
@@ -115,7 +106,6 @@ const handleSave = async () => {
       await CreateCommand(
         form.value.categoryId,
         form.value.name,
-        form.value.shell,
         form.value.workDir,
         form.value.commands,
         0

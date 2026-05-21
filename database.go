@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -59,7 +60,7 @@ func (d *Database) DB() *sql.DB {
  */
 func (d *Database) GetConfig(key string) (string, error) {
 	var value string
-	err := d.db.QueryRow("SELECT config_value FROM app_config WHERE config_key = ?", key).Scan(&value)
+	err := d.db.QueryRow("SELECT config_value FROM app_config WHERE config_key = ?").Scan(&value)
 	if err != nil {
 		return "", nil
 	}
@@ -126,7 +127,6 @@ func createTables(db *sql.DB) error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			category_id INTEGER,
 			name TEXT NOT NULL,
-			shell TEXT DEFAULT 'cmd.exe',
 			work_dir TEXT DEFAULT '',
 			commands TEXT NOT NULL,
 			sort_order INTEGER DEFAULT 0,
@@ -216,5 +216,67 @@ func createTables(db *sql.DB) error {
 		db.Exec(stmt)
 	}
 
+	dropShortcutShellColumnIfExists(db)
+
 	return nil
+}
+
+func dropShortcutShellColumnIfExists(db *sql.DB) {
+	cols, err := getTableColumns(db, "shortcut_command")
+	if err != nil {
+		return
+	}
+	if !hasColumn(cols, "shell") {
+		return
+	}
+
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS shortcut_command_new (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		category_id INTEGER,
+		name TEXT NOT NULL,
+		work_dir TEXT DEFAULT '',
+		commands TEXT NOT NULL,
+		sort_order INTEGER DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (category_id) REFERENCES shortcut_category(id) ON DELETE SET NULL
+	)`)
+	_, _ = db.Exec(`INSERT INTO shortcut_command_new (id, category_id, name, work_dir, commands, sort_order, created_at, updated_at)
+		SELECT id, category_id, name, work_dir, commands, sort_order, created_at, updated_at FROM shortcut_command`)
+	_, _ = db.Exec(`DROP TABLE shortcut_command`)
+	_, _ = db.Exec(`ALTER TABLE shortcut_command_new RENAME TO shortcut_command`)
+	_, _ = db.Exec(`CREATE INDEX IF NOT EXISTS idx_shortcut_command_category_id ON shortcut_command(category_id)`)
+}
+
+func getTableColumns(db *sql.DB, tableName string) ([]string, error) {
+	rows, err := db.Query(fmt.Sprintf("PRAGMA table_info(%s)", tableName))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var columns []string
+	for rows.Next() {
+		var cid int
+		var name string
+		var dataType string
+		var notNull int
+		var defaultValue sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &dataType, &notNull, &defaultValue, &pk); err != nil {
+			return nil, err
+		}
+		columns = append(columns, name)
+	}
+	return columns, nil
+}
+
+func hasColumn(columns []string, target string) bool {
+	target = strings.ToLower(target)
+	for _, col := range columns {
+		if strings.ToLower(col) == target {
+			return true
+		}
+	}
+	return false
 }

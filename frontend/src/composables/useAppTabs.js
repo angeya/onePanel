@@ -31,13 +31,13 @@ export function useAppTabs() {
   /**
    * 添加终端 tab
    */
-  const addTerminalTab = (shell = 'cmd.exe') => {
+  const addTerminalTab = (shell = 'cmd.exe', title = '') => {
     tabCounter++
     const id = `terminal-${Date.now()}-${tabCounter}`
     tabs.value.push({
       id,
       type: 'terminal',
-      title: `终端 ${tabCounter}`,
+      title: title || `终端 ${tabCounter}`,
       shell,
       closable: true
     })

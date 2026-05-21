@@ -47,7 +47,6 @@ type ShortcutCommand struct {
 	Id         int64  `json:"id"`
 	CategoryId *int64 `json:"categoryId"`
 	Name       string `json:"name"`
-	Shell      string `json:"shell"`
 	WorkDir    string `json:"workDir"`
 	Commands   string `json:"commands"`
 	SortOrder  int    `json:"sortOrder"`
