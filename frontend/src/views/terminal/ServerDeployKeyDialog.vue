@@ -80,7 +80,7 @@ const handleSetup = async () => {
 
 const handleSkip = () => {
   visible.value = false
-  emit('skip')
+  emit('skip', form.value.password || '')
 }
 
 defineExpose({ show })

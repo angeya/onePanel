@@ -10,15 +10,15 @@ import (
 	"strings"
 )
 
-/**
- * 导出清单文件版本号
- */
-const ManifestVersion = "1.0"
+const (
+	ManifestVersion = "1.0"
+	staticAppType   = "static"
+	webAppType      = "web"
+)
 
 /**
- * AppService 我的应用服务
- * 负责子应用的增删改查、导入导出、静态目录管理等业务逻辑
- * 通过依赖注入持有 Database 和 StaticServer 引用
+ * AppService 我的应用服务。
+ * 负责子应用的增删改查、导入导出、静态目录管理等业务逻辑。
  */
 type AppService struct {
 	db     *Database
@@ -26,8 +26,8 @@ type AppService struct {
 }
 
 /**
- * ExportManifest 导出清单结构
- * 记录导出包的版本号、包含的本地应用目录名列表和网页应用信息列表
+ * ExportManifest 描述导出包清单。
+ * Apps 保存静态应用目录名，WebApps 保存网页应用信息。
  */
 type ExportManifest struct {
 	Version string       `json:"version"`
@@ -36,8 +36,7 @@ type ExportManifest struct {
 }
 
 /**
- * WebAppInfo 网页应用导出信息
- * 用于在 zip 中保存网页应用的名称和地址
+ * WebAppInfo 保存网页应用的导出信息。
  */
 type WebAppInfo struct {
 	Name string `json:"name"`
@@ -45,16 +44,15 @@ type WebAppInfo struct {
 }
 
 /**
- * 创建 AppService 实例
- * 注入 Database 和 StaticServer 依赖
+ * 创建 AppService 实例。
  */
 func NewAppService(db *Database, server *StaticServer) *AppService {
 	return &AppService{db: db, server: server}
 }
 
 /**
- * 获取应用目录
- * 固定使用可执行文件同级目录下的 apps 目录
+ * GetStaticDir 返回应用静态目录。
+ * 固定使用可执行文件同级目录下的 apps 目录。
  */
 func (a *AppService) GetStaticDir() (string, error) {
 	exePath, err := os.Executable()
@@ -65,7 +63,7 @@ func (a *AppService) GetStaticDir() (string, error) {
 }
 
 /**
- * 获取静态服务器状态
+ * GetServerStatus 返回静态服务器当前状态。
  */
 func (a *AppService) GetServerStatus() map[string]interface{} {
 	if a.server == nil {
@@ -79,25 +77,21 @@ func (a *AppService) GetServerStatus() map[string]interface{} {
 }
 
 /**
- * 启动静态服务器
- * 使用已配置的静态目录启动服务
+ * StartServer 使用静态目录启动服务。
  */
 func (a *AppService) StartServer() (int, error) {
-	dir, err := a.GetStaticDir()
+	staticDir, err := a.mustGetStaticDir()
 	if err != nil {
 		return 0, err
-	}
-	if dir == "" {
-		return 0, fmt.Errorf("获取应用目录失败")
 	}
 	if a.server == nil {
 		return 0, fmt.Errorf("静态服务器未初始化")
 	}
-	return a.server.Start(dir)
+	return a.server.Start(staticDir)
 }
 
 /**
- * 停止静态服务器
+ * StopServer 停止静态服务器。
  */
 func (a *AppService) StopServer() error {
 	if a.server == nil {
@@ -107,21 +101,16 @@ func (a *AppService) StopServer() error {
 }
 
 /**
- * 打开应用
- * 自动启动静态服务（如果未启动）并返回应用 URL
- * 对于 web 类型应用直接返回 URL
+ * OpenApp 打开指定应用并返回前端需要的显示信息。
+ * 静态应用会自动确保静态服务器已启动，网页应用直接返回原始 URL。
  */
 func (a *AppService) OpenApp(appId int64) (map[string]interface{}, error) {
-	var app SubApp
-	err := a.db.DB().QueryRow(
-		"SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE id = ?",
-		appId,
-	).Scan(&app.Id, &app.AppType, &app.DirName, &app.DisplayName, &app.IconPath, &app.EntryUrl, &app.SortOrder, &app.CreatedAt, &app.UpdatedAt)
+	app, err := a.getAppByID(appId)
 	if err != nil {
-		return nil, fmt.Errorf("应用不存在")
+		return nil, err
 	}
 
-	if app.AppType == "web" {
+	if app.AppType == webAppType {
 		return map[string]interface{}{
 			"url":      app.EntryUrl,
 			"name":     app.DisplayName,
@@ -129,14 +118,13 @@ func (a *AppService) OpenApp(appId int64) (map[string]interface{}, error) {
 		}, nil
 	}
 
-	staticDir, err := a.GetStaticDir()
-	if err != nil || staticDir == "" {
-		return nil, fmt.Errorf("获取应用目录失败")
+	staticDir, err := a.mustGetStaticDir()
+	if err != nil {
+		return nil, err
 	}
 
 	appDir := filepath.Join(staticDir, app.DirName)
 	indexFile := filepath.Join(appDir, "index.html")
-
 	if _, err := os.Stat(indexFile); os.IsNotExist(err) {
 		return nil, fmt.Errorf("应用入口文件不存在")
 	}
@@ -146,48 +134,24 @@ func (a *AppService) OpenApp(appId int64) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	iconUrl := ""
-	if app.IconPath != "" {
-		dir := app.EntryUrl[:len(app.EntryUrl)-len("index.html")]
-		iconUrl = fmt.Sprintf("http://127.0.0.1:%d%sicon.png", port, dir)
-	}
-
 	return map[string]interface{}{
 		"url":      fmt.Sprintf("http://127.0.0.1:%d%s", port, app.EntryUrl),
 		"name":     app.DisplayName,
-		"iconPath": iconUrl,
+		"iconPath": a.buildIconURL(app, port),
 	}, nil
 }
 
 /**
- * 确保静态服务器已启动
- * 如果已运行则复用现有端口，否则启动新实例
- */
-func (a *AppService) ensureServerRunning(dir string) (int, error) {
-	if a.server == nil {
-		return 0, fmt.Errorf("静态服务器未初始化")
-	}
-	if a.server.IsRunning() {
-		return a.server.Port(), nil
-	}
-	return a.server.Start(dir)
-}
-
-/**
- * 扫描静态目录并更新应用列表
- * 读取静态目录下的子目录，识别包含 index.html 的应用
- * 自动创建或更新数据库中的应用记录
+ * ScanApps 扫描静态目录并同步应用列表。
+ * 会自动更新新增、变更和已被移除的静态应用记录。
  */
 func (a *AppService) ScanApps() ([]SubApp, error) {
-	dir, err := a.GetStaticDir()
+	staticDir, err := a.mustGetStaticDir()
 	if err != nil {
 		return nil, err
 	}
-	if dir == "" {
-		return nil, fmt.Errorf("获取应用目录失败")
-	}
 
-	entries, err := os.ReadDir(dir)
+	entries, err := os.ReadDir(staticDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []SubApp{}, nil
@@ -202,96 +166,29 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 		}
 
 		dirName := entry.Name()
-		subDir := filepath.Join(dir, dirName)
-
-		indexFile := filepath.Join(subDir, "index.html")
-		if _, err := os.Stat(indexFile); os.IsNotExist(err) {
+		subDir := filepath.Join(staticDir, dirName)
+		if !a.hasAppEntry(subDir) {
 			continue
 		}
 
 		scannedDirs[dirName] = true
 		displayName := dirName
 		iconPath := a.resolveIconPath(subDir)
-		entryUrl := fmt.Sprintf("/%s/index.html", dirName)
-
-		a.upsertStaticApp(dirName, displayName, iconPath, entryUrl)
+		entryURL := a.buildStaticEntryURL(dirName)
+		a.upsertStaticApp(dirName, displayName, iconPath, entryURL)
 	}
 
 	a.cleanupMissingStaticApps(scannedDirs)
-
-	allApps, err := a.GetApps()
-	if err != nil {
-		return []SubApp{}, nil
-	}
-	return allApps, nil
+	return a.GetApps()
 }
 
 /**
- * 解析应用图标路径
- * 检查子目录下是否存在 icon.png
- */
-func (a *AppService) resolveIconPath(subDir string) string {
-	iconFile := filepath.Join(subDir, "icon.png")
-	if _, err := os.Stat(iconFile); err == nil {
-		return iconFile
-	}
-	return ""
-}
-
-/**
- * 创建或更新静态应用记录
- * 如果目录名对应的记录已存在则更新，否则新建
- */
-func (a *AppService) upsertStaticApp(dirName, displayName, iconPath, entryUrl string) (SubApp, bool) {
-	var existing SubApp
-	err := a.db.DB().QueryRow(
-		"SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE dir_name = ? AND app_type = 'static'",
-		dirName,
-	).Scan(&existing.Id, &existing.AppType, &existing.DirName, &existing.DisplayName, &existing.IconPath, &existing.EntryUrl, &existing.SortOrder, &existing.CreatedAt, &existing.UpdatedAt)
-
-	if err != nil {
-		now := NowFormatted()
-		result, err := a.db.DB().Exec(
-			"INSERT INTO sub_app (app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at) VALUES ('static', ?, ?, ?, ?, 0, ?, ?)",
-			dirName, displayName, iconPath, entryUrl, now, now,
-		)
-		if err != nil {
-			return SubApp{}, false
-		}
-		id, _ := result.LastInsertId()
-		return SubApp{
-			Id:          id,
-			AppType:     "static",
-			DirName:     dirName,
-			DisplayName: displayName,
-			IconPath:    iconPath,
-			EntryUrl:    entryUrl,
-			SortOrder:   0,
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		}, true
-	}
-
-	if existing.DisplayName == existing.DirName || existing.DisplayName != displayName {
-		now := NowFormatted()
-		a.db.DB().Exec(
-			"UPDATE sub_app SET display_name = ?, icon_path = ?, entry_url = ?, updated_at = ? WHERE id = ?",
-			displayName, iconPath, entryUrl, now, existing.Id,
-		)
-		existing.DisplayName = displayName
-		existing.IconPath = iconPath
-		existing.EntryUrl = entryUrl
-	}
-
-	return existing, false
-}
-
-/**
- * 获取所有应用列表
- * 按排序字段和 ID 升序排列
+ * GetApps 获取所有应用列表。
  */
 func (a *AppService) GetApps() ([]SubApp, error) {
-	rows, err := a.db.DB().Query("SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app ORDER BY sort_order, id")
+	rows, err := a.db.DB().Query(
+		"SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app ORDER BY sort_order, id",
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +197,17 @@ func (a *AppService) GetApps() ([]SubApp, error) {
 	var apps []SubApp
 	for rows.Next() {
 		var app SubApp
-		if err := rows.Scan(&app.Id, &app.AppType, &app.DirName, &app.DisplayName, &app.IconPath, &app.EntryUrl, &app.SortOrder, &app.CreatedAt, &app.UpdatedAt); err != nil {
+		if err := rows.Scan(
+			&app.Id,
+			&app.AppType,
+			&app.DirName,
+			&app.DisplayName,
+			&app.IconPath,
+			&app.EntryUrl,
+			&app.SortOrder,
+			&app.CreatedAt,
+			&app.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		apps = append(apps, app)
@@ -313,49 +220,20 @@ func (a *AppService) GetApps() ([]SubApp, error) {
 }
 
 /**
- * 清理目录已不存在的静态应用
- * 保留扫描到的目录对应的记录，删除其余静态应用
- */
-func (a *AppService) cleanupMissingStaticApps(scannedDirs map[string]bool) {
-	rows, err := a.db.DB().Query("SELECT id, dir_name FROM sub_app WHERE app_type = 'static'")
-	if err != nil {
-		return
-	}
-	defer rows.Close()
-
-	var toDelete []int64
-	for rows.Next() {
-		var id int64
-		var dirName string
-		if err := rows.Scan(&id, &dirName); err != nil {
-			continue
-		}
-		if !scannedDirs[dirName] {
-			toDelete = append(toDelete, id)
-		}
-	}
-
-	for _, id := range toDelete {
-		a.db.DB().Exec("DELETE FROM sub_app WHERE id = ?", id)
-	}
-}
-
-/**
- * 创建网页应用
- * 验证名称和 URL 非空后插入数据库
+ * CreateWebApp 创建网页应用。
  */
 func (a *AppService) CreateWebApp(name string, url string) (*SubApp, error) {
-	if name == "" {
-		return nil, fmt.Errorf("应用名称不能为空")
-	}
-	if url == "" {
-		return nil, fmt.Errorf("应用地址不能为空")
+	if err := validateWebAppInput(name, url); err != nil {
+		return nil, err
 	}
 
 	now := NowFormatted()
 	result, err := a.db.DB().Exec(
 		"INSERT INTO sub_app (app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at) VALUES ('web', '', ?, '', ?, 0, ?, ?)",
-		name, url, now, now,
+		name,
+		url,
+		now,
+		now,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("创建网页应用失败: %w", err)
@@ -364,10 +242,8 @@ func (a *AppService) CreateWebApp(name string, url string) (*SubApp, error) {
 	id, _ := result.LastInsertId()
 	return &SubApp{
 		Id:          id,
-		AppType:     "web",
-		DirName:     "",
+		AppType:     webAppType,
 		DisplayName: name,
-		IconPath:    "",
 		EntryUrl:    url,
 		SortOrder:   0,
 		CreatedAt:   now,
@@ -376,29 +252,27 @@ func (a *AppService) CreateWebApp(name string, url string) (*SubApp, error) {
 }
 
 /**
- * 更新网页应用
- * 仅允许更新 web 类型的应用
+ * UpdateWebApp 更新网页应用信息。
  */
 func (a *AppService) UpdateWebApp(id int64, name string, url string) error {
-	if name == "" {
-		return fmt.Errorf("应用名称不能为空")
-	}
-	if url == "" {
-		return fmt.Errorf("应用地址不能为空")
+	if err := validateWebAppInput(name, url); err != nil {
+		return err
 	}
 
 	now := NowFormatted()
 	_, err := a.db.DB().Exec(
 		"UPDATE sub_app SET display_name = ?, entry_url = ?, updated_at = ? WHERE id = ? AND app_type = 'web'",
-		name, url, now, id,
+		name,
+		url,
+		now,
+		id,
 	)
 	return err
 }
 
 /**
- * 更新应用显示名称
- * 对于静态应用，同时重命名文件系统中的目录，并更新目录名、图标路径和入口 URL
- * 对于网页应用，仅更新显示名称
+ * UpdateDisplayName 更新应用名称。
+ * 静态应用还会同步调整目录名、入口路径和图标路径。
  */
 func (a *AppService) UpdateDisplayName(id int64, name string) error {
 	if name == "" {
@@ -408,78 +282,83 @@ func (a *AppService) UpdateDisplayName(id int64, name string) error {
 	var appType string
 	var oldDirName string
 	var iconPath string
-	err := a.db.DB().QueryRow("SELECT app_type, dir_name, icon_path FROM sub_app WHERE id = ?", id).Scan(&appType, &oldDirName, &iconPath)
+	err := a.db.DB().QueryRow(
+		"SELECT app_type, dir_name, icon_path FROM sub_app WHERE id = ?",
+		id,
+	).Scan(&appType, &oldDirName, &iconPath)
 	if err != nil {
 		return fmt.Errorf("应用不存在")
 	}
 
 	now := NowFormatted()
-
-	if appType == "static" {
-		newDirName := SanitizeDirName(name)
-		if newDirName == "" {
-			return fmt.Errorf("应用名称无效")
-		}
-
-		staticDir, err := a.GetStaticDir()
-		if err != nil {
-			return err
-		}
-		if staticDir == "" {
-			return fmt.Errorf("获取应用目录失败")
-		}
-
-		oldPath := filepath.Join(staticDir, oldDirName)
-		newPath := filepath.Join(staticDir, newDirName)
-
-		if oldPath != newPath {
-			if _, err := os.Stat(newPath); err == nil {
-				return fmt.Errorf("目录 %s 已存在", newDirName)
-			}
-			if err := os.Rename(oldPath, newPath); err != nil {
-				return fmt.Errorf("重命名目录失败: %w", err)
-			}
-
-			if iconPath != "" {
-				newIconPath := filepath.Join(newPath, "icon.png")
-				if _, err := os.Stat(newIconPath); err == nil {
-					iconPath = newIconPath
-				}
-			}
-		}
-
-		entryUrl := fmt.Sprintf("/%s/index.html", newDirName)
+	if appType != staticAppType {
 		_, err = a.db.DB().Exec(
-			"UPDATE sub_app SET display_name = ?, dir_name = ?, entry_url = ?, icon_path = ?, updated_at = ? WHERE id = ?",
-			name, newDirName, entryUrl, iconPath, now, id,
+			"UPDATE sub_app SET display_name = ?, updated_at = ? WHERE id = ?",
+			name,
+			now,
+			id,
 		)
 		return err
 	}
 
-	_, err = a.db.DB().Exec("UPDATE sub_app SET display_name = ?, updated_at = ? WHERE id = ?", name, now, id)
-	return err
-}
+	newDirName := SanitizeDirName(name)
+	if newDirName == "" {
+		return fmt.Errorf("应用名称无效")
+	}
 
-/**
- * 删除应用
- * 对于静态应用，同时删除文件系统中的应用目录
- */
-func (a *AppService) DeleteApp(id int64) error {
-	var appType string
-	var dirName string
-	err := a.db.DB().QueryRow("SELECT app_type, dir_name FROM sub_app WHERE id = ?", id).Scan(&appType, &dirName)
+	staticDir, err := a.mustGetStaticDir()
 	if err != nil {
 		return err
 	}
 
-	if appType == "static" {
-		staticDir, err := a.GetStaticDir()
+	oldPath := filepath.Join(staticDir, oldDirName)
+	newPath := filepath.Join(staticDir, newDirName)
+	updatedIconPath := iconPath
+	if oldPath != newPath {
+		if _, err := os.Stat(newPath); err == nil {
+			return fmt.Errorf("目录 %s 已存在", newDirName)
+		}
+		if err := os.Rename(oldPath, newPath); err != nil {
+			return fmt.Errorf("重命名目录失败: %w", err)
+		}
+		updatedIconPath = a.resolveRenamedIconPath(newPath, iconPath)
+	}
+
+	entryURL := a.buildStaticEntryURL(newDirName)
+	_, err = a.db.DB().Exec(
+		"UPDATE sub_app SET display_name = ?, dir_name = ?, entry_url = ?, icon_path = ?, updated_at = ? WHERE id = ?",
+		name,
+		newDirName,
+		entryURL,
+		updatedIconPath,
+		now,
+		id,
+	)
+	return err
+}
+
+/**
+ * DeleteApp 删除应用。
+ * 对静态应用会同时删除磁盘目录。
+ */
+func (a *AppService) DeleteApp(id int64) error {
+	var appType string
+	var dirName string
+	err := a.db.DB().QueryRow(
+		"SELECT app_type, dir_name FROM sub_app WHERE id = ?",
+		id,
+	).Scan(&appType, &dirName)
+	if err != nil {
+		return err
+	}
+
+	if appType == staticAppType {
+		staticDir, err := a.mustGetStaticDir()
 		if err != nil {
 			return err
 		}
-		if staticDir != "" && dirName != "" {
-			appDir := filepath.Join(staticDir, dirName)
-			os.RemoveAll(appDir)
+		if dirName != "" {
+			_ = os.RemoveAll(filepath.Join(staticDir, dirName))
 		}
 	}
 
@@ -488,24 +367,19 @@ func (a *AppService) DeleteApp(id int64) error {
 }
 
 /**
- * 导入 HTML 文件作为应用
- * 名称必填，在静态目录下创建以名称命名的子目录，将 HTML 文件复制为 index.html
+ * ImportHtml 将单个 HTML 文件导入为静态应用。
  */
 func (a *AppService) ImportHtml(htmlPath string, appName string) error {
 	if appName == "" {
 		return fmt.Errorf("应用名称不能为空")
 	}
-
-	staticDir, err := a.GetStaticDir()
-	if err != nil {
-		return err
-	}
-	if staticDir == "" {
-		return fmt.Errorf("获取应用目录失败")
-	}
-
 	if _, err := os.Stat(htmlPath); os.IsNotExist(err) {
 		return fmt.Errorf("HTML 文件不存在")
+	}
+
+	staticDir, err := a.mustGetStaticDir()
+	if err != nil {
+		return err
 	}
 
 	dirName := SanitizeDirName(appName)
@@ -520,20 +394,20 @@ func (a *AppService) ImportHtml(htmlPath string, appName string) error {
 
 	srcFile, err := os.Open(htmlPath)
 	if err != nil {
-		os.RemoveAll(destDir)
+		_ = os.RemoveAll(destDir)
 		return fmt.Errorf("打开 HTML 文件失败: %w", err)
 	}
 	defer srcFile.Close()
 
 	destFile, err := os.Create(filepath.Join(destDir, "index.html"))
 	if err != nil {
-		os.RemoveAll(destDir)
+		_ = os.RemoveAll(destDir)
 		return fmt.Errorf("创建 index.html 失败: %w", err)
 	}
 	defer destFile.Close()
 
 	if _, err := io.Copy(destFile, srcFile); err != nil {
-		os.RemoveAll(destDir)
+		_ = os.RemoveAll(destDir)
 		return fmt.Errorf("复制 HTML 文件失败: %w", err)
 	}
 
@@ -542,17 +416,12 @@ func (a *AppService) ImportHtml(htmlPath string, appName string) error {
 }
 
 /**
- * 导入 HTML 目录作为应用
- * 名称非必填，不填则使用源目录名称
- * 如果填写了名称，则目录名使用该名称
+ * ImportDir 将整个目录导入为静态应用。
  */
 func (a *AppService) ImportDir(srcDir string, appName string) error {
-	staticDir, err := a.GetStaticDir()
+	staticDir, err := a.mustGetStaticDir()
 	if err != nil {
 		return err
-	}
-	if staticDir == "" {
-		return fmt.Errorf("获取应用目录失败")
 	}
 
 	dirName := appName
@@ -575,69 +444,48 @@ func (a *AppService) ImportDir(srcDir string, appName string) error {
 }
 
 /**
- * 导出单个应用为 zip 压缩包
- * 支持静态应用和网页应用，在 zip 中包含 manifest.json
- * 静态应用会打包目录内容，网页应用信息保存在 manifest 的 webApps 中
+ * ExportApp 导出单个应用。
  */
 func (a *AppService) ExportApp(id int64, savePath string) error {
-	var app SubApp
-	err := a.db.DB().QueryRow(
-		"SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE id = ?",
-		id,
-	).Scan(&app.Id, &app.AppType, &app.DirName, &app.DisplayName, &app.IconPath, &app.EntryUrl, &app.SortOrder, &app.CreatedAt, &app.UpdatedAt)
+	app, err := a.getAppByID(id)
 	if err != nil {
-		return fmt.Errorf("应用不存在")
+		return err
 	}
 
 	if savePath == "" {
-		zipName := fmt.Sprintf("%s_%s.zip", app.DirName, NowCompactFormatted())
-		if app.AppType == "web" {
-			zipName = fmt.Sprintf("%s_%s.zip", SanitizeDirName(app.DisplayName), NowCompactFormatted())
-		}
-		savePath = filepath.Join(os.TempDir(), zipName)
+		savePath = a.buildDefaultExportPath(app)
 	}
 
-	manifest := ExportManifest{
-		Version: ManifestVersion,
-	}
-
-	if app.AppType == "web" {
+	manifest := ExportManifest{Version: ManifestVersion}
+	if app.AppType == webAppType {
 		manifest.WebApps = []WebAppInfo{{Name: app.DisplayName, Url: app.EntryUrl}}
-	} else {
-		staticDir, err := a.GetStaticDir()
-		if err != nil {
-			return err
-		}
-		if staticDir == "" {
-			return fmt.Errorf("获取应用目录失败")
-		}
-
-		appDir := filepath.Join(staticDir, app.DirName)
-		if _, err := os.Stat(appDir); os.IsNotExist(err) {
-			return fmt.Errorf("应用目录不存在")
-		}
-		manifest.Apps = []string{app.DirName}
+		return a.exportToZip(manifest, savePath)
 	}
 
+	staticDir, err := a.mustGetStaticDir()
+	if err != nil {
+		return err
+	}
+
+	appDir := filepath.Join(staticDir, app.DirName)
+	if _, err := os.Stat(appDir); os.IsNotExist(err) {
+		return fmt.Errorf("应用目录不存在")
+	}
+	manifest.Apps = []string{app.DirName}
 	return a.exportToZip(manifest, savePath)
 }
 
 /**
- * 批量导出多个应用为 zip 压缩包
- * 支持静态应用和网页应用，在 zip 中包含 manifest.json
- * 静态应用打包目录内容，网页应用信息保存在 manifest 的 webApps 中
+ * BatchExportApps 批量导出多个应用。
  */
 func (a *AppService) BatchExportApps(ids []int64, savePath string) error {
 	if len(ids) == 0 {
 		return fmt.Errorf("请至少选择一个应用")
 	}
 
-	staticDir, err := a.GetStaticDir()
+	staticDir, err := a.mustGetStaticDir()
 	if err != nil {
 		return err
-	}
-	if staticDir == "" {
-		return fmt.Errorf("获取应用目录失败")
 	}
 
 	placeholders := make([]string, len(ids))
@@ -647,7 +495,10 @@ func (a *AppService) BatchExportApps(ids []int64, savePath string) error {
 		args[i] = id
 	}
 
-	query := fmt.Sprintf("SELECT id, app_type, dir_name, display_name, entry_url FROM sub_app WHERE id IN (%s)", strings.Join(placeholders, ","))
+	query := fmt.Sprintf(
+		"SELECT id, app_type, dir_name, display_name, entry_url FROM sub_app WHERE id IN (%s)",
+		strings.Join(placeholders, ","),
+	)
 	rows, err := a.db.DB().Query(query, args...)
 	if err != nil {
 		return fmt.Errorf("查询应用失败: %w", err)
@@ -656,30 +507,27 @@ func (a *AppService) BatchExportApps(ids []int64, savePath string) error {
 
 	var dirNames []string
 	var webApps []WebAppInfo
-
 	for rows.Next() {
-		var id int64
-		var appType string
 		var dirName string
 		var displayName string
-		var entryUrl string
-		if err := rows.Scan(&id, &appType, &dirName, &displayName, &entryUrl); err != nil {
+		var entryURL string
+		var appType string
+		var id int64
+		if err := rows.Scan(&id, &appType, &dirName, &displayName, &entryURL); err != nil {
 			return err
 		}
-		if appType == "web" {
-			webApps = append(webApps, WebAppInfo{Name: displayName, Url: entryUrl})
-		} else {
-			appDir := filepath.Join(staticDir, dirName)
-			if _, err := os.Stat(appDir); err == nil {
-				dirNames = append(dirNames, dirName)
-			}
+		if appType == webAppType {
+			webApps = append(webApps, WebAppInfo{Name: displayName, Url: entryURL})
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(staticDir, dirName)); err == nil {
+			dirNames = append(dirNames, dirName)
 		}
 	}
 
 	if len(dirNames) == 0 && len(webApps) == 0 {
 		return fmt.Errorf("没有可导出的应用")
 	}
-
 	if savePath == "" {
 		savePath = filepath.Join(os.TempDir(), fmt.Sprintf("apps_export_%s.zip", NowCompactFormatted()))
 	}
@@ -689,113 +537,18 @@ func (a *AppService) BatchExportApps(ids []int64, savePath string) error {
 		Apps:    dirNames,
 		WebApps: webApps,
 	}
-
 	return a.exportToZip(manifest, savePath)
 }
 
 /**
- * 将应用信息打包为 zip 文件
- * zip 内包含 manifest.json，静态应用的目录内容，以及网页应用信息
- */
-func (a *AppService) exportToZip(manifest ExportManifest, zipPath string) error {
-	if err := os.MkdirAll(filepath.Dir(zipPath), 0755); err != nil {
-		return fmt.Errorf("创建输出目录失败: %w", err)
-	}
-
-	file, err := os.Create(zipPath)
-	if err != nil {
-		return fmt.Errorf("创建压缩文件失败: %w", err)
-	}
-	defer file.Close()
-
-	w := zip.NewWriter(file)
-	defer w.Close()
-
-	manifestData, err := json.MarshalIndent(manifest, "", "  ")
-	if err != nil {
-		return fmt.Errorf("生成清单文件失败: %w", err)
-	}
-
-	manifestWriter, err := w.Create("manifest.json")
-	if err != nil {
-		return fmt.Errorf("创建清单条目失败: %w", err)
-	}
-	if _, err := manifestWriter.Write(manifestData); err != nil {
-		return fmt.Errorf("写入清单文件失败: %w", err)
-	}
-
-	if len(manifest.Apps) > 0 {
-		staticDir, err := a.GetStaticDir()
-		if err != nil {
-			return fmt.Errorf("获取应用目录失败: %w", err)
-		}
-		if staticDir == "" {
-			return fmt.Errorf("获取应用目录失败")
-		}
-
-		for _, dirName := range manifest.Apps {
-			appDir := filepath.Join(staticDir, dirName)
-			if err := a.addDirToZip(w, appDir, dirName); err != nil {
-				return fmt.Errorf("打包应用 %s 失败: %w", dirName, err)
-			}
-		}
-	}
-
-	return nil
-}
-
-/**
- * 将一个目录添加到 zip 写入器中
- * baseInZip 为 zip 内的根路径前缀
- */
-func (a *AppService) addDirToZip(w *zip.Writer, srcDir string, baseInZip string) error {
-	return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		relPath, err := filepath.Rel(srcDir, path)
-		if err != nil {
-			return err
-		}
-
-		zipEntry := filepath.Join(baseInZip, relPath)
-		zipEntry = filepath.ToSlash(zipEntry)
-
-		if info.IsDir() {
-			_, err := w.Create(zipEntry + "/")
-			return err
-		}
-
-		fileWriter, err := w.Create(zipEntry)
-		if err != nil {
-			return err
-		}
-
-		f, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		_, err = io.Copy(fileWriter, f)
-		return err
-	})
-}
-
-/**
- * 导入 zip 压缩包应用
- * 支持包含 manifest.json 的批量导出格式和不含 manifest 的单应用格式
- * 如果 manifest 中声明的应用目录已存在，则跳过该应用
- * 返回跳过的应用名称列表供前端提示
+ * ImportZip 导入 zip 压缩包应用。
+ * 支持带 manifest 的导出包，也兼容单目录直接压缩的旧格式。
+ * 返回值为被跳过的应用名称列表，使用逗号拼接供前端提示。
  */
 func (a *AppService) ImportZip(zipPath string) (string, error) {
-	staticDir, err := a.GetStaticDir()
+	staticDir, err := a.mustGetStaticDir()
 	if err != nil {
 		return "", err
-	}
-	if staticDir == "" {
-		return "", fmt.Errorf("获取应用目录失败")
 	}
 
 	reader, err := zip.OpenReader(zipPath)
@@ -808,170 +561,402 @@ func (a *AppService) ImportZip(zipPath string) (string, error) {
 	if manifestData != nil {
 		return a.importZipWithManifest(reader, manifestData, staticDir)
 	}
-
 	return a.importZipWithoutManifest(reader, zipPath, staticDir)
 }
 
 /**
- * 从 zip 中读取 manifest.json 内容
- * 如果不存在或解析失败则返回 nil
+ * exportToZip 将应用信息打包为 zip 文件。
  */
-func (a *AppService) readManifestFromZip(reader *zip.ReadCloser) *ExportManifest {
-	for _, f := range reader.File {
-		if f.Name == "manifest.json" && !f.FileInfo().IsDir() {
-			rc, err := f.Open()
-			if err != nil {
-				return nil
-			}
-			defer rc.Close()
+func (a *AppService) exportToZip(manifest ExportManifest, zipPath string) error {
+	if err := os.MkdirAll(filepath.Dir(zipPath), 0755); err != nil {
+		return fmt.Errorf("创建输出目录失败: %w", err)
+	}
 
-			data, err := io.ReadAll(rc)
-			if err != nil {
-				return nil
-			}
+	file, err := os.Create(zipPath)
+	if err != nil {
+		return fmt.Errorf("创建压缩文件失败: %w", err)
+	}
+	defer file.Close()
 
-			var manifest ExportManifest
-			if err := json.Unmarshal(data, &manifest); err != nil {
-				return nil
-			}
-			if manifest.Version == "" {
-				return nil
-			}
-			if len(manifest.Apps) == 0 && len(manifest.WebApps) == 0 {
-				return nil
-			}
-			return &manifest
+	writer := zip.NewWriter(file)
+	defer writer.Close()
+
+	manifestData, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return fmt.Errorf("生成清单文件失败: %w", err)
+	}
+
+	manifestWriter, err := writer.Create("manifest.json")
+	if err != nil {
+		return fmt.Errorf("创建清单条目失败: %w", err)
+	}
+	if _, err := manifestWriter.Write(manifestData); err != nil {
+		return fmt.Errorf("写入清单文件失败: %w", err)
+	}
+
+	if len(manifest.Apps) == 0 {
+		return nil
+	}
+
+	staticDir, err := a.mustGetStaticDir()
+	if err != nil {
+		return err
+	}
+	for _, dirName := range manifest.Apps {
+		appDir := filepath.Join(staticDir, dirName)
+		if err := a.addDirToZip(writer, appDir, dirName); err != nil {
+			return fmt.Errorf("打包应用 %s 失败: %w", dirName, err)
 		}
 	}
 	return nil
 }
 
 /**
- * 处理包含 manifest 的 zip 导入
- * 校验 manifest 中声明的本地应用目录是否在 zip 中存在
- * 已存在的目录跳过，返回跳过的目录名
- * 同时导入 manifest 中的网页应用信息
+ * addDirToZip 将目录递归写入 zip。
+ */
+func (a *AppService) addDirToZip(writer *zip.Writer, srcDir string, baseInZip string) error {
+	return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+
+		zipEntry := filepath.ToSlash(filepath.Join(baseInZip, relPath))
+		if info.IsDir() {
+			_, err := writer.Create(zipEntry + "/")
+			return err
+		}
+
+		fileWriter, err := writer.Create(zipEntry)
+		if err != nil {
+			return err
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		_, err = io.Copy(fileWriter, file)
+		return err
+	})
+}
+
+/**
+ * mustGetStaticDir 获取并校验静态目录。
+ */
+func (a *AppService) mustGetStaticDir() (string, error) {
+	staticDir, err := a.GetStaticDir()
+	if err != nil {
+		return "", err
+	}
+	if staticDir == "" {
+		return "", fmt.Errorf("获取应用目录失败")
+	}
+	return staticDir, nil
+}
+
+/**
+ * ensureServerRunning 确保静态服务器已启动。
+ */
+func (a *AppService) ensureServerRunning(dir string) (int, error) {
+	if a.server == nil {
+		return 0, fmt.Errorf("静态服务器未初始化")
+	}
+	if a.server.IsRunning() {
+		return a.server.Port(), nil
+	}
+	return a.server.Start(dir)
+}
+
+/**
+ * getAppByID 根据 ID 查询应用。
+ */
+func (a *AppService) getAppByID(appId int64) (*SubApp, error) {
+	var app SubApp
+	err := a.db.DB().QueryRow(
+		"SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE id = ?",
+		appId,
+	).Scan(
+		&app.Id,
+		&app.AppType,
+		&app.DirName,
+		&app.DisplayName,
+		&app.IconPath,
+		&app.EntryUrl,
+		&app.SortOrder,
+		&app.CreatedAt,
+		&app.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("应用不存在")
+	}
+	return &app, nil
+}
+
+/**
+ * hasAppEntry 检查目录下是否存在 index.html 入口文件。
+ */
+func (a *AppService) hasAppEntry(subDir string) bool {
+	indexFile := filepath.Join(subDir, "index.html")
+	_, err := os.Stat(indexFile)
+	return err == nil
+}
+
+/**
+ * resolveIconPath 返回应用目录中的 icon.png 路径。
+ */
+func (a *AppService) resolveIconPath(subDir string) string {
+	iconFile := filepath.Join(subDir, "icon.png")
+	if _, err := os.Stat(iconFile); err == nil {
+		return iconFile
+	}
+	return ""
+}
+
+/**
+ * buildStaticEntryURL 生成静态应用入口路径。
+ */
+func (a *AppService) buildStaticEntryURL(dirName string) string {
+	return fmt.Sprintf("/%s/index.html", dirName)
+}
+
+/**
+ * buildIconURL 生成前端访问图标的 URL。
+ */
+func (a *AppService) buildIconURL(app *SubApp, port int) string {
+	if app.IconPath == "" {
+		return ""
+	}
+	dir := strings.TrimSuffix(app.EntryUrl, "index.html")
+	return fmt.Sprintf("http://127.0.0.1:%d%sicon.png", port, dir)
+}
+
+/**
+ * buildDefaultExportPath 生成默认导出文件路径。
+ */
+func (a *AppService) buildDefaultExportPath(app *SubApp) string {
+	zipName := fmt.Sprintf("%s_%s.zip", app.DirName, NowCompactFormatted())
+	if app.AppType == webAppType {
+		zipName = fmt.Sprintf("%s_%s.zip", SanitizeDirName(app.DisplayName), NowCompactFormatted())
+	}
+	return filepath.Join(os.TempDir(), zipName)
+}
+
+/**
+ * resolveRenamedIconPath 在静态应用目录重命名后重算图标路径。
+ */
+func (a *AppService) resolveRenamedIconPath(newPath string, oldIconPath string) string {
+	if oldIconPath == "" {
+		return ""
+	}
+	newIconPath := filepath.Join(newPath, "icon.png")
+	if _, err := os.Stat(newIconPath); err == nil {
+		return newIconPath
+	}
+	return oldIconPath
+}
+
+/**
+ * upsertStaticApp 创建或更新静态应用记录。
+ */
+func (a *AppService) upsertStaticApp(dirName, displayName, iconPath, entryURL string) (SubApp, bool) {
+	var existing SubApp
+	err := a.db.DB().QueryRow(
+		"SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE dir_name = ? AND app_type = 'static'",
+		dirName,
+	).Scan(
+		&existing.Id,
+		&existing.AppType,
+		&existing.DirName,
+		&existing.DisplayName,
+		&existing.IconPath,
+		&existing.EntryUrl,
+		&existing.SortOrder,
+		&existing.CreatedAt,
+		&existing.UpdatedAt,
+	)
+	if err != nil {
+		now := NowFormatted()
+		result, err := a.db.DB().Exec(
+			"INSERT INTO sub_app (app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at) VALUES ('static', ?, ?, ?, ?, 0, ?, ?)",
+			dirName,
+			displayName,
+			iconPath,
+			entryURL,
+			now,
+			now,
+		)
+		if err != nil {
+			return SubApp{}, false
+		}
+		id, _ := result.LastInsertId()
+		return SubApp{
+			Id:          id,
+			AppType:     staticAppType,
+			DirName:     dirName,
+			DisplayName: displayName,
+			IconPath:    iconPath,
+			EntryUrl:    entryURL,
+			SortOrder:   0,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}, true
+	}
+
+	if existing.DisplayName == existing.DirName || existing.DisplayName != displayName {
+		now := NowFormatted()
+		_, _ = a.db.DB().Exec(
+			"UPDATE sub_app SET display_name = ?, icon_path = ?, entry_url = ?, updated_at = ? WHERE id = ?",
+			displayName,
+			iconPath,
+			entryURL,
+			now,
+			existing.Id,
+		)
+		existing.DisplayName = displayName
+		existing.IconPath = iconPath
+		existing.EntryUrl = entryURL
+	}
+	return existing, false
+}
+
+/**
+ * cleanupMissingStaticApps 清理已不存在目录对应的静态应用。
+ */
+func (a *AppService) cleanupMissingStaticApps(scannedDirs map[string]bool) {
+	rows, err := a.db.DB().Query("SELECT id, dir_name FROM sub_app WHERE app_type = 'static'")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var toDelete []int64
+	for rows.Next() {
+		var id int64
+		var dirName string
+		if err := rows.Scan(&id, &dirName); err != nil {
+			continue
+		}
+		if !scannedDirs[dirName] {
+			toDelete = append(toDelete, id)
+		}
+	}
+
+	for _, id := range toDelete {
+		_, _ = a.db.DB().Exec("DELETE FROM sub_app WHERE id = ?", id)
+	}
+}
+
+/**
+ * readManifestFromZip 读取压缩包中的 manifest.json。
+ * 如果不存在或解析失败则返回 nil。
+ */
+func (a *AppService) readManifestFromZip(reader *zip.ReadCloser) *ExportManifest {
+	for _, file := range reader.File {
+		if file.Name != "manifest.json" || file.FileInfo().IsDir() {
+			continue
+		}
+
+		rc, err := file.Open()
+		if err != nil {
+			return nil
+		}
+		defer rc.Close()
+
+		data, err := io.ReadAll(rc)
+		if err != nil {
+			return nil
+		}
+
+		var manifest ExportManifest
+		if err := json.Unmarshal(data, &manifest); err != nil {
+			return nil
+		}
+		if manifest.Version == "" {
+			return nil
+		}
+		return &manifest
+	}
+	return nil
+}
+
+/**
+ * importZipWithManifest 导入包含 manifest 的导出包。
+ * 静态应用按目录恢复，网页应用按清单写入数据库。
  */
 func (a *AppService) importZipWithManifest(reader *zip.ReadCloser, manifest *ExportManifest, staticDir string) (string, error) {
-	zipDirs := a.collectZipTopDirs(reader)
-
-	var missingDirs []string
-	for _, appDir := range manifest.Apps {
-		if !zipDirs[appDir] {
-			missingDirs = append(missingDirs, appDir)
-		}
-	}
-	if len(missingDirs) > 0 {
-		return "", fmt.Errorf("清单中声明的应用目录在压缩包中不存在: %s", strings.Join(missingDirs, ", "))
-	}
-
 	var skipped []string
-	for _, f := range reader.File {
-		if f.Name == "manifest.json" {
-			continue
-		}
+	allowedStaticDirs := make(map[string]bool)
+	for _, dirName := range manifest.Apps {
+		allowedStaticDirs[dirName] = true
+	}
 
-		topDir := a.extractTopDirFromPath(f.Name)
-		if topDir == "" {
-			continue
-		}
-
-		destDir := filepath.Join(staticDir, topDir)
+	for _, dirName := range manifest.Apps {
+		destDir := filepath.Join(staticDir, dirName)
 		if _, err := os.Stat(destDir); err == nil {
-			if !containsStr(skipped, topDir) {
-				skipped = append(skipped, topDir)
-			}
+			skipped = append(skipped, dirName)
 			continue
 		}
+		if err := os.MkdirAll(destDir, 0755); err != nil {
+			return strings.Join(skipped, ", "), fmt.Errorf("创建应用目录失败: %w", err)
+		}
+	}
 
-		fpath := filepath.Join(staticDir, f.Name)
-		if f.FileInfo().IsDir() {
-			os.MkdirAll(fpath, 0755)
+	for _, file := range reader.File {
+		if file.Name == "manifest.json" {
 			continue
 		}
-
-		if err := os.MkdirAll(filepath.Dir(fpath), 0755); err != nil {
-			return "", err
+		topDir := a.extractTopLevelDir(file.Name)
+		if topDir == "" || !allowedStaticDirs[topDir] || containsString(skipped, topDir) {
+			continue
 		}
-
-		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return "", err
-		}
-
-		rc, err := f.Open()
-		if err != nil {
-			outFile.Close()
-			return "", err
-		}
-
-		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
-		if err != nil {
-			return "", err
+		if err := a.extractZipFile(file, staticDir); err != nil {
+			return strings.Join(skipped, ", "), err
 		}
 	}
 
 	for _, webApp := range manifest.WebApps {
-		existingName := ""
-		a.db.DB().QueryRow("SELECT display_name FROM sub_app WHERE entry_url = ? AND app_type = 'web'", webApp.Url).Scan(&existingName)
-		if existingName != "" {
-			if !containsStr(skipped, webApp.Name) {
+		_, err := a.CreateWebApp(webApp.Name, webApp.Url)
+		if err != nil {
+			if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "已存在") {
 				skipped = append(skipped, webApp.Name)
+				continue
 			}
-			continue
-		}
-		if _, err := a.CreateWebApp(webApp.Name, webApp.Url); err != nil {
-			LogError("导入网页应用 %s 失败: %v", webApp.Name, err)
+			return strings.Join(skipped, ", "), err
 		}
 	}
 
 	_, err := a.ScanApps()
-
-	skippedStr := strings.Join(skipped, ", ")
-	return skippedStr, err
+	return strings.Join(skipped, ", "), err
 }
 
 /**
- * 处理不含 manifest 的 zip 导入（兼容旧格式）
- * 自动识别 zip 内的顶层目录结构
+ * importZipWithoutManifest 兼容导入不带 manifest 的旧 zip。
+ * 约定整个压缩包只代表一个静态应用目录。
  */
 func (a *AppService) importZipWithoutManifest(reader *zip.ReadCloser, zipPath string, staticDir string) (string, error) {
-	topDir := a.detectTopDir(reader, zipPath)
-
-	destDir := filepath.Join(staticDir, topDir)
-	if _, err := os.Stat(destDir); err == nil {
-		return "", fmt.Errorf("应用目录 %s 已存在", topDir)
+	baseName := strings.TrimSuffix(filepath.Base(zipPath), filepath.Ext(zipPath))
+	dirName := SanitizeDirName(baseName)
+	if dirName == "" {
+		return "", fmt.Errorf("压缩包名称无效")
 	}
 
-	for _, f := range reader.File {
-		fpath := filepath.Join(staticDir, f.Name)
+	destDir := filepath.Join(staticDir, dirName)
+	if _, err := os.Stat(destDir); err == nil {
+		return dirName, nil
+	}
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return "", fmt.Errorf("创建应用目录失败: %w", err)
+	}
 
-		if f.FileInfo().IsDir() {
-			os.MkdirAll(fpath, 0755)
-			continue
-		}
-
-		if err := os.MkdirAll(filepath.Dir(fpath), 0755); err != nil {
-			return "", err
-		}
-
-		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return "", err
-		}
-
-		rc, err := f.Open()
-		if err != nil {
-			outFile.Close()
-			return "", err
-		}
-
-		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
-		if err != nil {
+	for _, file := range reader.File {
+		if err := a.extractZipFile(file, destDir); err != nil {
 			return "", err
 		}
 	}
@@ -981,67 +966,75 @@ func (a *AppService) importZipWithoutManifest(reader *zip.ReadCloser, zipPath st
 }
 
 /**
- * 收集 zip 中所有顶层目录名
- * 返回以目录名为键的 map
+ * extractZipFile 将单个 zip 条目解压到目标根目录。
  */
-func (a *AppService) collectZipTopDirs(reader *zip.ReadCloser) map[string]bool {
-	dirs := make(map[string]bool)
-	for _, f := range reader.File {
-		topDir := a.extractTopDirFromPath(f.Name)
-		if topDir != "" {
-			dirs[topDir] = true
-		}
+func (a *AppService) extractZipFile(file *zip.File, targetRoot string) error {
+	targetPath := filepath.Join(targetRoot, filepath.FromSlash(file.Name))
+	cleanRoot := filepath.Clean(targetRoot)
+	cleanTarget := filepath.Clean(targetPath)
+	if !strings.HasPrefix(cleanTarget, cleanRoot) {
+		return fmt.Errorf("压缩包包含非法路径: %s", file.Name)
 	}
-	return dirs
+
+	if file.FileInfo().IsDir() {
+		return os.MkdirAll(cleanTarget, 0755)
+	}
+	if err := os.MkdirAll(filepath.Dir(cleanTarget), 0755); err != nil {
+		return fmt.Errorf("创建目录失败: %w", err)
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("打开压缩包文件失败: %w", err)
+	}
+	defer src.Close()
+
+	dst, err := os.Create(cleanTarget)
+	if err != nil {
+		return fmt.Errorf("创建目标文件失败: %w", err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return fmt.Errorf("解压文件失败: %w", err)
+	}
+	return nil
 }
 
 /**
- * 从 zip 条目路径中提取顶层目录名
- * 例如 "app1/index.html" 返回 "app1"
+ * extractTopLevelDir 提取 zip 条目的顶层目录名。
  */
-func (a *AppService) extractTopDirFromPath(zipPath string) string {
-	parts := strings.SplitN(zipPath, "/", 2)
-	if len(parts) > 0 && parts[0] != "" {
-		return parts[0]
+func (a *AppService) extractTopLevelDir(name string) string {
+	cleanName := strings.Trim(strings.ReplaceAll(name, "\\", "/"), "/")
+	if cleanName == "" {
+		return ""
 	}
-	return ""
+	parts := strings.Split(cleanName, "/")
+	if len(parts) == 0 {
+		return ""
+	}
+	return parts[0]
 }
 
 /**
- * 检测 ZIP 文件中的顶层目录名
- * 优先从 ZIP 结构推断，否则从文件名提取
+ * validateWebAppInput 校验网页应用的名称与地址。
  */
-func (a *AppService) detectTopDir(reader *zip.ReadCloser, zipPath string) string {
-	var topDir string
-	for _, f := range reader.File {
-		parts := strings.SplitN(f.Name, "/", 2)
-		if parts[0] != "" && (topDir == "" || topDir == parts[0]) {
-			topDir = parts[0]
-		}
-		if topDir != "" && parts[0] != topDir {
-			topDir = ""
-			break
-		}
+func validateWebAppInput(name string, url string) error {
+	if name == "" {
+		return fmt.Errorf("应用名称不能为空")
 	}
-
-	if topDir == "" {
-		baseName := strings.TrimSuffix(filepath.Base(zipPath), ".zip")
-		if idx := strings.LastIndex(baseName, "_"); idx > 0 {
-			topDir = baseName[:idx]
-		} else {
-			topDir = baseName
-		}
+	if url == "" {
+		return fmt.Errorf("应用地址不能为空")
 	}
-
-	return topDir
+	return nil
 }
 
 /**
- * 判断字符串切片中是否包含指定值
+ * containsString 判断切片中是否包含指定字符串。
  */
-func containsStr(slice []string, val string) bool {
-	for _, s := range slice {
-		if s == val {
+func containsString(items []string, target string) bool {
+	for _, item := range items {
+		if item == target {
 			return true
 		}
 	}

@@ -15,25 +15,25 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+const defaultSSHPort = 22
+
 /**
- * ServerListService 服务器列表管理服务
- * 负责 SSH 密钥对的自动生成、公钥部署、服务器会话和分类管理
- * 通过依赖注入持有 Database 引用
+ * ServerListService 服务器列表管理服务。
+ * 负责 SSH 密钥对的自动生成、公钥部署、连通性测试以及服务器会话和分类管理。
  */
 type ServerListService struct {
 	db *Database
 }
 
 /**
- * 创建 ServerListService 实例
- * 注入 Database 依赖
+ * 创建 ServerListService 实例。
  */
 func NewServerListService(db *Database) *ServerListService {
 	return &ServerListService{db: db}
 }
 
 /**
- * 获取用户主目录下的 .ssh 目录路径
+ * sshDir 返回本机用户目录下的 .ssh 目录。
  */
 func sshDir() (string, error) {
 	home, err := os.UserHomeDir()
@@ -44,8 +44,8 @@ func sshDir() (string, error) {
 }
 
 /**
- * 获取本地 SSH 密钥状态
- * 检查 ed25519 和 RSA 密钥是否存在，返回第一个找到的密钥信息
+ * GetSSHKeyStatus 获取本地 SSH 密钥状态。
+ * 按 ed25519、RSA 的顺序查找第一个可用密钥对。
  */
 func (s *ServerListService) GetSSHKeyStatus() (*SSHKeyStatus, error) {
 	dir, err := sshDir()
@@ -86,9 +86,8 @@ func (s *ServerListService) GetSSHKeyStatus() (*SSHKeyStatus, error) {
 }
 
 /**
- * 确保 SSH 密钥存在
- * 如果密钥不存在则自动生成，返回密钥状态
- * 用于部署公钥前的自动准备，用户无需手动操作
+ * ensureSSHKey 确保本地存在可用的 SSH 密钥。
+ * 如果不存在，则自动生成默认 ed25519 密钥对。
  */
 func (s *ServerListService) ensureSSHKey() (*SSHKeyStatus, error) {
 	status, err := s.GetSSHKeyStatus()
@@ -103,7 +102,6 @@ func (s *ServerListService) ensureSSHKey() (*SSHKeyStatus, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, fmt.Errorf("创建 .ssh 目录失败: %w", err)
 	}
@@ -115,13 +113,11 @@ func (s *ServerListService) ensureSSHKey() (*SSHKeyStatus, error) {
 
 	keyPath := filepath.Join(dir, "id_ed25519")
 	pubPath := filepath.Join(dir, "id_ed25519.pub")
-
 	if err := os.WriteFile(keyPath, privKeyData, 0600); err != nil {
 		return nil, fmt.Errorf("写入私钥失败: %w", err)
 	}
-
 	if err := os.WriteFile(pubPath, pubKeyData, 0644); err != nil {
-		os.Remove(keyPath)
+		_ = os.Remove(keyPath)
 		return nil, fmt.Errorf("写入公钥失败: %w", err)
 	}
 
@@ -134,9 +130,8 @@ func (s *ServerListService) ensureSSHKey() (*SSHKeyStatus, error) {
 }
 
 /**
- * 生成 ed25519 SSH 密钥对
- * 如果密钥已存在则返回错误，避免覆盖
- * 生成的私钥权限设置为 0600，公钥权限设置为 0644
+ * GenerateSSHKey 手动生成 SSH 密钥对。
+ * 如果密钥已存在则直接返回错误，避免覆盖现有密钥。
  */
 func (s *ServerListService) GenerateSSHKey() (*SSHKeyStatus, error) {
 	status, err := s.GetSSHKeyStatus()
@@ -146,17 +141,12 @@ func (s *ServerListService) GenerateSSHKey() (*SSHKeyStatus, error) {
 	if status.KeyExists {
 		return nil, fmt.Errorf("SSH 密钥已存在: %s", status.KeyPath)
 	}
-
-	result, err := s.ensureSSHKey()
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return s.ensureSSHKey()
 }
 
 /**
- * 使用 crypto/ed25519 生成 ed25519 SSH 密钥对
- * 返回 OpenSSH 格式的公钥和 PKCS8 格式的私钥
+ * generateEd25519KeyPair 生成 ed25519 SSH 密钥对。
+ * 返回 OpenSSH 格式公钥与 PKCS8 PEM 私钥。
  */
 func generateEd25519KeyPair() (publicKeyOpenSSH []byte, privateKeyPEM []byte, err error) {
 	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
@@ -175,44 +165,30 @@ func generateEd25519KeyPair() (publicKeyOpenSSH []byte, privateKeyPEM []byte, er
 		return nil, nil, fmt.Errorf("序列化私钥失败: %w", err)
 	}
 
-	privKeyPEM := pem.EncodeToMemory(&pem.Block{
+	privateKeyPEM = pem.EncodeToMemory(&pem.Block{
 		Type:  "PRIVATE KEY",
 		Bytes: privKeyBytes,
 	})
-
-	return pubKeyData, privKeyPEM, nil
+	return pubKeyData, privateKeyPEM, nil
 }
 
 /**
- * 将公钥部署到远程服务器
- * 使用密码认证连接远程服务器，将公钥追加到 authorized_keys 文件
- * 部署成功后更新数据库中的 key_deployed 状态
- * 如果本地密钥不存在，会自动先生成
+ * DeployKey 将公钥部署到远程服务器。
  */
-func (s *ServerListService) DeployKey(serverId int64, password string) error {
+func (s *ServerListService) DeployKey(serverID int64, password string) error {
 	status, err := s.ensureSSHKey()
 	if err != nil {
 		return err
 	}
 
-	server, err := s.GetServer(serverId)
+	server, err := s.GetServer(serverID)
 	if err != nil {
 		return fmt.Errorf("获取服务器信息失败: %w", err)
 	}
 
-	config := &ssh.ClientConfig{
-		User: server.User,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         15 * time.Second,
-	}
-
-	addr := fmt.Sprintf("%s:%d", server.Host, server.Port)
-	client, err := ssh.Dial("tcp", addr, config)
+	client, err := s.dialServerWithPassword(server, password, 15*time.Second)
 	if err != nil {
-		return fmt.Errorf("连接服务器失败: %w", err)
+		return err
 	}
 	defer client.Close()
 
@@ -222,56 +198,35 @@ func (s *ServerListService) DeployKey(serverId int64, password string) error {
 	}
 	defer session.Close()
 
-	pubKey := status.PublicKey
 	deployCmd := fmt.Sprintf(
 		"mkdir -p ~/.ssh && chmod 700 ~/.ssh && "+
 			"echo '%s' >> ~/.ssh/authorized_keys && "+
 			"chmod 600 ~/.ssh/authorized_keys && "+
 			"sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys",
-		pubKey,
+		status.PublicKey,
 	)
-
 	if err := session.Run(deployCmd); err != nil {
 		return fmt.Errorf("部署公钥失败: %w", err)
 	}
 
-	now := NowFormatted()
-	_, err = s.db.DB().Exec(
-		"UPDATE server_session SET key_deployed = 1, updated_at = ? WHERE id = ?",
-		now, serverId,
-	)
-	if err != nil {
-		return fmt.Errorf("更新服务器状态失败: %w", err)
-	}
-
-	return nil
+	return s.markServerKeyDeployed(serverID, true)
 }
 
 /**
- * 获取 SSH 登录命令
- * 根据服务器配置返回对应的 ssh 命令字符串
- * 如果密钥已部署，使用 ssh 命令即可自动密钥认证
+ * GetLoginCommand 根据服务器配置构建 SSH 登录命令。
  */
-func (s *ServerListService) GetLoginCommand(serverId int64) (string, error) {
-	server, err := s.GetServer(serverId)
+func (s *ServerListService) GetLoginCommand(serverID int64) (string, error) {
+	server, err := s.GetServer(serverID)
 	if err != nil {
 		return "", fmt.Errorf("获取服务器信息失败: %w", err)
 	}
-
-	var cmd string
-	if server.Port == 22 {
-		cmd = fmt.Sprintf("ssh %s@%s", server.User, server.Host)
-	} else {
-		cmd = fmt.Sprintf("ssh -p %d %s@%s", server.Port, server.User, server.Host)
-	}
-	return cmd, nil
+	return s.buildLoginCommand(server), nil
 }
 
 /**
- * 测试 SSH 密钥连接是否可用
- * 使用本地私钥尝试连接远程服务器，验证密钥登录是否正常
+ * TestKeyConnection 测试密钥登录是否可用。
  */
-func (s *ServerListService) TestKeyConnection(serverId int64) (string, error) {
+func (s *ServerListService) TestKeyConnection(serverID int64) (string, error) {
 	status, err := s.GetSSHKeyStatus()
 	if err != nil {
 		return "", err
@@ -280,7 +235,7 @@ func (s *ServerListService) TestKeyConnection(serverId int64) (string, error) {
 		return "", fmt.Errorf("本地 SSH 密钥不存在")
 	}
 
-	server, err := s.GetServer(serverId)
+	server, err := s.GetServer(serverID)
 	if err != nil {
 		return "", fmt.Errorf("获取服务器信息失败: %w", err)
 	}
@@ -289,25 +244,9 @@ func (s *ServerListService) TestKeyConnection(serverId int64) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("读取私钥失败: %w", err)
 	}
-
-	signer, err := ssh.ParsePrivateKey(keyBytes)
+	client, err := s.dialServerWithPrivateKey(server, keyBytes, 10*time.Second)
 	if err != nil {
-		return "", fmt.Errorf("解析私钥失败: %w", err)
-	}
-
-	config := &ssh.ClientConfig{
-		User: server.User,
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         10 * time.Second,
-	}
-
-	addr := fmt.Sprintf("%s:%d", server.Host, server.Port)
-	client, err := ssh.Dial("tcp", addr, config)
-	if err != nil {
-		return "", fmt.Errorf("密钥连接失败: %w", err)
+		return "", err
 	}
 	defer client.Close()
 
@@ -321,13 +260,11 @@ func (s *ServerListService) TestKeyConnection(serverId int64) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("执行命令失败: %w", err)
 	}
-
 	return string(output), nil
 }
 
 /**
- * 检测指定主机和端口是否可达
- * 用于在添加服务器前验证网络连通性
+ * TestConnectivity 检测指定主机和端口是否可达。
  */
 func (s *ServerListService) TestConnectivity(host string, port int) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
@@ -340,13 +277,11 @@ func (s *ServerListService) TestConnectivity(host string, port int) error {
 }
 
 /**
- * 获取所有服务器分类
- * 按排序字段和 ID 升序排列
+ * GetSessionCategories 获取所有服务器分类。
  */
 func (s *ServerListService) GetSessionCategories() ([]ServerCategory, error) {
 	rows, err := s.db.DB().Query(
-		"SELECT id, name, sort_order, created_at, updated_at " +
-			"FROM server_category ORDER BY sort_order, id",
+		"SELECT id, name, sort_order, created_at, updated_at FROM server_category ORDER BY sort_order, id",
 	)
 	if err != nil {
 		return nil, err
@@ -355,11 +290,17 @@ func (s *ServerListService) GetSessionCategories() ([]ServerCategory, error) {
 
 	var categories []ServerCategory
 	for rows.Next() {
-		var c ServerCategory
-		if err := rows.Scan(&c.Id, &c.Name, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		var category ServerCategory
+		if err := rows.Scan(
+			&category.Id,
+			&category.Name,
+			&category.SortOrder,
+			&category.CreatedAt,
+			&category.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
-		categories = append(categories, c)
+		categories = append(categories, category)
 	}
 	if categories == nil {
 		categories = []ServerCategory{}
@@ -368,7 +309,7 @@ func (s *ServerListService) GetSessionCategories() ([]ServerCategory, error) {
 }
 
 /**
- * 创建服务器分类
+ * CreateSessionCategory 创建服务器分类。
  */
 func (s *ServerListService) CreateSessionCategory(name string, sortOrder int) (*ServerCategory, error) {
 	if name == "" {
@@ -377,9 +318,11 @@ func (s *ServerListService) CreateSessionCategory(name string, sortOrder int) (*
 
 	now := NowFormatted()
 	result, err := s.db.DB().Exec(
-		"INSERT INTO server_category (name, sort_order, created_at, updated_at) "+
-			"VALUES (?, ?, ?, ?)",
-		name, sortOrder, now, now,
+		"INSERT INTO server_category (name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?)",
+		name,
+		sortOrder,
+		now,
+		now,
 	)
 	if err != nil {
 		return nil, err
@@ -396,7 +339,7 @@ func (s *ServerListService) CreateSessionCategory(name string, sortOrder int) (*
 }
 
 /**
- * 删除服务器分类
+ * DeleteSessionCategory 删除服务器分类。
  */
 func (s *ServerListService) DeleteSessionCategory(id int64) error {
 	_, err := s.db.DB().Exec("DELETE FROM server_category WHERE id = ?", id)
@@ -404,12 +347,11 @@ func (s *ServerListService) DeleteSessionCategory(id int64) error {
 }
 
 /**
- * 获取所有服务器会话列表
+ * GetServers 获取所有服务器会话。
  */
 func (s *ServerListService) GetServers() ([]ServerSession, error) {
 	rows, err := s.db.DB().Query(
-		"SELECT id, category_id, session_name, host, port, user, use_key_login, " +
-			"key_deployed, created_at, updated_at FROM server_session ORDER BY id",
+		"SELECT id, category_id, session_name, host, port, user, use_key_login, key_deployed, created_at, updated_at FROM server_session ORDER BY id",
 	)
 	if err != nil {
 		return nil, err
@@ -418,22 +360,11 @@ func (s *ServerListService) GetServers() ([]ServerSession, error) {
 
 	var servers []ServerSession
 	for rows.Next() {
-		var svr ServerSession
-		var categoryId sql.NullInt64
-		var useKeyLogin int
-		var keyDeployed int
-		if err := rows.Scan(
-			&svr.Id, &categoryId, &svr.SessionName, &svr.Host, &svr.Port,
-			&svr.User, &useKeyLogin, &keyDeployed, &svr.CreatedAt, &svr.UpdatedAt,
-		); err != nil {
+		server, err := scanServerSession(rows.Scan)
+		if err != nil {
 			return nil, err
 		}
-		if categoryId.Valid {
-			svr.CategoryId = &categoryId.Int64
-		}
-		svr.UseKeyLogin = useKeyLogin == 1
-		svr.KeyDeployed = keyDeployed == 1
-		servers = append(servers, svr)
+		servers = append(servers, *server)
 	}
 	if servers == nil {
 		servers = []ServerSession{}
@@ -442,75 +373,52 @@ func (s *ServerListService) GetServers() ([]ServerSession, error) {
 }
 
 /**
- * 根据 ID 获取单个服务器会话
+ * GetServer 根据 ID 获取单个服务器会话。
  */
 func (s *ServerListService) GetServer(id int64) (*ServerSession, error) {
-	var svr ServerSession
-	var categoryId sql.NullInt64
-	var useKeyLogin int
-	var keyDeployed int
-	err := s.db.DB().QueryRow(
-		"SELECT id, category_id, session_name, host, port, user, use_key_login, "+
-			"key_deployed, created_at, updated_at FROM server_session WHERE id = ?",
+	row := s.db.DB().QueryRow(
+		"SELECT id, category_id, session_name, host, port, user, use_key_login, key_deployed, created_at, updated_at FROM server_session WHERE id = ?",
 		id,
-	).Scan(
-		&svr.Id, &categoryId, &svr.SessionName, &svr.Host, &svr.Port,
-		&svr.User, &useKeyLogin, &keyDeployed, &svr.CreatedAt, &svr.UpdatedAt,
 	)
-	if err != nil {
-		return nil, err
-	}
-	if categoryId.Valid {
-		svr.CategoryId = &categoryId.Int64
-	}
-	svr.UseKeyLogin = useKeyLogin == 1
-	svr.KeyDeployed = keyDeployed == 1
-	return &svr, nil
+	return scanServerSession(row.Scan)
 }
 
 /**
- * 添加服务器会话记录
- * sessionName 为空时由前端展示默认名称
- * 如果同主机同用户已存在，则返回已有记录
+ * AddServer 添加服务器会话。
+ * 如果同主机同用户已存在，则直接返回已有记录。
  */
 func (s *ServerListService) AddServer(
-	categoryId *int64, sessionName, host string, port int, user string, useKeyLogin bool,
+	categoryID *int64,
+	sessionName, host string,
+	port int,
+	user string,
+	useKeyLogin bool,
 ) (*ServerSession, error) {
-	if host == "" {
-		return nil, fmt.Errorf("主机地址不能为空")
-	}
-	if user == "" {
-		return nil, fmt.Errorf("用户名不能为空")
-	}
-	if port <= 0 {
-		port = 22
+	if err := validateServerInput(host, user, &port); err != nil {
+		return nil, err
 	}
 
-	var existingId int64
+	var existingID int64
 	err := s.db.DB().QueryRow(
 		"SELECT id FROM server_session WHERE host = ? AND user = ?",
-		host, user,
-	).Scan(&existingId)
+		host,
+		user,
+	).Scan(&existingID)
 	if err == nil {
-		return s.GetServer(existingId)
+		return s.GetServer(existingID)
 	}
 
 	now := NowFormatted()
-	var catId sql.NullInt64
-	if categoryId != nil {
-		catId = sql.NullInt64{Int64: *categoryId, Valid: true}
-	}
-
-	useKey := 0
-	if useKeyLogin {
-		useKey = 1
-	}
-
 	result, err := s.db.DB().Exec(
-		"INSERT INTO server_session (category_id, session_name, host, port, user, "+
-			"use_key_login, key_deployed, created_at, updated_at) "+
-			"VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)",
-		catId, sessionName, host, port, user, useKey, now, now,
+		"INSERT INTO server_session (category_id, session_name, host, port, user, use_key_login, key_deployed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)",
+		toNullInt64(categoryID),
+		sessionName,
+		host,
+		port,
+		user,
+		boolToInt(useKeyLogin),
+		now,
+		now,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("添加服务器失败: %w", err)
@@ -519,7 +427,7 @@ func (s *ServerListService) AddServer(
 	id, _ := result.LastInsertId()
 	return &ServerSession{
 		Id:          id,
-		CategoryId:  categoryId,
+		CategoryId:  categoryID,
 		SessionName: sessionName,
 		Host:        host,
 		Port:        port,
@@ -532,42 +440,37 @@ func (s *ServerListService) AddServer(
 }
 
 /**
- * 更新服务器会话信息
+ * UpdateServer 更新服务器会话信息。
  */
 func (s *ServerListService) UpdateServer(
-	id int64, categoryId *int64, sessionName, host string, port int, user string, useKeyLogin bool,
+	id int64,
+	categoryID *int64,
+	sessionName, host string,
+	port int,
+	user string,
+	useKeyLogin bool,
 ) error {
-	if host == "" {
-		return fmt.Errorf("主机地址不能为空")
-	}
-	if user == "" {
-		return fmt.Errorf("用户名不能为空")
-	}
-	if port <= 0 {
-		port = 22
+	if err := validateServerInput(host, user, &port); err != nil {
+		return err
 	}
 
 	now := NowFormatted()
-	var catId sql.NullInt64
-	if categoryId != nil {
-		catId = sql.NullInt64{Int64: *categoryId, Valid: true}
-	}
-
-	useKey := 0
-	if useKeyLogin {
-		useKey = 1
-	}
-
 	_, err := s.db.DB().Exec(
-		"UPDATE server_session SET category_id = ?, session_name = ?, host = ?, "+
-			"port = ?, user = ?, use_key_login = ?, updated_at = ? WHERE id = ?",
-		catId, sessionName, host, port, user, useKey, now, id,
+		"UPDATE server_session SET category_id = ?, session_name = ?, host = ?, port = ?, user = ?, use_key_login = ?, updated_at = ? WHERE id = ?",
+		toNullInt64(categoryID),
+		sessionName,
+		host,
+		port,
+		user,
+		boolToInt(useKeyLogin),
+		now,
+		id,
 	)
 	return err
 }
 
 /**
- * 重命名服务器会话
+ * RenameServer 重命名服务器会话。
  */
 func (s *ServerListService) RenameServer(id int64, sessionName string) error {
 	if sessionName == "" {
@@ -577,15 +480,152 @@ func (s *ServerListService) RenameServer(id int64, sessionName string) error {
 	now := NowFormatted()
 	_, err := s.db.DB().Exec(
 		"UPDATE server_session SET session_name = ?, updated_at = ? WHERE id = ?",
-		sessionName, now, id,
+		sessionName,
+		now,
+		id,
 	)
 	return err
 }
 
 /**
- * 删除服务器会话记录
+ * DeleteServer 删除服务器会话。
  */
 func (s *ServerListService) DeleteServer(id int64) error {
 	_, err := s.db.DB().Exec("DELETE FROM server_session WHERE id = ?", id)
 	return err
+}
+
+/**
+ * buildLoginCommand 根据端口构造 SSH 登录命令。
+ */
+func (s *ServerListService) buildLoginCommand(server *ServerSession) string {
+	if server.Port == defaultSSHPort {
+		return fmt.Sprintf("ssh %s@%s", server.User, server.Host)
+	}
+	return fmt.Sprintf("ssh -p %d %s@%s", server.Port, server.User, server.Host)
+}
+
+/**
+ * markServerKeyDeployed 更新服务器是否已部署密钥的标记。
+ */
+func (s *ServerListService) markServerKeyDeployed(serverID int64, deployed bool) error {
+	now := NowFormatted()
+	_, err := s.db.DB().Exec(
+		"UPDATE server_session SET key_deployed = ?, updated_at = ? WHERE id = ?",
+		boolToInt(deployed),
+		now,
+		serverID,
+	)
+	if err != nil {
+		return fmt.Errorf("更新服务器状态失败: %w", err)
+	}
+	return nil
+}
+
+/**
+ * dialServerWithPassword 使用密码认证连接 SSH。
+ */
+func (s *ServerListService) dialServerWithPassword(server *ServerSession, password string, timeout time.Duration) (*ssh.Client, error) {
+	config := &ssh.ClientConfig{
+		User: server.User,
+		Auth: []ssh.AuthMethod{ssh.Password(password)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         timeout,
+	}
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", server.Host, server.Port), config)
+	if err != nil {
+		return nil, fmt.Errorf("连接服务器失败: %w", err)
+	}
+	return client, nil
+}
+
+/**
+ * dialServerWithPrivateKey 使用私钥认证连接 SSH。
+ */
+func (s *ServerListService) dialServerWithPrivateKey(server *ServerSession, keyBytes []byte, timeout time.Duration) (*ssh.Client, error) {
+	signer, err := ssh.ParsePrivateKey(keyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("解析私钥失败: %w", err)
+	}
+
+	config := &ssh.ClientConfig{
+		User: server.User,
+		Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         timeout,
+	}
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", server.Host, server.Port), config)
+	if err != nil {
+		return nil, fmt.Errorf("密钥连接失败: %w", err)
+	}
+	return client, nil
+}
+
+/**
+ * scanServerSession 统一完成 server_session 记录到模型的扫描与转换。
+ */
+func scanServerSession(scan func(dest ...interface{}) error) (*ServerSession, error) {
+	var server ServerSession
+	var categoryID sql.NullInt64
+	var useKeyLogin int
+	var keyDeployed int
+
+	err := scan(
+		&server.Id,
+		&categoryID,
+		&server.SessionName,
+		&server.Host,
+		&server.Port,
+		&server.User,
+		&useKeyLogin,
+		&keyDeployed,
+		&server.CreatedAt,
+		&server.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if categoryID.Valid {
+		server.CategoryId = &categoryID.Int64
+	}
+	server.UseKeyLogin = useKeyLogin == 1
+	server.KeyDeployed = keyDeployed == 1
+	return &server, nil
+}
+
+/**
+ * validateServerInput 校验服务器会话的核心字段。
+ */
+func validateServerInput(host string, user string, port *int) error {
+	if host == "" {
+		return fmt.Errorf("主机地址不能为空")
+	}
+	if user == "" {
+		return fmt.Errorf("用户名不能为空")
+	}
+	if *port <= 0 {
+		*port = defaultSSHPort
+	}
+	return nil
+}
+
+/**
+ * toNullInt64 将可选分类 ID 转为数据库可识别的 NullInt64。
+ */
+func toNullInt64(value *int64) sql.NullInt64 {
+	if value == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: *value, Valid: true}
+}
+
+/**
+ * boolToInt 将布尔值转换为数据库中的整数标记。
+ */
+func boolToInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }

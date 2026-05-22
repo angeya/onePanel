@@ -36,7 +36,7 @@
       <el-form-item v-if="form.useKeyLogin && !isEditing" label="登录密码">
         <el-input v-model="form.password" type="password" show-password placeholder="输入服务器登录密码" />
         <div class="key-hint">
-          首次登录需输入密码，之后可免密登录
+          首次保存时会顺手完成免密配置，成功后直接进入会话
         </div>
       </el-form-item>
       <div v-if="setupError" class="setup-error">{{ setupError }}</div>
@@ -47,7 +47,7 @@
         v-if="setupError"
         @click="handleSkipSetup"
       >
-        跳过，直接登录
+        跳过免密，继续登录
       </el-button>
       <el-button type="primary" @click="handleSave" :loading="saving">
         {{ isEditing ? '保存' : '确认并登录' }}
@@ -136,33 +136,41 @@ const handleSave = async () => {
       ElMessage.success('更新成功')
       visible.value = false
       emit('saved')
-    } else {
-      const server = await AddServer(
-        form.value.categoryId,
-        form.value.sessionName,
-        form.value.host,
-        form.value.port,
-        form.value.user,
-        form.value.useKeyLogin
-      )
-      emit('saved')
-      pendingServer.value = server
-
-      if (form.value.useKeyLogin && form.value.password) {
-        try {
-          await DeployKey(server.id, form.value.password)
-          ElMessage.success('设置成功，后续可免密登录')
-          emit('saved')
-        } catch (err) {
-          setupError.value = '免密登录设置失败: ' + err + '，请检查密码是否正确后重试'
-          saving.value = false
-          return
-        }
-      }
-
-      visible.value = false
-      emit('login', server)
+      return
     }
+
+    const server = await AddServer(
+      form.value.categoryId,
+      form.value.sessionName,
+      form.value.host,
+      form.value.port,
+      form.value.user,
+      form.value.useKeyLogin
+    )
+    pendingServer.value = server
+    emit('saved')
+
+    if (form.value.useKeyLogin && form.value.password) {
+      try {
+        await DeployKey(server.id, form.value.password)
+        ElMessage.success('设置成功，后续可免密登录')
+        emit('saved')
+      } catch (err) {
+        setupError.value = '免密登录设置失败: ' + err + '。你可以直接继续登录，或稍后在会话列表中再次配置。'
+        saving.value = false
+        return
+      }
+    }
+
+    const loginPayload = {
+      ...server,
+      useKeyLogin: form.value.useKeyLogin,
+      keyDeployed: form.value.useKeyLogin ? !!form.value.password : server.keyDeployed,
+      loginPassword: form.value.useKeyLogin ? '' : form.value.password
+    }
+
+    visible.value = false
+    emit('login', loginPayload)
   } catch (err) {
     ElMessage.error('保存失败: ' + err)
   } finally {
@@ -173,7 +181,10 @@ const handleSave = async () => {
 const handleSkipSetup = () => {
   if (pendingServer.value) {
     visible.value = false
-    emit('login', pendingServer.value)
+    emit('login', {
+      ...pendingServer.value,
+      loginPassword: form.value.password || ''
+    })
   }
 }
 

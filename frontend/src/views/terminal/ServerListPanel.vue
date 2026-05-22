@@ -193,7 +193,7 @@ const handleLogin = async (server) => {
   doLogin(server)
 }
 
-const doLogin = async (server) => {
+const doLogin = async (server, password = '') => {
   try {
     const cmd = await GetLoginCommand(server.id)
     const tabId = addTerminalTab(defaultShell.value)
@@ -202,6 +202,11 @@ const doLogin = async (server) => {
     }
 
     const host = server.host
+    const commandLines = [cmd]
+    if (password) {
+      commandLines.push(password)
+    }
+
     const handleReady = (event) => {
       if (event.detail.tabId !== tabId) {
         return
@@ -211,7 +216,12 @@ const doLogin = async (server) => {
       window.dispatchEvent(new CustomEvent('tab-ssh-connect', {
         detail: { tabId, host }
       }))
-      sendCommand(tabId, cmd + '\r')
+
+      commandLines.forEach((line, index) => {
+        window.setTimeout(() => {
+          sendCommand(tabId, line + '\r')
+        }, index * 180)
+      })
     }
 
     window.addEventListener('terminal-ready', handleReady)
@@ -228,11 +238,14 @@ const onDeployKeySuccess = async () => {
   }
 }
 
-const onDeployKeySkip = () => {
-  if (pendingLoginServer.value) {
-    doLogin(pendingLoginServer.value)
-    pendingLoginServer.value = null
+const onDeployKeySkip = (payload) => {
+  if (!pendingLoginServer.value) {
+    return
   }
+
+  const password = typeof payload === 'string' ? payload : ''
+  doLogin(pendingLoginServer.value, password)
+  pendingLoginServer.value = null
 }
 
 const showContextMenu = (event, server) => {
@@ -271,7 +284,6 @@ const handleDeleteServer = async (server) => {
     ElMessage.success('删除成功')
     await loadServers()
   } catch {
-    // 用户取消
   }
 }
 
@@ -403,31 +415,26 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-.more-icon:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-active);
-}
-
 .context-menu {
   position: fixed;
-  z-index: 9999;
-  background-color: var(--bg-primary);
+  z-index: 2000;
+  min-width: 120px;
+  background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 4px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 120px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  padding: 4px;
 }
 
 .context-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 8px 10px;
   cursor: pointer;
-  font-size: 13px;
+  border-radius: 4px;
   color: var(--text-primary);
-  transition: background-color 0.15s;
+  font-size: 13px;
 }
 
 .context-menu-item:hover {
@@ -436,9 +443,5 @@ onBeforeUnmount(() => {
 
 .context-menu-item.danger {
   color: var(--el-color-danger);
-}
-
-.context-menu-item.danger:hover {
-  background-color: var(--el-color-danger-light-9);
 }
 </style>
