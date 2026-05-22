@@ -292,26 +292,14 @@ func (t *TrayManager) showContextMenu() {
 
 /**
  * 加载托盘图标
- * 优先加载可执行文件内嵌图标，其次加载 data 目录下的图标文件
+ * 优先加载可执行文件同目录下的 icon.ico，以便与任务栏图标保持一致
+ * 如果未找到，再回退到可执行文件资源和其他候选文件
  */
 func (t *TrayManager) loadIcon() syscall.Handle {
-	hInstance, _, _ := procGetModuleHandleW.Call(0)
-
-	hIcon, _, _ := procLoadImageW.Call(
-		hInstance,
-		MAKEINTRESOURCE,
-		IMAGE_ICON,
-		0, 0,
-		LR_DEFAULTSIZE|LR_SHARED,
-	)
-	if hIcon != 0 {
-		return syscall.Handle(hIcon)
-	}
-
 	iconPath := t.findIconFile()
 	if iconPath != "" {
 		iconPathPtr, _ := syscall.UTF16PtrFromString(iconPath)
-		hIcon, _, _ = procLoadImageW.Call(
+		hIcon, _, _ := procLoadImageW.Call(
 			0,
 			uintptr(unsafe.Pointer(iconPathPtr)),
 			IMAGE_ICON,
@@ -321,6 +309,19 @@ func (t *TrayManager) loadIcon() syscall.Handle {
 		if hIcon != 0 {
 			return syscall.Handle(hIcon)
 		}
+		LogWarn("从文件加载托盘图标失败: %s", iconPath)
+	}
+
+	hInstance, _, _ := procGetModuleHandleW.Call(0)
+	hIcon, _, _ := procLoadImageW.Call(
+		hInstance,
+		MAKEINTRESOURCE,
+		IMAGE_ICON,
+		0, 0,
+		LR_DEFAULTSIZE|LR_SHARED,
+	)
+	if hIcon != 0 {
+		return syscall.Handle(hIcon)
 	}
 
 	hIcon, _, _ = procLoadImageW.Call(
@@ -335,7 +336,7 @@ func (t *TrayManager) loadIcon() syscall.Handle {
 
 /**
  * 查找图标文件
- * 依次检查可执行文件目录下的 icon.ico 和 data/icon.ico
+ * 优先检查与任务栏构建资源一致的 windows/icon.ico，其次检查可执行文件同级目录
  */
 func (t *TrayManager) findIconFile() string {
 	exePath, err := os.Executable()
@@ -343,9 +344,12 @@ func (t *TrayManager) findIconFile() string {
 		return ""
 	}
 	exeDir := filepath.Dir(exePath)
+	projectDir := filepath.Dir(exeDir)
 
 	candidates := []string{
 		filepath.Join(exeDir, "icon.ico"),
+		filepath.Join(projectDir, "windows", "icon.ico"),
+		filepath.Join(projectDir, "build", "windows", "icon.ico"),
 		filepath.Join(exeDir, "data", "icon.ico"),
 	}
 	for _, p := range candidates {
