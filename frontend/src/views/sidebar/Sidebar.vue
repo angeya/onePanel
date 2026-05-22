@@ -17,7 +17,11 @@
         <div class="nav-settings" title="系统设置" @click="openSettings">
           <el-icon :size="20"><Setting /></el-icon>
         </div>
-        <div class="version-info" title="oneWin v0.0.1">v0.0.1</div>
+        <div class="github-entry" title="打开 GitHub" @click="openGithub">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2C6.477 2 2 6.59 2 12.253c0 4.53 2.865 8.374 6.839 9.73.5.096.683-.222.683-.493 0-.244-.009-.89-.014-1.747-2.782.62-3.369-1.37-3.369-1.37-.455-1.183-1.11-1.498-1.11-1.498-.908-.636.069-.624.069-.624 1.004.072 1.532 1.056 1.532 1.056.893 1.566 2.341 1.114 2.91.852.091-.67.35-1.114.636-1.37-2.22-.26-4.555-1.14-4.555-5.074 0-1.12.39-2.036 1.029-2.754-.103-.261-.446-1.31.097-2.73 0 0 .84-.277 2.75 1.052A9.297 9.297 0 0 1 12 6.836a9.27 9.27 0 0 1 2.504.35c1.909-1.329 2.748-1.052 2.748-1.052.545 1.42.202 2.469.1 2.73.64.718 1.027 1.634 1.027 2.754 0 3.944-2.339 4.81-4.566 5.065.359.319.679.948.679 1.91 0 1.379-.012 2.49-.012 2.83 0 .273.18.593.688.492C19.138 20.623 22 16.781 22 12.253 22 6.59 17.523 2 12 2Z" />
+          </svg>
+        </div>
       </div>
     </div>
 
@@ -55,6 +59,7 @@
 <script setup>
 import { ref, inject, onUnmounted } from 'vue'
 import { Setting, DArrowLeft, DArrowRight, Monitor, Grid, Promotion, SetUp } from '@element-plus/icons-vue'
+import { BrowserOpenURL } from '../../../wailsjs/runtime/runtime'
 import TerminalPanel from './TerminalPanel.vue'
 import MyAppPanel from './MyAppPanel.vue'
 import QuickLaunchPanel from './QuickLaunchPanel.vue'
@@ -74,6 +79,10 @@ const navItems = [
 const activeNav = inject('activeNav')
 const switchNavFromParent = inject('switchNav')
 const openSettings = inject('openSettings')
+
+const openGithub = () => {
+  BrowserOpenURL('https://github.com/angeya')
+}
 
 const panelWidth = ref(DEFAULT_PANEL_WIDTH)
 const panelCollapsed = ref(false)
@@ -258,11 +267,27 @@ onUnmounted(() => {
   background-color: var(--bg-hover);
 }
 
-.version-info {
-  font-size: 10px;
+.github-entry {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
   color: var(--text-dimmed);
-  text-align: center;
-  cursor: default;
+  transition: all 0.15s;
+}
+
+.github-entry:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.github-entry svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 .sub-panel {
