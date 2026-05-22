@@ -6,8 +6,8 @@
     :close-on-click-modal="false"
   >
     <el-form :model="form" label-width="90px" size="default">
-      <el-form-item label="命令名称" required>
-        <el-input v-model="form.name" placeholder="请输入命令名称" />
+      <el-form-item label="名称" required>
+        <el-input v-model="form.name" placeholder="请输入快速启动名称" />
       </el-form-item>
       <el-form-item label="所属分类">
         <el-select v-model="form.categoryId" placeholder="请选择分类（可选）" clearable style="width: 100%">
@@ -16,13 +16,13 @@
       </el-form-item>
       <el-form-item label="Shell 类型" required>
         <el-radio-group v-model="form.shell">
-          <el-radio value="cmd.exe">CMD</el-radio>
           <el-radio value="powershell.exe">PowerShell</el-radio>
+          <el-radio value="cmd.exe">CMD</el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item label="工作目录">
         <div style="display: flex; gap: 8px; width: 100%">
-          <el-input v-model="form.workDir" placeholder="留空则使用默认目录" />
+          <el-input v-model="form.workDir" placeholder="为空则使用默认目录" />
           <el-button @click="handleSelectWorkDir">选择</el-button>
         </div>
       </el-form-item>
@@ -31,7 +31,7 @@
           v-model="form.commands"
           type="textarea"
           :rows="5"
-          placeholder="每行一条命令"
+          placeholder="每行一条命令，不需要符号"
         />
       </el-form-item>
     </el-form>

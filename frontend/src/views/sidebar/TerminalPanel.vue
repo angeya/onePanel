@@ -2,7 +2,7 @@
   <div class="sub-panel-content">
     <div class="sub-panel-header">
       <span class="sub-panel-title">终端</span>
-      <el-button size="small" @click="handleAddTerminal" plain>
+      <el-button size="small" @click="handleAddTerminal" plain title="打开新终端">
         <el-icon><Plus /></el-icon>
       </el-button>
     </div>

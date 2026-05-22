@@ -56,7 +56,7 @@ export function useTerminalCommandExecution({
       return []
     }
 
-    return workDir ? [`cd /d ${workDir}`, ...lines] : lines
+    return workDir ? [`cd ${workDir}`, ...lines] : lines
   }
 
   /**

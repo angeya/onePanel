@@ -7,10 +7,10 @@
   >
     <el-form :model="form" label-width="100px" size="default">
       <el-form-item label="会话名称">
-        <el-input v-model="form.sessionName" placeholder="可选，默认使用 主机(用户名)" />
+        <el-input v-model="form.sessionName" placeholder="默认显示 主机(用户名)" />
       </el-form-item>
       <el-form-item label="所属分类">
-        <el-select v-model="form.categoryId" placeholder="请选择分类" clearable style="width: 100%">
+        <el-select v-model="form.categoryId" placeholder="选择分类（可选）" clearable style="width: 100%">
           <el-option
             v-for="cat in categories"
             :key="cat.id"
@@ -19,25 +19,22 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="主机地址">
-        <el-input v-model="form.host" placeholder="如 192.168.1.100" />
+      <el-form-item label="主机地址" required>
+        <el-input v-model="form.host" placeholder="" />
       </el-form-item>
-      <el-form-item label="端口">
-        <el-input-number v-model="form.port" :min="1" :max="65535" style="width: 100%" />
+      <el-form-item label="端口" required>
+        <el-input-number v-model="form.port" :min="1" :max="65535" :controls="false" :align="left"  style="width: 100%"/>
       </el-form-item>
-      <el-form-item label="用户名">
+      <el-form-item label="用户名" required>
         <el-input v-model="form.user" placeholder="如 root" />
       </el-form-item>
       <el-form-item label="免密登录">
         <el-checkbox v-model="form.useKeyLogin">
-          记住登录方式，以后免输入密码
+          除第一次外，以后都使用密钥免密登录
         </el-checkbox>
       </el-form-item>
       <el-form-item v-if="form.useKeyLogin && !isEditing" label="登录密码">
         <el-input v-model="form.password" type="password" show-password placeholder="输入服务器登录密码" />
-        <div class="key-hint">
-          首次保存时会顺手完成免密配置，成功后直接进入会话
-        </div>
       </el-form-item>
       <div v-if="setupError" class="setup-error">{{ setupError }}</div>
     </el-form>
@@ -75,18 +72,24 @@ const setupError = ref('')
 const pendingServer = ref(null)
 const form = ref(getDefaultForm())
 
+/**
+ * 获取默认表单值
+ */
 function getDefaultForm() {
   return {
     sessionName: '',
     categoryId: null,
     host: '',
     port: 22,
-    user: '',
+    user: 'root',
     useKeyLogin: true,
     password: ''
   }
 }
 
+/**
+ * 显示会话会话对话框
+ */
 const show = (server) => {
   if (server) {
     isEditing.value = true
@@ -110,6 +113,9 @@ const show = (server) => {
   visible.value = true
 }
 
+/**
+ * 处理保存会话
+ */
 const handleSave = async () => {
   if (!form.value.host) {
     ElMessage.warning('请输入主机地址')
@@ -178,6 +184,9 @@ const handleSave = async () => {
   }
 }
 
+/**
+ * 处理跳过免密登录
+ */
 const handleSkipSetup = () => {
   if (pendingServer.value) {
     visible.value = false
@@ -192,13 +201,6 @@ defineExpose({ show })
 </script>
 
 <style scoped>
-.key-hint {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
-  line-height: 1.4;
-}
-
 .setup-error {
   font-size: 12px;
   color: var(--el-color-danger);

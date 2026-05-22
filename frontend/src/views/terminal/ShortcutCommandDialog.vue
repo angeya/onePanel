@@ -6,7 +6,7 @@
     :close-on-click-modal="false"
   >
     <el-form :model="form" label-width="80px" size="default">
-      <el-form-item label="命令名称">
+      <el-form-item label="命令名称" required>
         <el-input v-model="form.name" placeholder="请输入命令名称" />
       </el-form-item>
       <el-form-item label="所属分类">
@@ -22,7 +22,7 @@
       <el-form-item label="工作目录">
         <el-input v-model="form.workDir" placeholder="留空则使用默认目录" />
       </el-form-item>
-      <el-form-item label="命令内容">
+      <el-form-item label="命令内容" required>
         <el-input
           v-model="form.commands"
           type="textarea"

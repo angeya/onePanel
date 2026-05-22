@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="系统设置"
-    width="520px"
+    width="560px"
     :close-on-click-modal="false"
     top="5vh"
   >
@@ -33,8 +33,8 @@
       <div class="setting-section">
         <div class="section-title">默认终端</div>
         <el-radio-group v-model="defaultShell" @change="saveDefaultShell">
-          <el-radio value="cmd.exe">CMD</el-radio>
           <el-radio value="powershell.exe">PowerShell</el-radio>
+          <el-radio value="cmd.exe">CMD</el-radio>
         </el-radio-group>
       </div>
 
@@ -139,6 +139,9 @@ const themes = [
   }
 ]
 
+/**
+ * 切换主题
+ */
 const changeTheme = async (key) => {
   currentTheme.value = key
   try {
@@ -149,6 +152,9 @@ const changeTheme = async (key) => {
   }
 }
 
+/**
+ * 保存默认终端设置
+ */
 const saveDefaultShell = async (val) => {
   try {
     await SetSetting('default_shell', val)
@@ -158,6 +164,9 @@ const saveDefaultShell = async (val) => {
   }
 }
 
+/**
+ * 保存关闭行为设置
+ */
 const saveCloseAction = async (val) => {
   try {
     await SetCloseAction(val)
@@ -168,6 +177,9 @@ const saveCloseAction = async (val) => {
   }
 }
 
+/**
+ * 保存调试开关设置
+ */
 const saveAllowDebug = async (val) => {
   try {
     await changeAllowDebug(val)
@@ -178,6 +190,9 @@ const saveAllowDebug = async (val) => {
   }
 }
 
+/**
+ * 打开日志目录
+ */
 const openLogsDir = async () => {
   try {
     await OpenLogsDir()
@@ -186,6 +201,9 @@ const openLogsDir = async () => {
   }
 }
 
+/**
+ * 复制邮箱到剪贴板
+ */
 const copyEmail = async () => {
   try {
     await navigator.clipboard.writeText('1571858518@qq.com')
@@ -195,6 +213,9 @@ const copyEmail = async () => {
   }
 }
 
+/**
+ * 加载设置
+ */
 const loadSettings = async () => {
   try {
     const theme = await GetSetting('theme')
@@ -210,6 +231,9 @@ const loadSettings = async () => {
   }
 }
 
+/**
+ * 打开设置对话框
+ */
 const open = async () => {
   await loadSettings()
   visible.value = true
@@ -225,7 +249,7 @@ defineExpose({ loadSettings, open })
   gap: 20px;
   max-height: 70vh;
   overflow-y: auto;
-  padding: 4px 12px 4px 4px;
+  padding: 18px 24px 18px 16px;
 }
 
 .settings-content::-webkit-scrollbar {

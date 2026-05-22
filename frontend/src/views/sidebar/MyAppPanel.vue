@@ -4,16 +4,16 @@
       <span class="sub-panel-title">我的应用</span>
     </div>
     <div class="sub-panel-toolbar">
-      <el-button size="small" @click="openMyAppDialog('import')" plain>
-        <el-icon><Upload /></el-icon>
-        导入
-      </el-button>
       <el-button size="small" @click="openMyAppDialog('addWebApp')" plain>
         <el-icon><Link /></el-icon>
         网页
       </el-button>
+      <el-button size="small" @click="openMyAppDialog('import')" plain>
+        <el-icon><Bottom /></el-icon>
+        导入
+      </el-button>
       <el-button size="small" @click="openMyAppDialog('batchExport')" plain>
-        <el-icon><Download /></el-icon>
+        <el-icon><Top /></el-icon>
         导出
       </el-button>
       <el-button size="small" @click="appService.refreshApps()" plain>
@@ -56,7 +56,7 @@
 
 <script setup>
 import { inject } from 'vue'
-import { Upload, Download, Refresh, Document, MoreFilled, Link } from '@element-plus/icons-vue'
+import { Bottom, Top, Refresh, Document, MoreFilled, Link } from '@element-plus/icons-vue'
 
 const appService = inject('appService')
 const openMyAppDialog = inject('openMyAppDialog')
