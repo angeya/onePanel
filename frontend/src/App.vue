@@ -12,82 +12,85 @@
     </div>
 
     <div v-show="appReady" class="app-container">
-      <Sidebar />
+      <AppTitleBar />
+      <div class="app-workspace">
+        <Sidebar />
 
-      <div class="right-panel">
-        <div v-if="tabs.length === 0" class="empty-main">
-          <el-empty description="选择左侧功能开始使用" :image-size="80" />
-        </div>
-        <template v-else>
-          <div class="main-tabs-header">
-            <div class="tabs-list">
-              <div
-                v-for="tab in tabs"
-                :key="tab.id"
-                class="main-tab-item"
-                :class="{ active: activeTabId === tab.id }"
-                @click="switchTab(tab.id)"
-                @mouseup="handleTabMouseDown($event, tab)"
-              >
-                <el-icon size="12"><component :is="getTabIcon(tab)" /></el-icon>
-                <span class="tab-name">{{ tab.title }}</span>
-                <el-icon
-                  v-if="tab.closable !== false"
-                  class="tab-close"
-                  size="12"
-                  @click.stop="closeTab(tab.id)"
+        <div class="right-panel">
+          <div v-if="tabs.length === 0" class="empty-main">
+            <el-empty description="选择左侧功能开始使用" :image-size="80" />
+          </div>
+          <template v-else>
+            <div class="main-tabs-header">
+              <div class="tabs-list">
+                <div
+                  v-for="tab in tabs"
+                  :key="tab.id"
+                  class="main-tab-item"
+                  :class="{ active: activeTabId === tab.id }"
+                  @click="switchTab(tab.id)"
+                  @mouseup="handleTabMouseDown($event, tab)"
                 >
-                  <Close />
-                </el-icon>
+                  <el-icon size="12"><component :is="getTabIcon(tab)" /></el-icon>
+                  <span class="tab-name">{{ tab.title }}</span>
+                  <el-icon
+                    v-if="tab.closable !== false"
+                    class="tab-close"
+                    size="12"
+                    @click.stop="closeTab(tab.id)"
+                  >
+                    <Close />
+                  </el-icon>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="main-tabs-body" ref="mainTabsBodyRef">
-            <TerminalTab
-              v-for="tab in terminalTabs"
-              :key="tab.id"
-              :tab-id="tab.id"
-              :shell="tab.shell || 'cmd.exe'"
-              :theme="currentTheme"
-              v-show="activeTabId === tab.id"
-            />
-            <div
-              v-for="tab in appTabs"
-              :key="tab.id"
-              v-show="activeTabId === tab.id"
-              class="app-iframe-wrapper"
-              :data-tab-id="tab.id"
-            >
-              <iframe
-                :src="tab.url"
-                class="app-iframe"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            <div class="main-tabs-body" ref="mainTabsBodyRef">
+              <TerminalTab
+                v-for="tab in terminalTabs"
+                :key="tab.id"
+                :tab-id="tab.id"
+                :shell="tab.shell || 'cmd.exe'"
+                :theme="currentTheme"
+                v-show="activeTabId === tab.id"
+              />
+              <div
+                v-for="tab in appTabs"
+                :key="tab.id"
+                v-show="activeTabId === tab.id"
+                class="app-iframe-wrapper"
+                :data-tab-id="tab.id"
+              >
+                <iframe
+                  :src="tab.url"
+                  class="app-iframe"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                />
+              </div>
+              <QuickLaunchTab
+                v-if="quickLaunchTab"
+                v-show="activeTabId === quickLaunchTab.id"
+                ref="quickLaunchTabRef"
+                :data-tab-id="quickLaunchTab.id"
+              />
+              <NetworkPortList
+                v-for="tab in toolTabs"
+                :key="tab.id"
+                v-show="activeTabId === tab.id"
+                :data-tab-id="tab.id"
+                :embedded="true"
+              />
+              <SearchBar
+                ref="searchBarRef"
+                :visible="currentSearchVisible"
+                @update:visible="handleSearchBarVisibleChange"
+                @search="handleSearchInput"
+                @find-next="handleSearchFindNext"
+                @find-prev="handleSearchFindPrev"
+                @close="handleSearchClose"
               />
             </div>
-            <QuickLaunchTab
-              v-if="quickLaunchTab"
-              v-show="activeTabId === quickLaunchTab.id"
-              ref="quickLaunchTabRef"
-              :data-tab-id="quickLaunchTab.id"
-            />
-            <NetworkPortList
-              v-for="tab in toolTabs"
-              :key="tab.id"
-              v-show="activeTabId === tab.id"
-              :data-tab-id="tab.id"
-              :embedded="true"
-            />
-            <SearchBar
-              ref="searchBarRef"
-              :visible="currentSearchVisible"
-              @update:visible="handleSearchBarVisibleChange"
-              @search="handleSearchInput"
-              @find-next="handleSearchFindNext"
-              @find-prev="handleSearchFindPrev"
-              @close="handleSearchClose"
-            />
-          </div>
-        </template>
+          </template>
+        </div>
       </div>
 
       <MyApp ref="myAppDialogsRef" />
@@ -111,6 +114,7 @@ import TerminalTab from './views/terminal/TerminalTab.vue'
 import QuickLaunchTab from './views/quicklaunch/QuickLaunchTab.vue'
 import Sidebar from './views/sidebar/Sidebar.vue'
 import SearchBar from './components/SearchBar.vue'
+import AppTitleBar from './components/AppTitleBar.vue'
 import CloseActionDialog from './components/CloseActionDialog.vue'
 import { useAppTabs } from './composables/useAppTabs'
 import { useAppService } from './composables/useAppService'
@@ -401,8 +405,16 @@ onUnmounted(() => {
 
 .app-container {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 100%;
+  overflow: hidden;
+}
+
+.app-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
   overflow: hidden;
 }
 

@@ -42,9 +42,14 @@ func main() {
 	var hotkey *HotkeyManager
 
 	err = wails.Run(&options.App{
-		Title:  "oneWin",
-		Width:  1280,
-		Height: 800,
+		Title:            "oneWin",
+		Width:            1280,
+		Height:           800,
+		Frameless:        true,
+		DisableResize:    false,
+		MinWidth:         960,
+		MinHeight:        640,
+		WindowStartState: options.Normal,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
