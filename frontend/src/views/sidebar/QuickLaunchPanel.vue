@@ -37,11 +37,11 @@
               <div class="ql-item-name">{{ cmd.name }}</div>
               <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
             </div>
-            <div class="ql-item-actions" @click.stop>
-              <el-icon class="action-icon" @click="executeQlCmd(cmd)"><VideoPlay /></el-icon>
-              <el-icon class="action-icon" @click="openQlDialog('edit', cmd)"><Edit /></el-icon>
-              <el-icon class="action-icon" @click="qlService.deleteQlCmd(cmd)"><Delete /></el-icon>
-            </div>
+            <CommandItemActions
+              @execute="executeQlCmd(cmd)"
+              @edit="openQlDialog('edit', cmd)"
+              @delete="qlService.deleteQlCmd(cmd)"
+            />
           </div>
         </div>
       </div>
@@ -59,11 +59,11 @@
           <div class="ql-item-name">{{ cmd.name }}</div>
           <div class="ql-item-cmd" :title="cmd.commands">{{ cmd.commands }}</div>
         </div>
-        <div class="ql-item-actions" @click.stop>
-          <el-icon class="action-icon" @click="executeQlCmd(cmd)"><VideoPlay /></el-icon>
-          <el-icon class="action-icon" @click="openQlDialog('edit', cmd)"><Edit /></el-icon>
-          <el-icon class="action-icon" @click="qlService.deleteQlCmd(cmd)"><Delete /></el-icon>
-        </div>
+        <CommandItemActions
+          @execute="executeQlCmd(cmd)"
+          @edit="openQlDialog('edit', cmd)"
+          @delete="qlService.deleteQlCmd(cmd)"
+        />
       </div>
 
       <el-empty v-if="qlService.qlCmds.value.length === 0" description="暂无快速启动命令" :image-size="40" />
@@ -74,8 +74,9 @@
 <script setup>
 import { inject } from 'vue'
 import {
-  Monitor, Plus, FolderAdd, ArrowDown, ArrowRight, Edit, Delete, VideoPlay
+  Monitor, Plus, FolderAdd, ArrowDown, ArrowRight
 } from '@element-plus/icons-vue'
+import CommandItemActions from '../../components/CommandItemActions.vue'
 
 const qlService = inject('qlService')
 const openQlDialog = inject('openQlDialog')
@@ -200,28 +201,7 @@ const executeQlCmd = (cmd) => {
   margin-top: 1px;
 }
 
-.ql-item-actions {
-  display: flex;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
-  flex-shrink: 0;
-}
-
-.ql-item:hover .ql-item-actions {
+.ql-item:hover .command-item-actions {
   opacity: 1;
-}
-
-.action-icon {
-  cursor: pointer;
-  color: var(--text-muted);
-  padding: 2px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.action-icon:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-active);
 }
 </style>

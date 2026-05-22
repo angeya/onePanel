@@ -32,11 +32,11 @@
               <span class="command-name">{{ cmd.name }}</span>
               <span class="command-text">{{ cmd.commands }}</span>
             </div>
-            <div class="command-actions">
-              <el-icon class="action-icon" @click.stop="executeCommandInNewTerminal(cmd)"><VideoPlay /></el-icon>
-              <el-icon class="action-icon" @click.stop="commandDialogRef.show(cmd)"><Edit /></el-icon>
-              <el-icon class="action-icon" @click.stop="deleteCommand(cmd.id)"><Delete /></el-icon>
-            </div>
+            <CommandItemActions
+              @execute="executeCommandInNewTerminal(cmd)"
+              @edit="commandDialogRef.show(cmd)"
+              @delete="deleteCommand(cmd.id)"
+            />
           </div>
         </div>
       </div>
@@ -51,11 +51,11 @@
           <span class="command-name">{{ cmd.name }}</span>
           <span class="command-text">{{ cmd.commands }}</span>
         </div>
-        <div class="command-actions">
-          <el-icon class="action-icon" @click.stop="executeCommandInNewTerminal(cmd)"><VideoPlay /></el-icon>
-          <el-icon class="action-icon" @click.stop="commandDialogRef.show(cmd)"><Edit /></el-icon>
-          <el-icon class="action-icon" @click.stop="deleteCommand(cmd.id)"><Delete /></el-icon>
-        </div>
+        <CommandItemActions
+          @execute="executeCommandInNewTerminal(cmd)"
+          @edit="commandDialogRef.show(cmd)"
+          @delete="deleteCommand(cmd.id)"
+        />
       </div>
 
       <el-empty v-if="commands.length === 0" description="暂无快捷命令" :image-size="60" />
@@ -79,11 +79,8 @@ import { ref, onMounted, computed, inject } from 'vue'
 import {
   Plus,
   FolderAdd,
-  Edit,
-  Delete,
   ArrowDown,
-  ArrowRight,
-  VideoPlay
+  ArrowRight
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -93,6 +90,7 @@ import {
 } from '../../../wailsjs/go/main/ShortcutService'
 import ShortcutCommandDialog from './ShortcutCommandDialog.vue'
 import ShortcutCategoryDialog from './ShortcutCategoryDialog.vue'
+import CommandItemActions from '../../components/CommandItemActions.vue'
 
 const categories = ref([])
 const commands = ref([])
@@ -282,29 +280,5 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.command-actions {
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s;
-  flex-shrink: 0;
-}
-
-.command-item:hover .command-actions {
-  opacity: 1;
-}
-
-.action-icon {
-  cursor: pointer;
-  color: var(--text-muted);
-  padding: 2px;
-  border-radius: 4px;
-}
-
-.action-icon:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-active);
 }
 </style>
