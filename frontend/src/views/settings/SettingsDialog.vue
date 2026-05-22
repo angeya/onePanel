@@ -249,7 +249,7 @@ defineExpose({ loadSettings, open })
   gap: 20px;
   max-height: 70vh;
   overflow-y: auto;
-  padding: 18px 24px 18px 16px;
+  padding: 0 24px 18px 16px;
 }
 
 .settings-content::-webkit-scrollbar {
