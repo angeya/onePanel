@@ -105,181 +105,129 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed, watch, provide, defineAsyncComponent } from 'vue'
+import { ref, defineAsyncComponent, onMounted, onUnmounted } from 'vue'
 import { Close } from '@element-plus/icons-vue'
-import { GetBootstrapSettings } from '../wailsjs/go/main/SettingService'
 import TerminalTab from './views/terminal/TerminalTab.vue'
 import QuickLaunchTab from './views/quicklaunch/QuickLaunchTab.vue'
-const SettingsDialog = defineAsyncComponent(() => import('./views/settings/SettingsDialog.vue'))
-const NetworkPortList = defineAsyncComponent(() => import('./views/tools/NetworkPortList.vue'))
 import Sidebar from './views/sidebar/Sidebar.vue'
-const MyApp = defineAsyncComponent(() => import('./views/myapp/MyApp.vue'))
-const QuickLaunchDialogs = defineAsyncComponent(() => import('./views/quicklaunch/QuickLaunchDialogs.vue'))
 import SearchBar from './components/SearchBar.vue'
 import CloseActionDialog from './components/CloseActionDialog.vue'
-import { searchInContainer, findNextInContainer, findPrevInContainer, clearHighlights } from './utils/domSearch'
 import { useAppTabs } from './composables/useAppTabs'
 import { useAppService } from './composables/useAppService'
 import { useQuickLaunch } from './composables/useQuickLaunch'
 import { useTheme } from './composables/useTheme'
 import { useSettings } from './composables/useSettings'
 import { useTerminalEvent } from './composables/useTerminalEvent'
-import { EventsOn } from '../wailsjs/runtime/runtime'
+import { useBootProgress } from './composables/useBootProgress'
+import { useTabSearch } from './composables/useTabSearch'
+import { useAppProviders } from './composables/useAppProviders'
+import { useAppBootstrap } from './composables/useAppBootstrap'
+import { useTerminalCommandExecution } from './composables/useTerminalCommandExecution'
 import { HideWindow, QuitApp } from '../wailsjs/go/main/App'
 
-const appReady = ref(false)
-const bootProgress = ref(0)
-const bootStatus = ref('正在初始化界面')
-let bootProgressTimer = null
-
-const updateBootProgress = (value, status) => {
-  bootProgress.value = Math.max(0, Math.min(100, value))
-  if (status) {
-    bootStatus.value = status
-  }
-}
-
-const startBootProgress = () => {
-  clearInterval(bootProgressTimer)
-  updateBootProgress(8, '正在初始化界面')
-  bootProgressTimer = window.setInterval(() => {
-    if (bootProgress.value < 88) {
-      bootProgress.value += bootProgress.value < 40 ? 8 : 4
-    }
-  }, 120)
-}
-
-const finishBootProgress = () => {
-  clearInterval(bootProgressTimer)
-  updateBootProgress(100, '初始化完成')
-  window.setTimeout(() => {
-    appReady.value = true
-  }, 180)
-}
+const SettingsDialog = defineAsyncComponent(() => import('./views/settings/SettingsDialog.vue'))
+const NetworkPortList = defineAsyncComponent(() => import('./views/tools/NetworkPortList.vue'))
+const MyApp = defineAsyncComponent(() => import('./views/myapp/MyApp.vue'))
+const QuickLaunchDialogs = defineAsyncComponent(() => import('./views/quicklaunch/QuickLaunchDialogs.vue'))
 
 const activeNav = ref('terminal')
+const mainTabsBodyRef = ref(null)
+const searchBarRef = ref(null)
 const quickLaunchTabRef = ref(null)
 const myAppDialogsRef = ref(null)
 const quickLaunchDialogsRef = ref(null)
 const settingsRef = ref(null)
 const closeActionDialogRef = ref(null)
+
+const {
+  appReady,
+  bootProgress,
+  bootStatus,
+  updateBootProgress,
+  startBootProgress,
+  finishBootProgress,
+  cleanupBootProgress
+} = useBootProgress()
+
 const { currentTheme, changeTheme, loadTheme, applyTheme } = useTheme()
-const { defaultShell, allowDebug, changeDefaultShell, changeCloseAction, changeAllowDebug, loadSettings, applyBootstrapSettings } = useSettings()
+const {
+  defaultShell,
+  allowDebug,
+  changeDefaultShell,
+  changeCloseAction,
+  changeAllowDebug,
+  loadSettings,
+  applyBootstrapSettings
+} = useSettings()
 const { sendCommand } = useTerminalEvent()
 
 const {
-  tabs, activeTabId, terminalTabs, appTabs, quickLaunchTab, toolTabs,
-  getTabIcon, addTerminalTab, addAppTab, addQuickLaunchTab, addToolTab,
-  switchTab, closeTab, closeAppTab
+  tabs,
+  activeTabId,
+  terminalTabs,
+  appTabs,
+  quickLaunchTab,
+  toolTabs,
+  getTabIcon,
+  addTerminalTab,
+  addAppTab,
+  addQuickLaunchTab,
+  addToolTab,
+  switchTab,
+  closeTab,
+  closeAppTab
 } = useAppTabs()
 
 const appService = useAppService(closeAppTab)
 const qlService = useQuickLaunch(addQuickLaunchTab)
 
-provide('appService', appService)
-provide('qlService', qlService)
-
-provide('openMyAppDialog', (action, data) => {
-  if (!myAppDialogsRef.value) return
-  switch (action) {
-    case 'import': myAppDialogsRef.value.showAppImport(); break
-    case 'addWebApp': myAppDialogsRef.value.showAddWebAppDialog(); break
-    case 'batchExport': myAppDialogsRef.value.showBatchExport(); break
-    case 'handleCmd': myAppDialogsRef.value.handleAppCmd(data.cmd, data.app); break
-  }
-})
-
-provide('openQlDialog', (action, data) => {
-  if (!quickLaunchDialogsRef.value) return
-  switch (action) {
-    case 'add': quickLaunchDialogsRef.value.showQlAddDialog(); break
-    case 'category': quickLaunchDialogsRef.value.showQlCategoryDialog(); break
-    case 'edit': quickLaunchDialogsRef.value.editQlCmd(data); break
-  }
-})
-
-provide('openSettings', () => {
-  if (settingsRef.value) settingsRef.value.open()
-})
-
-provide('addAppTab', addAppTab)
-provide('addToolTab', addToolTab)
-provide('addQuickLaunchTab', addQuickLaunchTab)
-provide('quickLaunchTabRef', quickLaunchTabRef)
-provide('sendCommand', sendCommand)
-
+/**
+ * switchNav 负责左侧导航切换时的懒加载。
+ * 仅在切换到对应模块时拉取必要数据，避免应用启动时做无效请求。
+ */
 const switchNav = (key) => {
   activeNav.value = key
-  if (key === 'terminal') {
-  } else if (key === 'apps') {
+  if (key === 'apps') {
     appService.loadApps()
     appService.loadServerStatus()
-  } else if (key === 'shortcuts') {
+    return
+  }
+  if (key === 'shortcuts') {
     qlService.loadQlCmds()
     qlService.loadQlCategories()
   }
 }
 
-const createTerminalAndRunCommands = (commandLines, title = '') => {
-  const tabId = addTerminalTab(defaultShell.value, title)
-  if (!tabId) {
-    return
-  }
+const {
+  executeShortcutCommand,
+  handleTerminalCommand
+} = useTerminalCommandExecution({
+  tabs,
+  activeTabId,
+  defaultShell,
+  addTerminalTab,
+  sendCommand
+})
 
-  const handleReady = (event) => {
-    if (event.detail.tabId !== tabId) {
-      return
-    }
+const {
+  currentSearchVisible,
+  handleGlobalKeyDown,
+  handleSearchBarVisibleChange,
+  handleSearchInput,
+  handleSearchFindNext,
+  handleSearchFindPrev,
+  handleSearchClose,
+  handleSearchResult
+} = useTabSearch({
+  tabs,
+  activeTabId,
+  mainTabsBodyRef,
+  searchBarRef
+})
 
-    window.removeEventListener('terminal-ready', handleReady)
-    commandLines.forEach((line) => {
-      sendCommand(tabId, line)
-    })
-  }
-
-  window.addEventListener('terminal-ready', handleReady)
-}
-
-const executeShortcutCommand = ({ commandLines, commandName, workDir = '', forceNewTerminal = false }) => {
-  const lines = (commandLines || []).filter((line) => line && line.trim()).map((line) => line.trim())
-  if (lines.length === 0) {
-    return
-  }
-
-  const finalLines = workDir
-    ? [`cd /d ${workDir}`, ...lines]
-    : lines
-
-  const activeTab = tabs.value.find((tab) => tab.id === activeTabId.value)
-  const shouldUseCurrentTerminal = !forceNewTerminal && activeTab?.type === 'terminal'
-
-  if (shouldUseCurrentTerminal) {
-    finalLines.forEach((line) => {
-      sendCommand(activeTab.id, line)
-    })
-    return
-  }
-
-  createTerminalAndRunCommands(finalLines, forceNewTerminal ? commandName : '')
-}
-
-const handleTerminalCommand = (command) => {
-  const line = command?.trim()
-  if (!line) {
-    return
-  }
-  executeShortcutCommand({ commandLines: [line] })
-}
-
-provide('activeNav', activeNav)
-provide('switchNav', switchNav)
-provide('handleTerminalCommand', handleTerminalCommand)
-provide('addTerminalTab', addTerminalTab)
-provide('defaultShell', defaultShell)
-provide('allowDebug', allowDebug)
-provide('changeAllowDebug', changeAllowDebug)
-provide('executeShortcutCommand', executeShortcutCommand)
-
+/**
+ * handleTabMouseDown 支持使用鼠标中键关闭可关闭的页签。
+ */
 const handleTabMouseDown = (event, tab) => {
   if (event.button === 1 && tab.closable !== false) {
     event.preventDefault()
@@ -287,152 +235,10 @@ const handleTabMouseDown = (event, tab) => {
   }
 }
 
-const searchBarRef = ref(null)
-const mainTabsBodyRef = ref(null)
-const searchVisibleMap = reactive({})
-const lastSearchKeyword = reactive({})
-
-watch(tabs, (currentTabs) => {
-  const activeIds = new Set(currentTabs.map(t => t.id))
-  for (const key of Object.keys(searchVisibleMap)) {
-    if (!activeIds.has(key)) {
-      delete searchVisibleMap[key]
-    }
-  }
-  for (const key of Object.keys(lastSearchKeyword)) {
-    if (!activeIds.has(key)) {
-      delete lastSearchKeyword[key]
-    }
-  }
-}, { deep: true })
-
-const currentSearchVisible = computed(() => !!searchVisibleMap[activeTabId.value])
-
-const getSearchableContainer = () => {
-  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
-  if (!activeTab || !mainTabsBodyRef.value) return null
-  if (activeTab.type === 'app') return null
-  if (activeTab.type === 'terminal') return null
-  return mainTabsBodyRef.value.querySelector(`[data-tab-id="${activeTabId.value}"]`)
-}
-
-const handleGlobalKeyDown = (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-    e.preventDefault()
-    e.stopPropagation()
-    const tabId = activeTabId.value
-    if (!tabId) return
-    if (searchVisibleMap[tabId]) {
-      searchBarRef.value?.focus()
-    } else {
-      searchVisibleMap[tabId] = true
-    }
-    return
-  }
-  if (e.key === 'Escape' && searchVisibleMap[activeTabId.value]) {
-    e.stopPropagation()
-    handleSearchClose()
-  }
-}
-
-const handleSearchBarVisibleChange = (val) => {
-  searchVisibleMap[activeTabId.value] = val
-  if (!val) {
-    handleSearchCleanup()
-  }
-}
-
-const handleSearchCleanup = () => {
-  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
-  if (activeTab?.type === 'terminal') {
-    const event = new CustomEvent('tab-search-close', {
-      detail: { tabId: activeTabId.value }
-    })
-    window.dispatchEvent(event)
-  } else {
-    const container = getSearchableContainer()
-    if (container) clearHighlights(container)
-  }
-}
-
-const handleSearchInput = (keyword) => {
-  lastSearchKeyword[activeTabId.value] = keyword
-  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
-  if (!activeTab) return
-
-  if (activeTab.type === 'terminal') {
-    const event = new CustomEvent('tab-search', {
-      detail: { tabId: activeTabId.value, action: 'search', keyword }
-    })
-    window.dispatchEvent(event)
-  } else if (activeTab.type === 'app') {
-    if (searchBarRef.value) searchBarRef.value.setUnsupported()
-  } else {
-    const container = getSearchableContainer()
-    if (container) {
-      if (keyword) {
-        const result = searchInContainer(container, keyword)
-        if (searchBarRef.value) searchBarRef.value.updateMatchInfo(result.current, result.total)
-      } else {
-        clearHighlights(container)
-        if (searchBarRef.value) searchBarRef.value.clearMatchInfo()
-      }
-    }
-  }
-}
-
-const handleSearchFindNext = (keyword) => {
-  lastSearchKeyword[activeTabId.value] = keyword
-  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
-  if (!activeTab) return
-
-  if (activeTab.type === 'terminal') {
-    const event = new CustomEvent('tab-search', {
-      detail: { tabId: activeTabId.value, action: 'findNext', keyword }
-    })
-    window.dispatchEvent(event)
-  } else if (activeTab.type === 'app') {
-  } else {
-    const container = getSearchableContainer()
-    if (container) {
-      const result = findNextInContainer(container)
-      if (result && searchBarRef.value) searchBarRef.value.updateMatchInfo(result.current, result.total)
-    }
-  }
-}
-
-const handleSearchFindPrev = (keyword) => {
-  lastSearchKeyword[activeTabId.value] = keyword
-  const activeTab = tabs.value.find(t => t.id === activeTabId.value)
-  if (!activeTab) return
-
-  if (activeTab.type === 'terminal') {
-    const event = new CustomEvent('tab-search', {
-      detail: { tabId: activeTabId.value, action: 'findPrev', keyword }
-    })
-    window.dispatchEvent(event)
-  } else if (activeTab.type === 'app') {
-  } else {
-    const container = getSearchableContainer()
-    if (container) {
-      const result = findPrevInContainer(container)
-      if (result && searchBarRef.value) searchBarRef.value.updateMatchInfo(result.current, result.total)
-    }
-  }
-}
-
-const handleSearchClose = () => {
-  searchVisibleMap[activeTabId.value] = false
-  handleSearchCleanup()
-}
-
-const handleSearchResult = (event) => {
-  const { tabId, resultIndex, resultCount } = event.detail
-  if (tabId === activeTabId.value && searchBarRef.value) {
-    searchBarRef.value.updateMatchInfo(resultIndex, resultCount)
-  }
-}
-
+/**
+ * handleCloseRequested 处理宿主窗口关闭请求。
+ * 用户确认后，根据选择决定隐藏窗口还是退出应用。
+ */
 const handleCloseRequested = async () => {
   const result = await closeActionDialogRef.value.open()
   if (result.action === 'cancel') {
@@ -448,65 +254,85 @@ const handleCloseRequested = async () => {
   }
 }
 
-const handleContextMenu = (e) => {
+/**
+ * handleContextMenu 统一处理根容器右键行为。
+ * 默认禁用右键菜单，仅在开启调试时允许非终端区域继续冒泡。
+ */
+const handleContextMenu = (event) => {
   if (allowDebug.value) {
-    const terminalEl = e.target?.closest?.('.terminal-tab-container')
+    const terminalEl = event.target?.closest?.('.terminal-tab-container')
     if (terminalEl) {
-      e.preventDefault()
+      event.preventDefault()
     }
     return
   }
-  e.preventDefault()
+  event.preventDefault()
 }
 
+/**
+ * handleTabTitleChange 根据终端或 SSH 状态更新页签标题。
+ */
 const handleTabTitleChange = (event) => {
   const { tabId, host } = event.detail
-  const tab = tabs.value.find(t => t.id === tabId)
+  const tab = tabs.value.find(item => item.id === tabId)
   if (!tab) return
+
   if (host) {
     tab.title = host
-  } else {
-    const match = tab.id.match(/terminal-\d+-(\d+)/)
-    tab.title = `终端 ${match ? match[1] : ''}`
+    return
   }
+
+  const match = tab.id.match(/terminal-\d+-(\d+)/)
+  tab.title = `终端 ${match ? match[1] : ''}`
 }
 
+const { registerProviders } = useAppProviders({
+  activeNav,
+  switchNav,
+  myAppDialogsRef,
+  quickLaunchDialogsRef,
+  settingsRef,
+  quickLaunchTabRef,
+  addAppTab,
+  addToolTab,
+  addQuickLaunchTab,
+  addTerminalTab,
+  defaultShell,
+  allowDebug,
+  changeAllowDebug,
+  executeShortcutCommand,
+  handleTerminalCommand,
+  sendCommand,
+  appService,
+  qlService
+})
+
+registerProviders()
+
+const { bootstrapApp, cleanupBootstrapEffects } = useAppBootstrap({
+  appService,
+  qlService,
+  loadTheme,
+  loadSettings,
+  applyTheme,
+  applyBootstrapSettings,
+  startBootProgress,
+  updateBootProgress,
+  finishBootProgress,
+  handleGlobalKeyDown,
+  handleSearchResult,
+  handleTabTitleChange,
+  handleContextMenu,
+  handleCloseRequested
+})
+
 onMounted(async () => {
-  startBootProgress()
-  updateBootProgress(18, '正在加载基础设置')
-
-  try {
-    const bootstrapSettings = await GetBootstrapSettings()
-    applyTheme(bootstrapSettings.theme)
-    applyBootstrapSettings(bootstrapSettings)
-  } catch (err) {
-    console.error('加载启动设置失败:', err)
-  }
-
-  updateBootProgress(42, '正在预加载常用数据')
-  await Promise.allSettled([
-    loadTheme(),
-    loadSettings(),
-    appService.loadApps(),
-    qlService.loadQlCategories(),
-    qlService.loadQlCmds()
-  ])
-
-  updateBootProgress(86, '正在绑定事件')
-  window.addEventListener('keydown', handleGlobalKeyDown, true)
-  window.addEventListener('tab-search-result', handleSearchResult)
-  window.addEventListener('tab-title-change', handleTabTitleChange)
-  window.addEventListener('contextmenu', handleContextMenu)
-  EventsOn('close-requested', handleCloseRequested)
-  finishBootProgress()
+  await bootstrapApp()
 })
 
 onUnmounted(() => {
-  clearInterval(bootProgressTimer)
-  window.removeEventListener('keydown', handleGlobalKeyDown, true)
-  window.removeEventListener('tab-search-result', handleSearchResult)
-  window.removeEventListener('tab-title-change', handleTabTitleChange)
-  window.removeEventListener('contextmenu', handleContextMenu)
+  cleanupBootProgress()
+  cleanupBootstrapEffects()
 })
 </script>
 
