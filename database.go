@@ -92,15 +92,35 @@ func (d *Database) SetConfig(key, value string) error {
  */
 func (d *Database) GetConfigs(keys []string) (map[string]string, error) {
 	result := make(map[string]string)
-	for _, key := range keys {
-		val, err := d.GetConfig(key)
-		if err != nil {
-			return nil, err
-		}
-		if val != "" {
-			result[key] = val
-		}
+	if len(keys) == 0 {
+		return result, nil
 	}
+
+	placeholders := strings.TrimRight(strings.Repeat("?,", len(keys)), ",")
+	args := make([]interface{}, 0, len(keys))
+	for _, key := range keys {
+		args = append(args, key)
+	}
+
+	rows, err := d.db.Query("SELECT config_key, config_value FROM app_config WHERE config_key IN ("+placeholders+")", args...)
+	if err != nil {
+		return nil, fmt.Errorf("批量查询配置失败: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var key string
+		var value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return nil, fmt.Errorf("读取配置失败: %w", err)
+		}
+		result[key] = value
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("遍历配置结果失败: %w", err)
+	}
+
 	return result, nil
 }
 

@@ -1,99 +1,113 @@
 <template>
-  <div class="app-container">
-    <Sidebar />
-
-    <div class="right-panel">
-      <div v-if="tabs.length === 0" class="empty-main">
-        <el-empty description="选择左侧功能开始使用" :image-size="80" />
+  <div class="app-shell">
+    <div v-if="!appReady" class="app-boot-screen">
+      <div class="boot-card">
+        <div class="boot-title">oneWin</div>
+        <div class="boot-subtitle">{{ bootStatus }}</div>
+        <div class="boot-progress-track">
+          <div class="boot-progress-bar" :style="{ width: bootProgress + '%' }"></div>
+        </div>
+        <div class="boot-progress-text">{{ bootProgress }}%</div>
       </div>
-      <template v-else>
-        <div class="main-tabs-header">
-          <div class="tabs-list">
-            <div
-              v-for="tab in tabs"
-              :key="tab.id"
-              class="main-tab-item"
-              :class="{ active: activeTabId === tab.id }"
-              @click="switchTab(tab.id)"
-              @mouseup="handleTabMouseDown($event, tab)"
-            >
-              <el-icon size="12"><component :is="getTabIcon(tab)" /></el-icon>
-              <span class="tab-name">{{ tab.title }}</span>
-              <el-icon
-                v-if="tab.closable !== false"
-                class="tab-close"
-                size="12"
-                @click.stop="closeTab(tab.id)"
-              >
-                <Close />
-              </el-icon>
-            </div>
-          </div>
-        </div>
-        <div class="main-tabs-body" ref="mainTabsBodyRef">
-          <TerminalTab
-            v-for="tab in terminalTabs"
-            :key="tab.id"
-            :tab-id="tab.id"
-            :shell="tab.shell || 'cmd.exe'"
-            :theme="currentTheme"
-            v-show="activeTabId === tab.id"
-          />
-          <div
-            v-for="tab in appTabs"
-            :key="tab.id"
-            v-show="activeTabId === tab.id"
-            class="app-iframe-wrapper"
-            :data-tab-id="tab.id"
-          >
-            <iframe
-              :src="tab.url"
-              class="app-iframe"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            />
-          </div>
-          <QuickLaunchTab
-            v-if="quickLaunchTab"
-            v-show="activeTabId === quickLaunchTab.id"
-            ref="quickLaunchTabRef"
-            :data-tab-id="quickLaunchTab.id"
-          />
-          <NetworkPortList
-            v-for="tab in toolTabs"
-            :key="tab.id"
-            v-show="activeTabId === tab.id"
-            :data-tab-id="tab.id"
-            :embedded="true"
-          />
-          <SearchBar
-            ref="searchBarRef"
-            :visible="currentSearchVisible"
-            @update:visible="handleSearchBarVisibleChange"
-            @search="handleSearchInput"
-            @find-next="handleSearchFindNext"
-            @find-prev="handleSearchFindPrev"
-            @close="handleSearchClose"
-          />
-        </div>
-      </template>
     </div>
 
-    <MyApp ref="myAppDialogsRef" />
-    <QuickLaunchDialogs ref="quickLaunchDialogsRef" />
+    <div v-show="appReady" class="app-container">
+      <Sidebar />
 
-    <SettingsDialog
-      ref="settingsRef"
-      @theme-change="changeTheme"
-      @shell-change="changeDefaultShell"
-      @close-action-change="changeCloseAction"
-    />
-    <CloseActionDialog ref="closeActionDialogRef" />
+      <div class="right-panel">
+        <div v-if="tabs.length === 0" class="empty-main">
+          <el-empty description="选择左侧功能开始使用" :image-size="80" />
+        </div>
+        <template v-else>
+          <div class="main-tabs-header">
+            <div class="tabs-list">
+              <div
+                v-for="tab in tabs"
+                :key="tab.id"
+                class="main-tab-item"
+                :class="{ active: activeTabId === tab.id }"
+                @click="switchTab(tab.id)"
+                @mouseup="handleTabMouseDown($event, tab)"
+              >
+                <el-icon size="12"><component :is="getTabIcon(tab)" /></el-icon>
+                <span class="tab-name">{{ tab.title }}</span>
+                <el-icon
+                  v-if="tab.closable !== false"
+                  class="tab-close"
+                  size="12"
+                  @click.stop="closeTab(tab.id)"
+                >
+                  <Close />
+                </el-icon>
+              </div>
+            </div>
+          </div>
+          <div class="main-tabs-body" ref="mainTabsBodyRef">
+            <TerminalTab
+              v-for="tab in terminalTabs"
+              :key="tab.id"
+              :tab-id="tab.id"
+              :shell="tab.shell || 'cmd.exe'"
+              :theme="currentTheme"
+              v-show="activeTabId === tab.id"
+            />
+            <div
+              v-for="tab in appTabs"
+              :key="tab.id"
+              v-show="activeTabId === tab.id"
+              class="app-iframe-wrapper"
+              :data-tab-id="tab.id"
+            >
+              <iframe
+                :src="tab.url"
+                class="app-iframe"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              />
+            </div>
+            <QuickLaunchTab
+              v-if="quickLaunchTab"
+              v-show="activeTabId === quickLaunchTab.id"
+              ref="quickLaunchTabRef"
+              :data-tab-id="quickLaunchTab.id"
+            />
+            <NetworkPortList
+              v-for="tab in toolTabs"
+              :key="tab.id"
+              v-show="activeTabId === tab.id"
+              :data-tab-id="tab.id"
+              :embedded="true"
+            />
+            <SearchBar
+              ref="searchBarRef"
+              :visible="currentSearchVisible"
+              @update:visible="handleSearchBarVisibleChange"
+              @search="handleSearchInput"
+              @find-next="handleSearchFindNext"
+              @find-prev="handleSearchFindPrev"
+              @close="handleSearchClose"
+            />
+          </div>
+        </template>
+      </div>
+
+      <MyApp ref="myAppDialogsRef" />
+      <QuickLaunchDialogs ref="quickLaunchDialogsRef" />
+
+      <SettingsDialog
+        ref="settingsRef"
+        @theme-change="changeTheme"
+        @shell-change="changeDefaultShell"
+        @close-action-change="changeCloseAction"
+      />
+      <CloseActionDialog ref="closeActionDialogRef" />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch, provide, defineAsyncComponent } from 'vue'
 import { Close } from '@element-plus/icons-vue'
+import { GetBootstrapSettings } from '../wailsjs/go/main/SettingService'
 import TerminalTab from './views/terminal/TerminalTab.vue'
 import QuickLaunchTab from './views/quicklaunch/QuickLaunchTab.vue'
 const SettingsDialog = defineAsyncComponent(() => import('./views/settings/SettingsDialog.vue'))
@@ -113,15 +127,44 @@ import { useTerminalEvent } from './composables/useTerminalEvent'
 import { EventsOn } from '../wailsjs/runtime/runtime'
 import { HideWindow, QuitApp } from '../wailsjs/go/main/App'
 
+const appReady = ref(false)
+const bootProgress = ref(0)
+const bootStatus = ref('正在初始化界面')
+let bootProgressTimer = null
+
+const updateBootProgress = (value, status) => {
+  bootProgress.value = Math.max(0, Math.min(100, value))
+  if (status) {
+    bootStatus.value = status
+  }
+}
+
+const startBootProgress = () => {
+  clearInterval(bootProgressTimer)
+  updateBootProgress(8, '正在初始化界面')
+  bootProgressTimer = window.setInterval(() => {
+    if (bootProgress.value < 88) {
+      bootProgress.value += bootProgress.value < 40 ? 8 : 4
+    }
+  }, 120)
+}
+
+const finishBootProgress = () => {
+  clearInterval(bootProgressTimer)
+  updateBootProgress(100, '初始化完成')
+  window.setTimeout(() => {
+    appReady.value = true
+  }, 180)
+}
+
 const activeNav = ref('terminal')
 const quickLaunchTabRef = ref(null)
 const myAppDialogsRef = ref(null)
 const quickLaunchDialogsRef = ref(null)
 const settingsRef = ref(null)
 const closeActionDialogRef = ref(null)
-
-const { currentTheme, changeTheme, loadTheme } = useTheme()
-const { defaultShell, allowDebug, changeDefaultShell, changeCloseAction, changeAllowDebug, loadSettings } = useSettings()
+const { currentTheme, changeTheme, loadTheme, applyTheme } = useTheme()
+const { defaultShell, allowDebug, changeDefaultShell, changeCloseAction, changeAllowDebug, loadSettings, applyBootstrapSettings } = useSettings()
 const { sendCommand } = useTerminalEvent()
 
 const {
@@ -429,18 +472,37 @@ const handleTabTitleChange = (event) => {
 }
 
 onMounted(async () => {
-  await Promise.all([loadTheme(), loadSettings()])
-  appService.loadApps()
-  qlService.loadQlCategories()
-  qlService.loadQlCmds()
+  startBootProgress()
+  updateBootProgress(18, '正在加载基础设置')
+
+  try {
+    const bootstrapSettings = await GetBootstrapSettings()
+    applyTheme(bootstrapSettings.theme)
+    applyBootstrapSettings(bootstrapSettings)
+  } catch (err) {
+    console.error('加载启动设置失败:', err)
+  }
+
+  updateBootProgress(42, '正在预加载常用数据')
+  await Promise.allSettled([
+    loadTheme(),
+    loadSettings(),
+    appService.loadApps(),
+    qlService.loadQlCategories(),
+    qlService.loadQlCmds()
+  ])
+
+  updateBootProgress(86, '正在绑定事件')
   window.addEventListener('keydown', handleGlobalKeyDown, true)
   window.addEventListener('tab-search-result', handleSearchResult)
   window.addEventListener('tab-title-change', handleTabTitleChange)
   window.addEventListener('contextmenu', handleContextMenu)
   EventsOn('close-requested', handleCloseRequested)
+  finishBootProgress()
 })
 
 onUnmounted(() => {
+  clearInterval(bootProgressTimer)
   window.removeEventListener('keydown', handleGlobalKeyDown, true)
   window.removeEventListener('tab-search-result', handleSearchResult)
   window.removeEventListener('tab-title-change', handleTabTitleChange)
@@ -449,6 +511,68 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.app-shell {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-secondary);
+}
+
+.app-boot-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at top, rgba(64, 158, 255, 0.18), transparent 45%),
+    var(--bg-secondary);
+}
+
+.boot-card {
+  width: min(420px, calc(100% - 48px));
+  padding: 28px 24px;
+  border-radius: 16px;
+  background-color: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.boot-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.boot-subtitle {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.boot-progress-track {
+  margin-top: 22px;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background-color: var(--bg-hover);
+  overflow: hidden;
+}
+
+.boot-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #409eff, #67c23a);
+  transition: width 0.18s ease;
+}
+
+.boot-progress-text {
+  margin-top: 10px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
 .app-container {
   display: flex;
   height: 100vh;

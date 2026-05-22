@@ -1,19 +1,24 @@
 import { ref } from 'vue'
-import { GetSetting } from '../../wailsjs/go/main/SettingService'
+import { GetSetting, SetSetting } from '../../wailsjs/go/main/SettingService'
 import { GetCloseAction, SetCloseAction, SetAllowDebug } from '../../wailsjs/go/main/App'
 
-/**
- * 系统设置组合式函数
- * 负责默认 Shell、关闭行为、调试开关等系统级配置的加载和持久化
- */
 export function useSettings() {
   const defaultShell = ref('cmd.exe')
   const closeAction = ref('ask')
   const allowDebug = ref(false)
 
-  /**
-   * 切换默认终端并持久化
-   */
+  const applyBootstrapSettings = (settings = {}) => {
+    if (settings.default_shell) {
+      defaultShell.value = settings.default_shell
+    }
+    if (settings.close_action) {
+      closeAction.value = settings.close_action
+    }
+    if (Object.prototype.hasOwnProperty.call(settings, 'allow_debug')) {
+      allowDebug.value = String(settings.allow_debug) === 'true'
+    }
+  }
+
   const changeDefaultShell = async (shell) => {
     try {
       await SetSetting('default_shell', shell)
@@ -23,10 +28,6 @@ export function useSettings() {
     }
   }
 
-  /**
-   * 切换关闭行为并持久化
-   * action: "tray"（最小化到托盘）或 "close"（直接退出）
-   */
   const changeCloseAction = async (action) => {
     try {
       await SetCloseAction(action)
@@ -36,18 +37,11 @@ export function useSettings() {
     }
   }
 
-  /**
-   * 切换调试开关并持久化
-   * SetAllowDebug 同时完成数据库持久化和 WebView2 上下文菜单控制
-   */
   const changeAllowDebug = async (value) => {
     await SetAllowDebug(value)
     allowDebug.value = value
   }
 
-  /**
-   * 从后端加载已保存的设置项
-   */
   const loadSettings = async () => {
     try {
       const shell = await GetSetting('default_shell')
@@ -71,6 +65,7 @@ export function useSettings() {
     defaultShell,
     closeAction,
     allowDebug,
+    applyBootstrapSettings,
     changeDefaultShell,
     changeCloseAction,
     changeAllowDebug,
