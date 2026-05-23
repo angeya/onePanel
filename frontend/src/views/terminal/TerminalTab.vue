@@ -20,6 +20,7 @@ import {
   SSH_DISCONNECT_PATTERNS
 } from './terminalConstants'
 import { detectTerminalSshState } from './terminalHelpers'
+import { applyKeywordHighlight } from './terminalHighlight'
 
 const props = defineProps({
   tabId: { type: String, required: true },
@@ -138,12 +139,13 @@ const detectSshState = (data) => {
 
 /**
  * handlePtyOutput 将后端 PTY 输出写入终端，并顺带检测 SSH 状态变化。
+ * 注意：SSH 状态检测必须使用原始数据，高亮处理仅影响终端显示。
  */
 const handlePtyOutput = (data) => {
-  if (terminal) {
-    terminal.write(data)
-  }
   detectSshState(data)
+  if (terminal) {
+    terminal.write(applyKeywordHighlight(data))
+  }
 }
 
 /**

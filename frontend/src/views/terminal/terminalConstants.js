@@ -125,3 +125,40 @@ export const SSH_DISCONNECT_PATTERNS = [
   'No route to host',
   'broken pipe'
 ]
+
+/**
+ * KEYWORD_HIGHLIGHT_RULES 定义终端输出关键字高亮规则。
+ * 参考 MobaXterm 语法高亮和 Tabby Highlight 插件的做法，
+ * 通过正则匹配关键字并注入 ANSI 转义序列实现颜色区分。
+ * 每条规则包含：
+ * - pattern: 正则表达式字符串，用于匹配终端输出中的关键字
+ * - fg: ANSI 前景色编号（31=红, 32=绿, 33=黄, 34=蓝, 35=紫, 36=青）
+ * - bold: 是否加粗显示
+ */
+export const KEYWORD_HIGHLIGHT_RULES = [
+  {
+    pattern: '\\b(error|errors|failed|failure|denied|refused|fatal|critical|down|invalid|wrong|not found|segfault|aborted|unreachable|crashed|killed|timeout|not permitted|no such)\\b',
+    fg: 31,
+    bold: true
+  },
+  {
+    pattern: '\\b(success|ok|OK|ready|up|running|started|complete|completed|connected|done|active|healthy|passed|loaded|enabled|finished)\\b',
+    fg: 32,
+    bold: true
+  },
+  {
+    pattern: '\\b(warning|warn|WARN|deprecated|retry|pending|slow|outdated|caution|unstable|expired)\\b',
+    fg: 33,
+    bold: false
+  },
+  {
+    pattern: '\\b(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\\b',
+    fg: 35,
+    bold: false
+  },
+  {
+    pattern: '\\b(info|INFO|notice|NOTICE|debug|DEBUG|trace|TRACE|log|LOG)\\b',
+    fg: 36,
+    bold: false
+  }
+]
