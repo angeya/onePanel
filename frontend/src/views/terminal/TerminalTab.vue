@@ -12,7 +12,7 @@ import { SearchAddon } from 'xterm-addon-search'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import 'xterm/css/xterm.css'
 import { Start, Write, Stop, Resize } from '../../../wailsjs/go/main/PtyService'
-import { EventsOn, EventsOff } from '../../../wailsjs/runtime/runtime'
+import { EventsOn, EventsOff, ClipboardSetText, ClipboardGetText } from '../../../wailsjs/runtime/runtime'
 import {
   TERMINAL_THEMES,
   SEARCH_DECORATIONS,
@@ -82,17 +82,74 @@ const handleSearchResultsChange = ({ resultIndex, resultCount }) => {
 }
 
 /**
+ * copySelection 将终端选中文本复制到系统剪贴板。
+ * 优先使用 Wails 运行时提供的操作系统级剪贴板接口，
+ * 若不可用则降级到浏览器 navigator.clipboard API，
+ * 最后兜底使用 document.execCommand 方式。
+ */
+const copySelection = async (text) => {
+  if (!text) {
+    return
+  }
+  try {
+    await ClipboardSetText(text)
+    return
+  } catch {
+    // Wails 剪贴板接口不可用时降级
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text)
+      return
+    }
+  } catch {
+    // 浏览器 Clipboard API 不可用时降级
+  }
+  try {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    textarea.style.left = '-9999px'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+  } catch {
+    // 所有方案均失败，静默处理
+  }
+}
+
+/**
+ * pasteFromClipboard 从系统剪贴板读取文本并写入终端。
+ * 优先使用 Wails 运行时接口，不可用时降级到浏览器 API。
+ */
+const pasteFromClipboard = async () => {
+  let text = ''
+  try {
+    text = await ClipboardGetText()
+  } catch {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        text = await navigator.clipboard.readText()
+      }
+    } catch {
+      return
+    }
+  }
+  if (text && isRunning.value && ptyId) {
+    Write(ptyId, text).catch(() => {})
+  }
+}
+
+/**
  * handleTerminalContextMenu 支持右键快速粘贴剪贴板内容。
  * 为了避免与宿主右键菜单冲突，这里直接接管 contextmenu 行为。
  */
 const handleTerminalContextMenu = (event) => {
   event.preventDefault()
   event.stopPropagation()
-  navigator.clipboard.readText().then((text) => {
-    if (text && isRunning.value && ptyId) {
-      Write(ptyId, text).catch(() => {})
-    }
-  }).catch(() => {})
+  pasteFromClipboard()
 }
 
 /**
@@ -180,18 +237,100 @@ const startTerminal = async () => {
 }
 
 /**
+ * handleCustomKeyEvent 自定义键盘事件处理。
+ * 返回 false 表示拦截该事件（不传递给终端），true 表示放行。
+ * 规则：
+ * - Ctrl+F：拦截，由搜索组件处理
+ * - Ctrl+C 有选区：复制选中内容到剪贴板，拦截
+ * - Ctrl+C 无选区：放行，发送 SIGINT 中断信号
+ * - Ctrl+Shift+C：强制复制选中内容
+ * - Ctrl+V：粘贴剪贴板内容到终端
+ * - Ctrl+Shift+V：同 Ctrl+V，粘贴剪贴板内容
+ */
+const handleCustomKeyEvent = (event) => {
+  if (event.ctrlKey && !event.shiftKey && !event.altKey && event.key === 'f') {
+    return false
+  }
+
+  if (event.ctrlKey && !event.shiftKey && !event.altKey && event.key === 'c') {
+    if (terminal.hasSelection()) {
+      copySelection(terminal.getSelection())
+      return false
+    }
+    return true
+  }
+
+  if (event.ctrlKey && event.shiftKey && !event.altKey && event.key === 'C') {
+    if (terminal.hasSelection()) {
+      copySelection(terminal.getSelection())
+    }
+    return false
+  }
+
+  if (event.ctrlKey && !event.shiftKey && !event.altKey && event.key === 'v') {
+    pasteFromClipboard()
+    return false
+  }
+
+  if (event.ctrlKey && event.shiftKey && !event.altKey && event.key === 'V') {
+    pasteFromClipboard()
+    return false
+  }
+
+  return true
+}
+
+/**
+ * handleTerminalKeyDown 终端 DOM 级别的键盘事件拦截。
+ * 在捕获阶段优先于 xterm 内部处理，确保 Ctrl+C/V 复制粘贴可靠生效。
+ * 仅拦截需要自定义处理的快捷键，其余事件正常传递给 xterm。
+ */
+const handleTerminalKeyDown = (event) => {
+  if (!terminal) {
+    return
+  }
+
+  if (event.ctrlKey && !event.shiftKey && !event.altKey && event.key === 'c') {
+    if (terminal.hasSelection()) {
+      event.preventDefault()
+      event.stopPropagation()
+      copySelection(terminal.getSelection())
+    }
+    return
+  }
+
+  if (event.ctrlKey && event.shiftKey && !event.altKey && event.key === 'C') {
+    if (terminal.hasSelection()) {
+      event.preventDefault()
+      event.stopPropagation()
+      copySelection(terminal.getSelection())
+    }
+    return
+  }
+
+  if (event.ctrlKey && !event.shiftKey && !event.altKey && event.key === 'v') {
+    event.preventDefault()
+    event.stopPropagation()
+    pasteFromClipboard()
+    return
+  }
+
+  if (event.ctrlKey && event.shiftKey && !event.altKey && event.key === 'V') {
+    event.preventDefault()
+    event.stopPropagation()
+    pasteFromClipboard()
+    return
+  }
+}
+
+/**
  * initializeTerminal 创建并初始化 xterm 实例。
  * 该方法集中处理主题、插件、事件和首次启动流程。
  */
 const initializeTerminal = () => {
   terminal = new Terminal({
     allowProposedApi: true,
-    customKeyEventHandler: (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
-        return false
-      }
-      return true
-    },
+    customKeyEventHandler: handleCustomKeyEvent,
     fontFamily: 'Consolas, "Courier New", monospace',
     fontSize: 14,
     lineHeight: 1.2,
@@ -213,6 +352,7 @@ const initializeTerminal = () => {
 
   terminal.open(terminalRef.value)
   terminal.element?.addEventListener('contextmenu', handleTerminalContextMenu)
+  terminal.element?.addEventListener('keydown', handleTerminalKeyDown, true)
 
   onDataDisposable = terminal.onData(handleTerminalInput)
   onResizeDisposable = terminal.onResize(handleTerminalResize)
@@ -343,6 +483,7 @@ const disposeTerminalResources = () => {
   }
 
   if (terminal) {
+    terminal.element?.removeEventListener('keydown', handleTerminalKeyDown, true)
     terminal.element?.removeEventListener('contextmenu', handleTerminalContextMenu)
     terminal.dispose()
     terminal = null
