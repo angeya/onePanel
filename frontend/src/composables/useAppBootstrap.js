@@ -18,7 +18,6 @@ export function useAppBootstrap({
   handleGlobalKeyDown,
   handleSearchResult,
   handleTabTitleChange,
-  handleContextMenu,
   handleCloseRequested
 }) {
   /**
@@ -50,7 +49,6 @@ export function useAppBootstrap({
     window.addEventListener('keydown', handleGlobalKeyDown, true)
     window.addEventListener('tab-search-result', handleSearchResult)
     window.addEventListener('tab-title-change', handleTabTitleChange)
-    window.addEventListener('contextmenu', handleContextMenu)
     EventsOn('close-requested', handleCloseRequested)
     finishBootProgress()
   }
@@ -62,7 +60,6 @@ export function useAppBootstrap({
     window.removeEventListener('keydown', handleGlobalKeyDown, true)
     window.removeEventListener('tab-search-result', handleSearchResult)
     window.removeEventListener('tab-title-change', handleTabTitleChange)
-    window.removeEventListener('contextmenu', handleContextMenu)
   }
 
   return {

@@ -16,8 +16,6 @@ export function useAppProviders({
   addQuickLaunchTab,
   addTerminalTab,
   defaultShell,
-  allowDebug,
-  changeAllowDebug,
   executeShortcutCommand,
   handleTerminalCommand,
   sendCommand,
@@ -74,8 +72,6 @@ export function useAppProviders({
     provide('handleTerminalCommand', handleTerminalCommand)
     provide('addTerminalTab', addTerminalTab)
     provide('defaultShell', defaultShell)
-    provide('allowDebug', allowDebug)
-    provide('changeAllowDebug', changeAllowDebug)
     provide('executeShortcutCommand', executeShortcutCommand)
     provide('addAppTab', addAppTab)
     provide('addToolTab', addToolTab)

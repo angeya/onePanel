@@ -49,17 +49,6 @@
       </div>
 
       <div class="setting-section">
-        <div class="section-title">调试设置</div>
-        <div class="setting-row">
-          <div class="setting-row-info">
-            <span class="setting-row-label">允许调试</span>
-            <span class="setting-row-desc">开启后允许在应用页面中右键弹出浏览器菜单</span>
-          </div>
-          <el-switch v-model="allowDebug" @change="saveAllowDebug" />
-        </div>
-      </div>
-
-      <div class="setting-section">
         <div class="section-title">日志管理</div>
         <div class="setting-row">
           <div class="setting-row-info">
@@ -90,19 +79,17 @@
 </template>
 
 <script setup>
-import { ref, inject } from 'vue'
+import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { GetSetting, SetSetting } from '../../../wailsjs/go/main/SettingService'
 import { GetCloseAction, SetCloseAction, OpenLogsDir } from '../../../wailsjs/go/main/App'
 
-const emit = defineEmits(['themeChange', 'shellChange', 'closeActionChange', 'allowDebugChange'])
+const emit = defineEmits(['themeChange', 'shellChange', 'closeActionChange'])
 
 const visible = ref(false)
 const currentTheme = ref('dark')
 const defaultShell = ref('cmd.exe')
 const currentCloseAction = ref('ask')
-const allowDebug = inject('allowDebug')
-const changeAllowDebug = inject('changeAllowDebug')
 
 const themes = [
   {
@@ -174,19 +161,6 @@ const saveCloseAction = async (val) => {
     emit('closeActionChange', val)
   } catch (err) {
     ElMessage.error('保存关闭行为设置失败: ' + err)
-  }
-}
-
-/**
- * 保存调试开关设置
- */
-const saveAllowDebug = async (val) => {
-  try {
-    await changeAllowDebug(val)
-    emit('allowDebugChange', val)
-  } catch (err) {
-    allowDebug.value = !val
-    ElMessage.error('保存调试开关设置失败: ' + err)
   }
 }
 

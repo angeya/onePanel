@@ -156,10 +156,8 @@ const {
 const { currentTheme, changeTheme, loadTheme, applyTheme } = useTheme()
 const {
   defaultShell,
-  allowDebug,
   changeDefaultShell,
   changeCloseAction,
-  changeAllowDebug,
   loadSettings,
   applyBootstrapSettings
 } = useSettings()
@@ -259,21 +257,6 @@ const handleCloseRequested = async () => {
 }
 
 /**
- * handleContextMenu 统一处理根容器右键行为。
- * 默认禁用右键菜单，仅在开启调试时允许非终端区域继续冒泡。
- */
-const handleContextMenu = (event) => {
-  if (allowDebug.value) {
-    const terminalEl = event.target?.closest?.('.terminal-tab-container')
-    if (terminalEl) {
-      event.preventDefault()
-    }
-    return
-  }
-  event.preventDefault()
-}
-
-/**
  * handleTabTitleChange 根据终端或 SSH 状态更新页签标题。
  */
 const handleTabTitleChange = (event) => {
@@ -302,8 +285,6 @@ const { registerProviders } = useAppProviders({
   addQuickLaunchTab,
   addTerminalTab,
   defaultShell,
-  allowDebug,
-  changeAllowDebug,
   executeShortcutCommand,
   handleTerminalCommand,
   sendCommand,
@@ -326,7 +307,6 @@ const { bootstrapApp, cleanupBootstrapEffects } = useAppBootstrap({
   handleGlobalKeyDown,
   handleSearchResult,
   handleTabTitleChange,
-  handleContextMenu,
   handleCloseRequested
 })
 

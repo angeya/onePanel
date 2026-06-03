@@ -38,5 +38,5 @@ func (s *SettingService) SetSetting(key string, value string) error {
  * 委托给 Database.GetConfigs 实现
  */
 func (s *SettingService) GetBootstrapSettings() (map[string]string, error) {
-	return s.db.GetConfigs([]string{"theme", "default_shell", "allow_debug", "close_action"})
+	return s.db.GetConfigs([]string{"theme", "default_shell", "close_action"})
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os/exec"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -193,24 +192,4 @@ func (a *App) OpenLogsDir() error {
 	logsDir := GetLogsDir()
 	cmd := exec.Command("explorer.exe", logsDir)
 	return cmd.Start()
-}
-
-/**
- * 设置是否允许调试（右键菜单）
- * 同时将设置持久化到数据库，并动态控制 WebView2 上下文菜单
- */
-func (a *App) SetAllowDebug(enabled bool) error {
-	val := "false"
-	if enabled {
-		val = "true"
-	}
-	if err := a.db.SetConfig("allow_debug", val); err != nil {
-		return fmt.Errorf("保存调试设置失败: %w", err)
-	}
-	if err := SetContextMenuEnabled(a.ctx, enabled); err != nil {
-		LogWarn("设置上下文菜单启用状态失败: %v", err)
-		return err
-	}
-	LogInfo("调试模式已%s", map[bool]string{true: "开启", false: "关闭"}[enabled])
-	return nil
 }

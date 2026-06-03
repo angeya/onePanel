@@ -58,21 +58,6 @@ func main() {
 			app.startup(ctx)
 			ptyService.SetContext(ctx)
 
-			if err := InitContextMenuControl(ctx); err != nil {
-				LogWarn("初始化上下文菜单控制失败: %v", err)
-			} else {
-				allowDebugVal, _ := database.GetConfig("allow_debug")
-				if allowDebugVal == "true" {
-					if err := SetContextMenuEnabled(ctx, true); err != nil {
-						LogWarn("启用上下文菜单失败: %v", err)
-					}
-				} else {
-					if err := SetContextMenuEnabled(ctx, false); err != nil {
-						LogWarn("禁用上下文菜单失败: %v", err)
-					}
-				}
-			}
-
 			tray = NewTrayManager(func() {
 				runtime.WindowShow(app.ctx)
 			}, func() {
@@ -103,7 +88,6 @@ func main() {
 			return false
 		},
 		OnShutdown: func(ctx context.Context) {
-			CleanupContextMenuControl()
 			if hotkey != nil {
 				hotkey.Stop()
 			}

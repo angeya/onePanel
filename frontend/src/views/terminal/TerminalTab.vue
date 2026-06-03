@@ -144,7 +144,6 @@ const pasteFromClipboard = async () => {
 
 /**
  * handleTerminalContextMenu 支持右键快速粘贴剪贴板内容。
- * 为了避免与宿主右键菜单冲突，这里直接接管 contextmenu 行为。
  */
 const handleTerminalContextMenu = (event) => {
   event.preventDefault()

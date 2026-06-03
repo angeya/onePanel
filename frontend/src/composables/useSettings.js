@@ -1,15 +1,14 @@
 import { ref } from 'vue'
 import { GetSetting, SetSetting } from '../../wailsjs/go/main/SettingService'
-import { GetCloseAction, SetCloseAction, SetAllowDebug } from '../../wailsjs/go/main/App'
+import { GetCloseAction, SetCloseAction } from '../../wailsjs/go/main/App'
 
 /**
  * useSettings 管理系统设置相关状态。
- * 统一处理默认终端、关闭行为和调试开关的读取与持久化。
+ * 统一处理默认终端和关闭行为的读取与持久化。
  */
 export function useSettings() {
   const defaultShell = ref('cmd.exe')
   const closeAction = ref('ask')
-  const allowDebug = ref(false)
 
   /**
    * applyBootstrapSettings 应用启动阶段批量读取到的设置值。
@@ -21,9 +20,6 @@ export function useSettings() {
     }
     if (settings.close_action) {
       closeAction.value = settings.close_action
-    }
-    if (Object.prototype.hasOwnProperty.call(settings, 'allow_debug')) {
-      allowDebug.value = String(settings.allow_debug) === 'true'
     }
   }
 
@@ -52,24 +48,14 @@ export function useSettings() {
   }
 
   /**
-   * changeAllowDebug 切换调试开关。
-   * 后端除了保存配置，还会同步控制 WebView2 右键菜单权限。
-   */
-  const changeAllowDebug = async (value) => {
-    await SetAllowDebug(value)
-    allowDebug.value = value
-  }
-
-  /**
    * loadSettings 兼容非启动时机的设置刷新。
    * 例如设置窗口重新打开时，需要再次从后端读取最新值。
    */
   const loadSettings = async () => {
     try {
-      const [shell, action, debug] = await Promise.all([
+      const [shell, action] = await Promise.all([
         GetSetting('default_shell'),
-        GetCloseAction(),
-        GetSetting('allow_debug')
+        GetCloseAction()
       ])
 
       if (shell) {
@@ -78,7 +64,6 @@ export function useSettings() {
       if (action) {
         closeAction.value = action
       }
-      allowDebug.value = String(debug) === 'true'
     } catch (err) {
       console.error('加载设置失败:', err)
     }
@@ -87,11 +72,9 @@ export function useSettings() {
   return {
     defaultShell,
     closeAction,
-    allowDebug,
     applyBootstrapSettings,
     changeDefaultShell,
     changeCloseAction,
-    changeAllowDebug,
     loadSettings
   }
 }
