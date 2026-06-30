@@ -48,8 +48,8 @@ export function useAppTabs() {
   /**
    * 添加应用 tab（如已存在则切换）
    */
-  const addAppTab = (appId, displayName, url) => {
-    console.log(`添加应用 tab: ${appId}, ${displayName}, ${Object.assign({}, tabs.value)}`)
+  const addAppTab = (appId, name, url) => {
+    console.log(`添加应用 tab: ${appId}, ${name}, ${Object.assign({}, tabs.value)}`)
     const existing = tabs.value.find(t => t.type === 'app' && t.appId === appId)
     if (existing) {
       activeTabId.value = existing.id
@@ -60,7 +60,7 @@ export function useAppTabs() {
     tabs.value.push({
       id,
       type: 'app',
-      title: displayName,
+      title: name,
       appId,
       url,
       closable: true

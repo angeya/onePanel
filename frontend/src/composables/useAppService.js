@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   GetServerStatus,
-  ScanApps, UpdateDisplayName,
+  ScanApps, UpdateAppName,
   DeleteApp, ExportApp, ImportZip, ImportDir, ImportHtml, OpenApp as OpenAppService,
   BatchExportApps, CreateWebApp, UpdateWebApp
 } from '../../wailsjs/go/main/AppService'
@@ -41,12 +41,6 @@ export function useAppService(closeAppTab) {
     } catch (err) {
       console.error('获取服务器状态失败:', err)
     }
-  }
-
-  const getAppIconUrl = (app) => {
-    if (!app.iconPath || !serverStatus.value.running) return ''
-    const dir = app.entryUrl.replace('/index.html', '')
-    return `http://127.0.0.1:${serverStatus.value.port}${dir}/icon.png`
   }
 
   const openApp = async (app, addAppTab) => {
@@ -157,12 +151,12 @@ export function useAppService(closeAppTab) {
   }
 
   const showEditWebAppDialog = (app) => {
-    return { isEditing: true, editingId: app.id, form: { name: app.displayName, url: app.entryUrl } }
+    return { isEditing: true, editingId: app.id, form: { name: app.name, url: app.entryUrl } }
   }
 
-  const saveAppDisplayName = async (appId, name) => {
+  const saveAppName = async (appId, name) => {
     try {
-      await UpdateDisplayName(appId, name)
+      await UpdateAppName(appId, name)
       ElMessage.success('修改成功')
       await loadApps()
       return true
@@ -174,7 +168,7 @@ export function useAppService(closeAppTab) {
 
   const doExportApp = async (app) => {
     try {
-      const baseName = app.appType === 'web' ? app.displayName : app.dirName
+      const baseName = app.name
       const defaultName = `${baseName}_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}.zip`
       const savePath = await SaveFileDialog('导出应用', defaultName, 'ZIP 文件 (*.zip)|*.zip')
       if (!savePath) return
@@ -205,8 +199,8 @@ export function useAppService(closeAppTab) {
   const doDeleteApp = async (app) => {
     const isWebApp = app.appType === 'web'
     const message = isWebApp
-      ? `确定要删除网页应用 "${app.displayName}" 吗？`
-      : `确定要删除应用 "${app.displayName}" 吗？此操作将同时删除应用文件，不可恢复。`
+      ? `确定要删除网页应用 "${app.name}" 吗？`
+      : `确定要删除应用 "${app.name}" 吗？此操作将同时删除应用文件，不可恢复。`
 
     try {
       await ElMessageBox.confirm(message, '确认删除', {
@@ -245,7 +239,6 @@ export function useAppService(closeAppTab) {
     loadApps,
     refreshApps,
     loadServerStatus,
-    getAppIconUrl,
     openApp,
     selectZipFile,
     selectImportDir,
@@ -255,7 +248,7 @@ export function useAppService(closeAppTab) {
     doImportHtml,
     saveWebApp,
     showEditWebAppDialog,
-    saveAppDisplayName,
+    saveAppName,
     doExportApp,
     doBatchExport,
     handleAppCmd,

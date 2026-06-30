@@ -112,9 +112,8 @@ func (a *AppService) OpenApp(appId int64) (map[string]interface{}, error) {
 
 	if app.AppType == webAppType {
 		return map[string]interface{}{
-			"url":      app.EntryUrl,
-			"name":     app.DisplayName,
-			"iconPath": "",
+			"url":  app.EntryUrl,
+			"name": app.Name,
 		}, nil
 	}
 
@@ -123,7 +122,8 @@ func (a *AppService) OpenApp(appId int64) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	appDir := filepath.Join(staticDir, app.DirName)
+	dirName := SanitizeDirName(app.Name)
+	appDir := filepath.Join(staticDir, dirName)
 	indexFile := filepath.Join(appDir, "index.html")
 	if _, err := os.Stat(indexFile); os.IsNotExist(err) {
 		return nil, fmt.Errorf("应用入口文件不存在")
@@ -135,9 +135,8 @@ func (a *AppService) OpenApp(appId int64) (map[string]interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		"url":      fmt.Sprintf("http://127.0.0.1:%d%s", port, app.EntryUrl),
-		"name":     app.DisplayName,
-		"iconPath": a.buildIconURL(app, port),
+		"url":  fmt.Sprintf("http://127.0.0.1:%d%s", port, app.EntryUrl),
+		"name": app.Name,
 	}, nil
 }
 
@@ -172,10 +171,8 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
 		}
 
 		scannedDirs[dirName] = true
-		displayName := dirName
-		iconPath := a.resolveIconPath(subDir)
 		entryURL := a.buildStaticEntryURL(dirName)
-		a.upsertStaticApp(dirName, displayName, iconPath, entryURL)
+		a.upsertStaticApp(dirName, entryURL)
 	}
 
 	a.cleanupMissingStaticApps(scannedDirs)
@@ -187,7 +184,7 @@ func (a *AppService) ScanApps() ([]SubApp, error) {
  */
 func (a *AppService) GetApps() ([]SubApp, error) {
 	rows, err := a.db.DB().Query(
-		"SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app ORDER BY sort_order, id",
+		"SELECT id, app_type, name, entry_url, sort_order, created_at, updated_at FROM sub_app ORDER BY sort_order, id",
 	)
 	if err != nil {
 		return nil, err
@@ -200,9 +197,7 @@ func (a *AppService) GetApps() ([]SubApp, error) {
 		if err := rows.Scan(
 			&app.Id,
 			&app.AppType,
-			&app.DirName,
-			&app.DisplayName,
-			&app.IconPath,
+			&app.Name,
 			&app.EntryUrl,
 			&app.SortOrder,
 			&app.CreatedAt,
@@ -229,7 +224,7 @@ func (a *AppService) CreateWebApp(name string, url string) (*SubApp, error) {
 
 	now := NowFormatted()
 	result, err := a.db.DB().Exec(
-		"INSERT INTO sub_app (app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at) VALUES ('web', '', ?, '', ?, 0, ?, ?)",
+		"INSERT INTO sub_app (app_type, name, entry_url, sort_order, created_at, updated_at) VALUES ('web', ?, ?, 0, ?, ?)",
 		name,
 		url,
 		now,
@@ -241,13 +236,13 @@ func (a *AppService) CreateWebApp(name string, url string) (*SubApp, error) {
 
 	id, _ := result.LastInsertId()
 	return &SubApp{
-		Id:          id,
-		AppType:     webAppType,
-		DisplayName: name,
-		EntryUrl:    url,
-		SortOrder:   0,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		Id:        id,
+		AppType:   webAppType,
+		Name:      name,
+		EntryUrl:  url,
+		SortOrder: 0,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}, nil
 }
 
@@ -261,7 +256,7 @@ func (a *AppService) UpdateWebApp(id int64, name string, url string) error {
 
 	now := NowFormatted()
 	_, err := a.db.DB().Exec(
-		"UPDATE sub_app SET display_name = ?, entry_url = ?, updated_at = ? WHERE id = ? AND app_type = 'web'",
+		"UPDATE sub_app SET name = ?, entry_url = ?, updated_at = ? WHERE id = ? AND app_type = 'web'",
 		name,
 		url,
 		now,
@@ -271,21 +266,20 @@ func (a *AppService) UpdateWebApp(id int64, name string, url string) error {
 }
 
 /**
- * UpdateDisplayName 更新应用名称。
- * 静态应用还会同步调整目录名、入口路径和图标路径。
+ * UpdateAppName 更新应用名称。
+ * 静态应用会同步调整目录名和入口路径。
  */
-func (a *AppService) UpdateDisplayName(id int64, name string) error {
+func (a *AppService) UpdateAppName(id int64, name string) error {
 	if name == "" {
 		return fmt.Errorf("应用名称不能为空")
 	}
 
 	var appType string
-	var oldDirName string
-	var iconPath string
+	var oldName string
 	err := a.db.DB().QueryRow(
-		"SELECT app_type, dir_name, icon_path FROM sub_app WHERE id = ?",
+		"SELECT app_type, name FROM sub_app WHERE id = ?",
 		id,
-	).Scan(&appType, &oldDirName, &iconPath)
+	).Scan(&appType, &oldName)
 	if err != nil {
 		return fmt.Errorf("应用不存在")
 	}
@@ -293,7 +287,7 @@ func (a *AppService) UpdateDisplayName(id int64, name string) error {
 	now := NowFormatted()
 	if appType != staticAppType {
 		_, err = a.db.DB().Exec(
-			"UPDATE sub_app SET display_name = ?, updated_at = ? WHERE id = ?",
+			"UPDATE sub_app SET name = ?, updated_at = ? WHERE id = ?",
 			name,
 			now,
 			id,
@@ -311,9 +305,9 @@ func (a *AppService) UpdateDisplayName(id int64, name string) error {
 		return err
 	}
 
+	oldDirName := SanitizeDirName(oldName)
 	oldPath := filepath.Join(staticDir, oldDirName)
 	newPath := filepath.Join(staticDir, newDirName)
-	updatedIconPath := iconPath
 	if oldPath != newPath {
 		if _, err := os.Stat(newPath); err == nil {
 			return fmt.Errorf("目录 %s 已存在", newDirName)
@@ -321,16 +315,13 @@ func (a *AppService) UpdateDisplayName(id int64, name string) error {
 		if err := os.Rename(oldPath, newPath); err != nil {
 			return fmt.Errorf("重命名目录失败: %w", err)
 		}
-		updatedIconPath = a.resolveRenamedIconPath(newPath, iconPath)
 	}
 
 	entryURL := a.buildStaticEntryURL(newDirName)
 	_, err = a.db.DB().Exec(
-		"UPDATE sub_app SET display_name = ?, dir_name = ?, entry_url = ?, icon_path = ?, updated_at = ? WHERE id = ?",
+		"UPDATE sub_app SET name = ?, entry_url = ?, updated_at = ? WHERE id = ?",
 		name,
-		newDirName,
 		entryURL,
-		updatedIconPath,
 		now,
 		id,
 	)
@@ -343,11 +334,11 @@ func (a *AppService) UpdateDisplayName(id int64, name string) error {
  */
 func (a *AppService) DeleteApp(id int64) error {
 	var appType string
-	var dirName string
+	var name string
 	err := a.db.DB().QueryRow(
-		"SELECT app_type, dir_name FROM sub_app WHERE id = ?",
+		"SELECT app_type, name FROM sub_app WHERE id = ?",
 		id,
-	).Scan(&appType, &dirName)
+	).Scan(&appType, &name)
 	if err != nil {
 		return err
 	}
@@ -357,6 +348,7 @@ func (a *AppService) DeleteApp(id int64) error {
 		if err != nil {
 			return err
 		}
+		dirName := SanitizeDirName(name)
 		if dirName != "" {
 			_ = os.RemoveAll(filepath.Join(staticDir, dirName))
 		}
@@ -458,7 +450,7 @@ func (a *AppService) ExportApp(id int64, savePath string) error {
 
 	manifest := ExportManifest{Version: ManifestVersion}
 	if app.AppType == webAppType {
-		manifest.WebApps = []WebAppInfo{{Name: app.DisplayName, Url: app.EntryUrl}}
+		manifest.WebApps = []WebAppInfo{{Name: app.Name, Url: app.EntryUrl}}
 		return a.exportToZip(manifest, savePath)
 	}
 
@@ -467,11 +459,12 @@ func (a *AppService) ExportApp(id int64, savePath string) error {
 		return err
 	}
 
-	appDir := filepath.Join(staticDir, app.DirName)
+	dirName := SanitizeDirName(app.Name)
+	appDir := filepath.Join(staticDir, dirName)
 	if _, err := os.Stat(appDir); os.IsNotExist(err) {
 		return fmt.Errorf("应用目录不存在")
 	}
-	manifest.Apps = []string{app.DirName}
+	manifest.Apps = []string{dirName}
 	return a.exportToZip(manifest, savePath)
 }
 
@@ -496,7 +489,7 @@ func (a *AppService) BatchExportApps(ids []int64, savePath string) error {
 	}
 
 	query := fmt.Sprintf(
-		"SELECT id, app_type, dir_name, display_name, entry_url FROM sub_app WHERE id IN (%s)",
+		"SELECT id, app_type, name, entry_url FROM sub_app WHERE id IN (%s)",
 		strings.Join(placeholders, ","),
 	)
 	rows, err := a.db.DB().Query(query, args...)
@@ -508,18 +501,18 @@ func (a *AppService) BatchExportApps(ids []int64, savePath string) error {
 	var dirNames []string
 	var webApps []WebAppInfo
 	for rows.Next() {
-		var dirName string
-		var displayName string
+		var name string
 		var entryURL string
 		var appType string
 		var id int64
-		if err := rows.Scan(&id, &appType, &dirName, &displayName, &entryURL); err != nil {
+		if err := rows.Scan(&id, &appType, &name, &entryURL); err != nil {
 			return err
 		}
 		if appType == webAppType {
-			webApps = append(webApps, WebAppInfo{Name: displayName, Url: entryURL})
+			webApps = append(webApps, WebAppInfo{Name: name, Url: entryURL})
 			continue
 		}
+		dirName := SanitizeDirName(name)
 		if _, err := os.Stat(filepath.Join(staticDir, dirName)); err == nil {
 			dirNames = append(dirNames, dirName)
 		}
@@ -680,14 +673,12 @@ func (a *AppService) ensureServerRunning(dir string) (int, error) {
 func (a *AppService) getAppByID(appId int64) (*SubApp, error) {
 	var app SubApp
 	err := a.db.DB().QueryRow(
-		"SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE id = ?",
+		"SELECT id, app_type, name, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE id = ?",
 		appId,
 	).Scan(
 		&app.Id,
 		&app.AppType,
-		&app.DirName,
-		&app.DisplayName,
-		&app.IconPath,
+		&app.Name,
 		&app.EntryUrl,
 		&app.SortOrder,
 		&app.CreatedAt,
@@ -709,17 +700,6 @@ func (a *AppService) hasAppEntry(subDir string) bool {
 }
 
 /**
- * resolveIconPath 返回应用目录中的 icon.png 路径。
- */
-func (a *AppService) resolveIconPath(subDir string) string {
-	iconFile := filepath.Join(subDir, "icon.png")
-	if _, err := os.Stat(iconFile); err == nil {
-		return iconFile
-	}
-	return ""
-}
-
-/**
  * buildStaticEntryURL 生成静态应用入口路径。
  */
 func (a *AppService) buildStaticEntryURL(dirName string) string {
@@ -727,55 +707,25 @@ func (a *AppService) buildStaticEntryURL(dirName string) string {
 }
 
 /**
- * buildIconURL 生成前端访问图标的 URL。
- */
-func (a *AppService) buildIconURL(app *SubApp, port int) string {
-	if app.IconPath == "" {
-		return ""
-	}
-	dir := strings.TrimSuffix(app.EntryUrl, "index.html")
-	return fmt.Sprintf("http://127.0.0.1:%d%sicon.png", port, dir)
-}
-
-/**
  * buildDefaultExportPath 生成默认导出文件路径。
  */
 func (a *AppService) buildDefaultExportPath(app *SubApp) string {
-	zipName := fmt.Sprintf("%s_%s.zip", app.DirName, NowCompactFormatted())
-	if app.AppType == webAppType {
-		zipName = fmt.Sprintf("%s_%s.zip", SanitizeDirName(app.DisplayName), NowCompactFormatted())
-	}
+	zipName := fmt.Sprintf("%s_%s.zip", SanitizeDirName(app.Name), NowCompactFormatted())
 	return filepath.Join(os.TempDir(), zipName)
-}
-
-/**
- * resolveRenamedIconPath 在静态应用目录重命名后重算图标路径。
- */
-func (a *AppService) resolveRenamedIconPath(newPath string, oldIconPath string) string {
-	if oldIconPath == "" {
-		return ""
-	}
-	newIconPath := filepath.Join(newPath, "icon.png")
-	if _, err := os.Stat(newIconPath); err == nil {
-		return newIconPath
-	}
-	return oldIconPath
 }
 
 /**
  * upsertStaticApp 创建或更新静态应用记录。
  */
-func (a *AppService) upsertStaticApp(dirName, displayName, iconPath, entryURL string) (SubApp, bool) {
+func (a *AppService) upsertStaticApp(dirName, entryURL string) (SubApp, bool) {
 	var existing SubApp
 	err := a.db.DB().QueryRow(
-		"SELECT id, app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE dir_name = ? AND app_type = 'static'",
+		"SELECT id, app_type, name, entry_url, sort_order, created_at, updated_at FROM sub_app WHERE name = ? AND app_type = 'static'",
 		dirName,
 	).Scan(
 		&existing.Id,
 		&existing.AppType,
-		&existing.DirName,
-		&existing.DisplayName,
-		&existing.IconPath,
+		&existing.Name,
 		&existing.EntryUrl,
 		&existing.SortOrder,
 		&existing.CreatedAt,
@@ -784,10 +734,8 @@ func (a *AppService) upsertStaticApp(dirName, displayName, iconPath, entryURL st
 	if err != nil {
 		now := NowFormatted()
 		result, err := a.db.DB().Exec(
-			"INSERT INTO sub_app (app_type, dir_name, display_name, icon_path, entry_url, sort_order, created_at, updated_at) VALUES ('static', ?, ?, ?, ?, 0, ?, ?)",
+			"INSERT INTO sub_app (app_type, name, entry_url, sort_order, created_at, updated_at) VALUES ('static', ?, ?, 0, ?, ?)",
 			dirName,
-			displayName,
-			iconPath,
 			entryURL,
 			now,
 			now,
@@ -797,32 +745,24 @@ func (a *AppService) upsertStaticApp(dirName, displayName, iconPath, entryURL st
 		}
 		id, _ := result.LastInsertId()
 		return SubApp{
-			Id:          id,
-			AppType:     staticAppType,
-			DirName:     dirName,
-			DisplayName: displayName,
-			IconPath:    iconPath,
-			EntryUrl:    entryURL,
-			SortOrder:   0,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			Id:        id,
+			AppType:   staticAppType,
+			Name:      dirName,
+			EntryUrl:  entryURL,
+			SortOrder: 0,
+			CreatedAt: now,
+			UpdatedAt: now,
 		}, true
 	}
 
-	if existing.DisplayName == existing.DirName || existing.DisplayName != displayName {
-		now := NowFormatted()
-		_, _ = a.db.DB().Exec(
-			"UPDATE sub_app SET display_name = ?, icon_path = ?, entry_url = ?, updated_at = ? WHERE id = ?",
-			displayName,
-			iconPath,
-			entryURL,
-			now,
-			existing.Id,
-		)
-		existing.DisplayName = displayName
-		existing.IconPath = iconPath
-		existing.EntryUrl = entryURL
-	}
+	now := NowFormatted()
+	_, _ = a.db.DB().Exec(
+		"UPDATE sub_app SET entry_url = ?, updated_at = ? WHERE id = ?",
+		entryURL,
+		now,
+		existing.Id,
+	)
+	existing.EntryUrl = entryURL
 	return existing, false
 }
 
@@ -830,7 +770,7 @@ func (a *AppService) upsertStaticApp(dirName, displayName, iconPath, entryURL st
  * cleanupMissingStaticApps 清理已不存在目录对应的静态应用。
  */
 func (a *AppService) cleanupMissingStaticApps(scannedDirs map[string]bool) {
-	rows, err := a.db.DB().Query("SELECT id, dir_name FROM sub_app WHERE app_type = 'static'")
+	rows, err := a.db.DB().Query("SELECT id, name FROM sub_app WHERE app_type = 'static'")
 	if err != nil {
 		return
 	}
@@ -839,10 +779,11 @@ func (a *AppService) cleanupMissingStaticApps(scannedDirs map[string]bool) {
 	var toDelete []int64
 	for rows.Next() {
 		var id int64
-		var dirName string
-		if err := rows.Scan(&id, &dirName); err != nil {
+		var name string
+		if err := rows.Scan(&id, &name); err != nil {
 			continue
 		}
+		dirName := SanitizeDirName(name)
 		if !scannedDirs[dirName] {
 			toDelete = append(toDelete, id)
 		}

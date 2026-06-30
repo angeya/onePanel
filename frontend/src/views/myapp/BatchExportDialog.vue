@@ -30,8 +30,8 @@
         />
         <el-icon v-if="app.appType === 'web'" :size="16" color="#67c23a"><Link /></el-icon>
         <el-icon v-else :size="16" color="#409eff"><Document /></el-icon>
-        <span class="batch-export-name">{{ app.displayName }}</span>
-        <span class="batch-export-dir">{{ app.appType === 'web' ? '网页应用' : app.dirName }}</span>
+        <span class="batch-export-name">{{ app.name }}</span>
+        <span class="batch-export-dir">{{ app.appType === 'web' ? '网页应用' : app.name }}</span>
       </div>
       <el-empty v-if="apps.length === 0" description="没有可导出的应用" :image-size="40" />
     </div>

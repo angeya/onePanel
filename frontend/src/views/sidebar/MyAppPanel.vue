@@ -28,13 +28,12 @@
         @click="openApp(app)"
       >
         <div class="app-icon">
-          <img v-if="app.iconPath" :src="appService.getAppIconUrl(app)" alt="" />
-          <el-icon v-else-if="app.appType === 'web'" :size="22" color="#67c23a"><Link /></el-icon>
+          <el-icon v-if="app.appType === 'web'" :size="22" color="#67c23a"><Link /></el-icon>
           <el-icon v-else :size="22" color="#409eff"><Document /></el-icon>
         </div>
         <div class="app-info">
-          <div class="app-name">{{ app.displayName }}</div>
-          <div class="app-dir">{{ app.appType === 'web' ? app.entryUrl : app.dirName }}</div>
+          <div class="app-name">{{ app.name }}</div>
+          <div class="app-dir">{{ app.appType === 'web' ? app.entryUrl : app.name }}</div>
         </div>
         <el-dropdown trigger="click" @command="(cmd) => handleAppCmd(cmd, app)" @click.stop>
           <el-icon class="app-more" @click.stop><MoreFilled /></el-icon>
@@ -142,13 +141,6 @@ const handleAppCmd = (cmd, app) => {
   border-radius: 6px;
   background-color: var(--bg-secondary);
   flex-shrink: 0;
-  overflow: hidden;
-}
-
-.app-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .app-info {

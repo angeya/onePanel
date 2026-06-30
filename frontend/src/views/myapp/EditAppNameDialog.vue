@@ -23,12 +23,12 @@ const appId = ref(null)
 
 const open = (app) => {
   appId.value = app.id
-  nameValue.value = app.displayName
+  nameValue.value = app.name
   visible.value = true
 }
 
 const handleSave = async () => {
-  const ok = await appService.saveAppDisplayName(appId.value, nameValue.value)
+  const ok = await appService.saveAppName(appId.value, nameValue.value)
   if (ok) visible.value = false
 }
 

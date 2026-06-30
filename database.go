@@ -22,9 +22,7 @@ var schemaStatements = []string{
 	`CREATE TABLE IF NOT EXISTS sub_app (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		app_type TEXT NOT NULL DEFAULT 'static',
-		dir_name TEXT NOT NULL DEFAULT '',
-		display_name TEXT NOT NULL,
-		icon_path TEXT DEFAULT '',
+		name TEXT NOT NULL,
 		entry_url TEXT DEFAULT '',
 		sort_order INTEGER DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -87,7 +85,7 @@ var schemaStatements = []string{
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY (category_id) REFERENCES server_category(id) ON DELETE SET NULL
 	)`,
-	`CREATE INDEX IF NOT EXISTS idx_sub_app_dir_name ON sub_app(dir_name)`,
+	`CREATE INDEX IF NOT EXISTS idx_sub_app_name ON sub_app(name)`,
 	`CREATE INDEX IF NOT EXISTS idx_shortcut_command_category_id ON shortcut_command(category_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_shortcut_cmd_category_id ON shortcut_cmd(category_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_server_session_category_id ON server_session(category_id)`,

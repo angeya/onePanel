@@ -16,15 +16,13 @@ type AppConfig struct {
  * 对应 sub_app 表，支持静态应用和网页应用两种类型
  */
 type SubApp struct {
-	Id          int64  `json:"id"`
-	AppType     string `json:"appType"`
-	DirName     string `json:"dirName"`
-	DisplayName string `json:"displayName"`
-	IconPath    string `json:"iconPath"`
-	EntryUrl    string `json:"entryUrl"`
-	SortOrder   int    `json:"sortOrder"`
-	CreatedAt   string `json:"createdAt"`
-	UpdatedAt   string `json:"updatedAt"`
+	Id        int64  `json:"id"`
+	AppType   string `json:"appType"`
+	Name      string `json:"name"`
+	EntryUrl  string `json:"entryUrl"`
+	SortOrder int    `json:"sortOrder"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
 }
 
 /**

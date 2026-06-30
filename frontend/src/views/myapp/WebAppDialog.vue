@@ -41,7 +41,7 @@ const openAdd = () => {
 const openEdit = (app) => {
   isEditing.value = true
   editingId.value = app.id
-  form.name = app.displayName
+  form.name = app.name
   form.url = app.entryUrl
   visible.value = true
 }
