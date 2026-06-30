@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -24,9 +26,15 @@ const (
 	MOD_WIN     = 0x0008
 
 	HOTKEY_ID = 1
-
-	VK_O = 0x4F
 )
+
+/**
+ * HotkeyConfig 全局快捷键配置。
+ */
+type HotkeyConfig struct {
+	Modifiers []string `json:"modifiers"`
+	Key       string   `json:"key"`
+}
 
 /**
  * HotkeyManager 全局快捷键管理器
@@ -36,6 +44,7 @@ const (
 type HotkeyManager struct {
 	mu         sync.Mutex
 	registered bool
+	config     HotkeyConfig
 	onActivate func()
 	stopCh     chan struct{}
 	doneCh     chan struct{}
@@ -45,11 +54,25 @@ type HotkeyManager struct {
  * 创建 HotkeyManager 实例
  * onActivate: 快捷键触发回调
  */
-func NewHotkeyManager(onActivate func()) *HotkeyManager {
+func NewHotkeyManager(config HotkeyConfig, onActivate func()) *HotkeyManager {
+	if config.Key == "" {
+		config = DefaultHotkeyConfig()
+	}
 	return &HotkeyManager{
+		config:     config,
 		onActivate: onActivate,
 		stopCh:     make(chan struct{}),
 		doneCh:     make(chan struct{}),
+	}
+}
+
+/**
+ * DefaultHotkeyConfig 返回默认快捷键配置 Ctrl+Alt+O。
+ */
+func DefaultHotkeyConfig() HotkeyConfig {
+	return HotkeyConfig{
+		Modifiers: []string{"ctrl", "alt"},
+		Key:       "O",
 	}
 }
 
@@ -80,11 +103,21 @@ func (h *HotkeyManager) listen() {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
+	mod, vk, err := parseHotkeyConfig(h.config)
+	if err != nil {
+		LogWarn("解析全局快捷键配置失败: %v", err)
+		h.mu.Lock()
+		h.registered = false
+		h.mu.Unlock()
+		close(h.doneCh)
+		return
+	}
+
 	ret, _, err := procRegisterHotKey.Call(
 		0,
 		HOTKEY_ID,
-		MOD_CONTROL|MOD_ALT,
-		VK_O,
+		uintptr(mod),
+		uintptr(vk),
 	)
 	if ret == 0 {
 		LogWarn("注册全局快捷键失败: %v", err)
@@ -139,4 +172,66 @@ func (h *HotkeyManager) Stop() {
 	close(h.stopCh)
 	<-h.doneCh
 	h.stopCh = make(chan struct{})
+}
+
+/**
+ * parseHotkeyConfig 将 HotkeyConfig 解析为 RegisterHotKey 需要的修饰符和虚拟键码。
+ */
+func parseHotkeyConfig(config HotkeyConfig) (uint32, uint32, error) {
+	var mod uint32
+	for _, m := range config.Modifiers {
+		switch m {
+		case "alt":
+			mod |= MOD_ALT
+		case "ctrl":
+			mod |= MOD_CONTROL
+		case "shift":
+			mod |= MOD_SHIFT
+		case "win":
+			mod |= MOD_WIN
+		default:
+			return 0, 0, fmt.Errorf("不支持的修饰键: %s", m)
+		}
+	}
+	if mod == 0 {
+		return 0, 0, fmt.Errorf("至少需要一个修饰键")
+	}
+
+	vk, err := keyToVK(config.Key)
+	if err != nil {
+		return 0, 0, err
+	}
+	return mod, vk, nil
+}
+
+/**
+ * keyToVK 将单个字符或功能键名称转换为虚拟键码。
+ * 支持 A-Z、0-9 以及 F1-F24。
+ */
+func keyToVK(key string) (uint32, error) {
+	if key == "" {
+		return 0, fmt.Errorf("快捷键按键不能为空")
+	}
+
+	key = strings.ToUpper(key)
+
+	if len(key) == 1 {
+		c := key[0]
+		if c >= 'A' && c <= 'Z' {
+			return uint32(c), nil
+		}
+		if c >= '0' && c <= '9' {
+			return uint32(c), nil
+		}
+		return 0, fmt.Errorf("不支持的按键: %s", key)
+	}
+
+	if strings.HasPrefix(key, "F") {
+		var n int
+		if _, err := fmt.Sscanf(key, "F%d", &n); err == nil && n >= 1 && n <= 24 {
+			return 0x6F + uint32(n), nil
+		}
+	}
+
+	return 0, fmt.Errorf("不支持的按键: %s", key)
 }

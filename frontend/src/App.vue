@@ -101,6 +101,7 @@
         @theme-change="changeTheme"
         @shell-change="changeDefaultShell"
         @close-action-change="changeCloseAction"
+        @hotkey-change="changeGlobalHotkey"
       />
       <CloseActionDialog ref="closeActionDialogRef" />
     </div>
@@ -158,6 +159,7 @@ const {
   defaultShell,
   changeDefaultShell,
   changeCloseAction,
+  changeGlobalHotkey,
   loadSettings,
   applyBootstrapSettings
 } = useSettings()

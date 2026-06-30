@@ -85,7 +85,6 @@ var schemaStatements = []string{
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY (category_id) REFERENCES server_category(id) ON DELETE SET NULL
 	)`,
-	`CREATE INDEX IF NOT EXISTS idx_sub_app_name ON sub_app(name)`,
 	`CREATE INDEX IF NOT EXISTS idx_shortcut_command_category_id ON shortcut_command(category_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_shortcut_cmd_category_id ON shortcut_cmd(category_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_server_session_category_id ON server_session(category_id)`,
@@ -227,7 +226,8 @@ func (d *Database) Close() {
 
 /**
  * initializeSchema 初始化当前版本所需的完整 Schema。
- * 由于当前版本不兼容历史数据库，因此仅执行最新建表和索引语句。
+ * 兼容旧版本：若 sub_app 表仍保留旧字段 dir_name、display_name、icon_path，
+ * 则会将数据迁移到新结构后重建表。
  */
 func initializeSchema(db *sql.DB) error {
 	for _, stmt := range schemaStatements {
@@ -235,5 +235,74 @@ func initializeSchema(db *sql.DB) error {
 			return err
 		}
 	}
-	return nil
+	if err := migrateSubAppSchema(db); err != nil {
+		return err
+	}
+	_, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_sub_app_name ON sub_app(name)`)
+	return err
+}
+
+/**
+ * migrateSubAppSchema 兼容旧版 sub_app 表结构。
+ * 旧表包含 dir_name、display_name、icon_path；新版仅保留 name。
+ * 迁移规则：name 优先取 display_name，若为空则取 dir_name。
+ */
+func migrateSubAppSchema(db *sql.DB) error {
+	var hasDirName bool
+	err := db.QueryRow(
+		"SELECT 1 FROM pragma_table_info('sub_app') WHERE name = 'dir_name'",
+	).Scan(&hasDirName)
+	if err != nil {
+		return nil
+	}
+	if !hasDirName {
+		return nil
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("开启迁移事务失败: %w", err)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		CREATE TABLE sub_app_new (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			app_type TEXT NOT NULL DEFAULT 'static',
+			name TEXT NOT NULL,
+			entry_url TEXT DEFAULT '',
+			sort_order INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("创建新 sub_app 表失败: %w", err)
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO sub_app_new (id, app_type, name, entry_url, sort_order, created_at, updated_at)
+		SELECT
+			id,
+			app_type,
+			CASE WHEN display_name IS NULL OR display_name = '' THEN dir_name ELSE display_name END,
+			entry_url,
+			sort_order,
+			created_at,
+			updated_at
+		FROM sub_app
+	`)
+	if err != nil {
+		return fmt.Errorf("迁移 sub_app 数据失败: %w", err)
+	}
+
+	_, err = tx.Exec(`
+		DROP TABLE sub_app;
+		ALTER TABLE sub_app_new RENAME TO sub_app
+	`)
+	if err != nil {
+		return fmt.Errorf("替换 sub_app 表失败: %w", err)
+	}
+
+	return tx.Commit()
 }

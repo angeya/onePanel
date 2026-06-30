@@ -1,14 +1,16 @@
 import { ref } from 'vue'
-import { GetSetting, SetSetting } from '../../wailsjs/go/main/SettingService'
+import { ElMessage } from 'element-plus'
+import { GetSetting, SetSetting, GetGlobalHotkey, SetGlobalHotkey } from '../../wailsjs/go/main/SettingService'
 import { GetCloseAction, SetCloseAction } from '../../wailsjs/go/main/App'
 
 /**
  * useSettings 管理系统设置相关状态。
- * 统一处理默认终端和关闭行为的读取与持久化。
+ * 统一处理默认终端、关闭行为和全局快捷键的读取与持久化。
  */
 export function useSettings() {
   const defaultShell = ref('cmd.exe')
   const closeAction = ref('ask')
+  const hotkeyConfig = ref({ modifiers: ['ctrl', 'alt'], key: 'O' })
 
   /**
    * applyBootstrapSettings 应用启动阶段批量读取到的设置值。
@@ -20,6 +22,13 @@ export function useSettings() {
     }
     if (settings.close_action) {
       closeAction.value = settings.close_action
+    }
+    if (settings.global_hotkey) {
+      try {
+        hotkeyConfig.value = JSON.parse(settings.global_hotkey)
+      } catch {
+        hotkeyConfig.value = { modifiers: ['ctrl', 'alt'], key: 'O' }
+      }
     }
   }
 
@@ -48,14 +57,29 @@ export function useSettings() {
   }
 
   /**
+   * changeGlobalHotkey 保存全局快捷键配置。
+   */
+  const changeGlobalHotkey = async (config) => {
+    try {
+      await SetGlobalHotkey(config)
+      hotkeyConfig.value = config
+      ElMessage.success('快捷键已保存，重启后生效')
+    } catch (err) {
+      console.error('保存全局快捷键失败:', err)
+      ElMessage.error('保存快捷键失败: ' + err)
+    }
+  }
+
+  /**
    * loadSettings 兼容非启动时机的设置刷新。
    * 例如设置窗口重新打开时，需要再次从后端读取最新值。
    */
   const loadSettings = async () => {
     try {
-      const [shell, action] = await Promise.all([
+      const [shell, action, hotkey] = await Promise.all([
         GetSetting('default_shell'),
-        GetCloseAction()
+        GetCloseAction(),
+        GetGlobalHotkey()
       ])
 
       if (shell) {
@@ -63,6 +87,9 @@ export function useSettings() {
       }
       if (action) {
         closeAction.value = action
+      }
+      if (hotkey) {
+        hotkeyConfig.value = hotkey
       }
     } catch (err) {
       console.error('加载设置失败:', err)
@@ -72,9 +99,11 @@ export function useSettings() {
   return {
     defaultShell,
     closeAction,
+    hotkeyConfig,
     applyBootstrapSettings,
     changeDefaultShell,
     changeCloseAction,
+    changeGlobalHotkey,
     loadSettings
   }
 }

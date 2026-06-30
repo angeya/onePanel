@@ -49,6 +49,27 @@
       </div>
 
       <div class="setting-section">
+        <div class="section-title">全局快捷键</div>
+        <div class="close-action-desc">按下快捷键可显示/隐藏应用窗口（修改后需重启生效）</div>
+        <div class="hotkey-row">
+          <el-checkbox-group v-model="hotkeyModifiers">
+            <el-checkbox value="ctrl">Ctrl</el-checkbox>
+            <el-checkbox value="alt">Alt</el-checkbox>
+            <el-checkbox value="shift">Shift</el-checkbox>
+            <el-checkbox value="win">Win</el-checkbox>
+          </el-checkbox-group>
+          <el-input
+            v-model="hotkeyKey"
+            class="hotkey-input"
+            maxlength="1"
+            placeholder="按键"
+            @keydown.prevent="captureHotkeyKey"
+          />
+          <el-button type="primary" size="small" @click="saveHotkey">保存</el-button>
+        </div>
+      </div>
+
+      <div class="setting-section">
         <div class="section-title">日志管理</div>
         <div class="setting-row">
           <div class="setting-row-info">
@@ -81,15 +102,17 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { GetSetting, SetSetting } from '../../../wailsjs/go/main/SettingService'
+import { GetSetting, SetSetting, GetGlobalHotkey } from '../../../wailsjs/go/main/SettingService'
 import { GetCloseAction, SetCloseAction, OpenLogsDir } from '../../../wailsjs/go/main/App'
 
-const emit = defineEmits(['themeChange', 'shellChange', 'closeActionChange'])
+const emit = defineEmits(['themeChange', 'shellChange', 'closeActionChange', 'hotkeyChange'])
 
 const visible = ref(false)
 const currentTheme = ref('dark')
 const defaultShell = ref('cmd.exe')
 const currentCloseAction = ref('ask')
+const hotkeyModifiers = ref(['ctrl', 'alt'])
+const hotkeyKey = ref('O')
 
 const themes = [
   {
@@ -165,6 +188,38 @@ const saveCloseAction = async (val) => {
 }
 
 /**
+ * 捕获快捷键按键。
+ * 仅允许字母和数字键。
+ */
+const captureHotkeyKey = (event) => {
+  const key = event.key
+  if (/^[a-zA-Z0-9]$/.test(key)) {
+    hotkeyKey.value = key.toUpperCase()
+    return
+  }
+  ElMessage.warning('请按字母或数字键')
+}
+
+/**
+ * 保存全局快捷键配置。
+ */
+const saveHotkey = async () => {
+  if (hotkeyModifiers.value.length === 0) {
+    ElMessage.warning('请至少选择一个修饰键')
+    return
+  }
+  if (!hotkeyKey.value) {
+    ElMessage.warning('请输入快捷键按键')
+    return
+  }
+  const config = {
+    modifiers: [...hotkeyModifiers.value],
+    key: hotkeyKey.value.toUpperCase()
+  }
+  emit('hotkeyChange', config)
+}
+
+/**
  * 打开日志目录
  */
 const openLogsDir = async () => {
@@ -200,6 +255,12 @@ const loadSettings = async () => {
 
     const action = await GetCloseAction()
     if (action) currentCloseAction.value = action
+
+    const hotkey = await GetGlobalHotkey()
+    if (hotkey) {
+      hotkeyModifiers.value = hotkey.modifiers || ['ctrl', 'alt']
+      hotkeyKey.value = hotkey.key || 'O'
+    }
   } catch (err) {
     console.error('加载设置失败:', err)
   }
@@ -387,5 +448,20 @@ defineExpose({ loadSettings, open })
 .setting-row-desc {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.hotkey-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hotkey-input {
+  width: 60px;
+}
+
+.hotkey-input :deep(.el-input__inner) {
+  text-align: center;
+  text-transform: uppercase;
 }
 </style>

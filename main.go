@@ -41,6 +41,8 @@ func main() {
 	var tray *TrayManager
 	var hotkey *HotkeyManager
 
+	hotkeyConfig, _ := settingService.GetGlobalHotkey()
+
 	err = wails.Run(&options.App{
 		Title:            "oneWin",
 		Width:            1280,
@@ -65,7 +67,7 @@ func main() {
 			})
 			tray.Start()
 
-			hotkey = NewHotkeyManager(func() {
+			hotkey = NewHotkeyManager(hotkeyConfig, func() {
 				runtime.WindowShow(app.ctx)
 			})
 			if err := hotkey.Start(); err != nil {
