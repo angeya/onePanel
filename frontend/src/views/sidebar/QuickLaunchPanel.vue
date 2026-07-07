@@ -111,9 +111,21 @@ const executeQlCmd = (cmd) => {
 .sub-panel-toolbar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 10px;
   flex-shrink: 0;
+}
+
+.sub-panel-toolbar :deep(.el-button) {
+  --el-button-size: 24px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.sub-panel-toolbar :deep(.el-button .el-icon) {
+  font-size: 12px;
 }
 
 .ql-list {

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfluxDB v2 客户端</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 顶部栏 -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="logo">InfluxDB v2 客户端</span>
+      </div>
+      <div class="topbar-center">
+        <span id="connInfo" class="conn-info">未连接</span>
+      </div>
+      <div class="topbar-right">
+        <button id="btnRefresh" class="btn" disabled>刷新数据</button>
+        <button id="btnDisconnect" class="btn" disabled>断开连接</button>
+      </div>
+    </header>
+
+    <!-- 主体 -->
+    <div class="main">
+      <!-- 侧边栏 -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span>连接管理</span>
+          <button id="btnNewConn" class="btn-icon" title="新建连接">+</button>
+        </div>
+        <div class="sidebar-tabs">
+          <button class="tab active" data-tab="connections">连接列表</button>
+          <button class="tab" data-tab="tree">数据浏览</button>
+        </div>
+        <!-- 连接列表 -->
+        <div id="connListPanel" class="sidebar-panel">
+          <div id="connList" class="conn-list">
+            <div class="empty-hint">暂无保存的连接，点击 + 新建</div>
+          </div>
+        </div>
+        <!-- 数据浏览树 -->
+        <div id="treePanel" class="sidebar-panel" style="display:none">
+          <div id="tree" class="tree">
+            <div class="empty-hint">请先连接服务器</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 拖拽分隔条 -->
+      <div class="resizer" id="resizer"></div>
+
+      <!-- 内容区 -->
+      <section class="content">
+        <!-- 工具栏 -->
+        <div class="content-toolbar">
+          <div class="toolbar-left">
+            <span id="currentPath" class="current-path">未选择 measurement</span>
+          </div>
+          <div class="toolbar-right">
+            <label class="field-label">时间范围
+              <select id="timeRange">
+                <option value="-5m">近5分钟</option>
+                <option value="-15m">近15分钟</option>
+                <option value="-1h" selected>近1小时</option>
+                <option value="-6h">近6小时</option>
+                <option value="-12h">近12小时</option>
+                <option value="-24h">近1天</option>
+                <option value="-7d">近7天</option>
+                <option value="-30d">近30天</option>
+                <option value="custom">自定义</option>
+              </select>
+            </label>
+            <span id="customRange" class="custom-range" style="display:none">
+              <input type="datetime-local" id="rangeStart" class="dt-input">
+              <span>至</span>
+              <input type="datetime-local" id="rangeStop" class="dt-input">
+            </span>
+            <label class="field-label">每页
+              <select id="pageSize">
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="200">200</option>
+                <option value="500">500</option>
+              </select>
+            </label>
+            <button id="btnQuery" class="btn btn-primary" disabled>查询</button>
+            <button id="btnInsert" class="btn" disabled>写入数据</button>
+            <button id="btnDeleteM" class="btn btn-danger" disabled>删除数据</button>
+            <button id="btnToggleQuery" class="btn" disabled>显示查询</button>
+          </div>
+        </div>
+
+        <!-- 内容主体：表格 + 查询面板 -->
+        <div class="content-body">
+          <!-- 数据表格 -->
+          <div class="table-wrap">
+            <div id="tablePlaceholder" class="placeholder">
+              <div class="placeholder-icon">DB</div>
+              <p>请在左侧选择一个 measurement 查看数据</p>
+              <p class="placeholder-sub">双击连接可登录服务器，展开 bucket 即可看到 measurement</p>
+            </div>
+            <div id="tableContainer" class="data-table" style="display:none"></div>
+          </div>
+
+          <!-- 自定义查询面板 -->
+          <div id="queryPanel" class="query-panel" style="display:none">
+            <div class="query-panel-header">
+              <span>自定义查询</span>
+              <button id="btnCloseQueryPanel" class="modal-close" title="关闭">×</button>
+            </div>
+            <div class="query-panel-body">
+              <textarea id="queryInput" class="query-input" placeholder="输入 Flux 查询语句，如：&#10;from(bucket: &quot;mybucket&quot;)&#10;  |> range(start: -1h)&#10;  |> filter(fn: (r) => r._measurement == &quot;cpu&quot;)"></textarea>
+              <div class="query-panel-actions">
+                <button id="btnExecuteQuery" class="btn btn-primary">执行</button>
+                <button id="btnClearQuery" class="btn">清空</button>
+              </div>
+            </div>
+            <div id="queryResult" class="query-result">
+              <div class="query-result-placeholder">执行结果将显示在此处</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination">
+          <div class="page-summary">
+            <span id="pageInfo" class="page-info"></span>
+          </div>
+          <div class="page-controls">
+            <button id="btnFirst" class="btn btn-sm" disabled>首页</button>
+            <button id="btnPrev" class="btn btn-sm" disabled>上一页</button>
+            <span id="pageNo" class="page-no">第 1 页</span>
+            <button id="btnNext" class="btn btn-sm" disabled>下一页</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 状态栏 -->
+    <footer class="statusbar">
+      <span id="statusText" class="status-text">就绪</span>
+      <span id="queryDisplay" class="query-display" style="display:none">
+        <span class="query-display-label">查询语句:</span>
+        <span id="queryText" class="query-text" title=""></span>
+        <button id="btnCopyQuery" class="btn-copy-query" title="复制查询语句">复制</button>
+      </span>
+      <span id="statusExtra" class="status-extra"></span>
+    </footer>
+  </div>
+
+  <!-- 连接编辑弹窗 -->
+  <div id="connModal" class="modal-mask" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <span id="connModalTitle">新建连接</span>
+        <button class="modal-close" data-close="connModal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>连接名称</label>
+          <input type="text" id="connName" placeholder="如：生产环境">
+        </div>
+        <div class="form-row">
+          <label>服务器 URL</label>
+          <input type="text" id="connUrl" placeholder="如：http://localhost:8086">
+        </div>
+        <div class="form-row">
+          <label>Token</label>
+          <input type="text" id="connToken" placeholder="InfluxDB Access Token">
+        </div>
+        <div class="form-row">
+          <label>Organization</label>
+          <input type="text" id="connOrg" placeholder="组织名称">
+        </div>
+        <div class="form-row">
+          <label>默认 Bucket（可选）</label>
+          <input type="text" id="connBucket" placeholder="连接后默认展开的 bucket">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnTestConn" class="btn">测试连接</button>
+        <button id="btnSaveConn" class="btn btn-primary">保存</button>
+        <button class="btn" data-close="connModal">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 写入数据弹窗 -->
+  <div id="insertModal" class="modal-mask" style="display:none">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <span>写入数据</span>
+        <button class="modal-close" data-close="insertModal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Bucket</label>
+          <input type="text" id="insBucket" readonly>
+        </div>
+        <div class="form-row">
+          <label>Measurement</label>
+          <input type="text" id="insMeasurement" placeholder="measurement 名称">
+        </div>
+        <div class="form-group">
+          <label>Tag（标签，可选）</label>
+          <div id="tagRows" class="kv-rows"></div>
+          <button id="btnAddTag" class="btn btn-sm">+ 添加 Tag</button>
+        </div>
+        <div class="form-group">
+          <label>Field（字段，至少一个）</label>
+          <div id="fieldRows" class="kv-rows"></div>
+          <button id="btnAddField" class="btn btn-sm">+ 添加 Field</button>
+        </div>
+        <div class="form-row">
+          <label>时间戳（可选，留空使用当前时间）</label>
+          <input type="datetime-local" id="insTimestamp" class="dt-input">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnWriteData" class="btn btn-primary">写入</button>
+        <button class="btn" data-close="insertModal">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除数据弹窗 -->
+  <div id="deleteModal" class="modal-mask" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <span>删除数据</span>
+        <button class="modal-close" data-close="deleteModal">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="warn-text">警告：删除操作不可恢复，请谨慎操作。</p>
+        <div class="form-row">
+          <label>Bucket</label>
+          <input type="text" id="delBucket" readonly>
+        </div>
+        <div class="form-row">
+          <label>Measurement</label>
+          <input type="text" id="delMeasurement" readonly>
+        </div>
+        <div class="form-row">
+          <label>起始时间</label>
+          <input type="datetime-local" id="delStart" class="dt-input">
+        </div>
+        <div class="form-row">
+          <label>结束时间</label>
+          <input type="datetime-local" id="delStop" class="dt-input">
+        </div>
+        <p class="hint-text">将删除指定时间范围内该 measurement 的全部数据。</p>
+      </div>
+      <div class="modal-footer">
+        <button id="btnConfirmDelete" class="btn btn-danger">确认删除</button>
+        <button class="btn" data-close="deleteModal">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提示 -->
+  <div id="toast" class="toast"></div>
+
+  <script src="lib/influxdb-client-browser.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/influx.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

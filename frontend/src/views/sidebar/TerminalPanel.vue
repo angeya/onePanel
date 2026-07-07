@@ -54,6 +54,14 @@ const handleAddTerminal = () => {
   color: var(--text-primary);
 }
 
+.sub-panel-header :deep(.el-button) {
+  --el-button-size: 24px;
+  height: 24px;
+  width: 24px;
+  padding: 0;
+  font-size: 12px;
+}
+
 .sub-tabs {
   flex: 1;
   overflow: hidden;

@@ -65,9 +65,9 @@ import MyAppPanel from './MyAppPanel.vue'
 import QuickLaunchPanel from './QuickLaunchPanel.vue'
 import ToolsPanel from './ToolsPanel.vue'
 
-const DEFAULT_PANEL_WIDTH = 240
-const MIN_PANEL_WIDTH = 120
-const MAX_PANEL_WIDTH = DEFAULT_PANEL_WIDTH
+const DEFAULT_PANEL_WIDTH = 220
+const MIN_PANEL_WIDTH = 150
+const MAX_PANEL_WIDTH = 240
 
 const navItems = [
   { key: 'terminal', label: '终端', icon: Monitor },
