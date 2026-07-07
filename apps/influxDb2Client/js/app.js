@@ -146,13 +146,14 @@
   }
 
   function deleteConn(conn) {
-    if (!confirm('确定删除连接「' + conn.name + '」吗？')) return;
-    Storage.remove(conn.id);
-    if (state.currentConn && state.currentConn.id === conn.id) {
-      disconnect();
-    }
-    renderConnList();
-    toast('连接已删除', 'success');
+    showConfirm('删除确认', '确定删除连接「' + conn.name + '」吗？', function () {
+      Storage.remove(conn.id);
+      if (state.currentConn && state.currentConn.id === conn.id) {
+        disconnect();
+      }
+      renderConnList();
+      toast('连接已删除', 'success');
+    });
   }
 
   /* ========== 连接 / 断开 ========== */
@@ -734,21 +735,22 @@
     var start = $('delStart').value;
     var stop = $('delStop').value;
     if (!start || !stop) { toast('请选择时间范围', 'error'); return; }
-    if (!confirm('确认删除 ' + measurement + ' 在该时间范围内的全部数据？此操作不可恢复！')) return;
-    setStatus('删除数据中...');
-    state.client.deleteData({
-      bucket: bucket,
-      measurement: measurement,
-      start: new Date(start).toISOString(),
-      stop: new Date(stop).toISOString()
-    }).then(function () {
-      toast('删除成功', 'success');
-      $('deleteModal').style.display = 'none';
-      setStatus('删除成功');
-      queryData();
-    }).catch(function (err) {
-      toast('删除失败: ' + (err.message || err), 'error');
-      setStatus('删除失败');
+    showConfirm('删除确认', '确认删除 ' + measurement + ' 在该时间范围内的全部数据？此操作不可恢复！', function () {
+      setStatus('删除数据中...');
+      state.client.deleteData({
+        bucket: bucket,
+        measurement: measurement,
+        start: new Date(start).toISOString(),
+        stop: new Date(stop).toISOString()
+      }).then(function () {
+        toast('删除成功', 'success');
+        $('deleteModal').style.display = 'none';
+        setStatus('删除成功');
+        queryData();
+      }).catch(function (err) {
+        toast('删除失败: ' + (err.message || err), 'error');
+        setStatus('删除失败');
+      });
     });
   }
 
@@ -772,6 +774,32 @@
     document.addEventListener('mouseup', function () {
       if (dragging) { dragging = false; document.body.style.cursor = ''; }
     });
+  }
+
+  /* ========== 自定义确认框（替代浏览器原生 confirm，兼容 webview） ========== */
+  function showConfirm(title, message, onOk, onCancel) {
+    var modal = $('confirmModal');
+    $('confirmTitle').textContent = title || '请确认';
+    $('confirmMessage').textContent = message || '';
+    modal.style.display = 'flex';
+
+    var okBtn = $('btnConfirmOk');
+    var cancelBtn = $('btnConfirmCancel');
+
+    function cleanup() {
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      modal.style.display = 'none';
+    }
+
+    okBtn.onclick = function () {
+      cleanup();
+      if (typeof onOk === 'function') onOk();
+    };
+    cancelBtn.onclick = function () {
+      cleanup();
+      if (typeof onCancel === 'function') onCancel();
+    };
   }
 
   /* ========== 初始化 ========== */

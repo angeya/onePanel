@@ -518,6 +518,8 @@ td.tag-col { color: #9cdcfe; }
   flex-direction: column;
 }
 .modal-lg { width: 620px; }
+.modal-sm { width: 360px; }
+.confirm-message { color: #d4d4d4; font-size: 13px; line-height: 1.6; margin: 0; word-break: break-word; }
 .modal-header {
   padding: 10px 14px;
   border-bottom: 1px solid #3c3c3c;
