@@ -15,6 +15,7 @@ bin/
 build/bin/
 build/windows/
 dist/
+inner/
 *.exe
 *.exe~
 *.dll
