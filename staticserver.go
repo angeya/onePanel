@@ -9,9 +9,12 @@ import (
 
 /**
  * StaticServer 静态文件服务器
- * 为子应用提供 HTTP 静态文件服务，支持动态端口分配
+ * 为子应用提供 HTTP 静态文件服务，使用固定端口以确保应用缓存一致性
  * 通过依赖注入方式使用，不再依赖全局变量
  */
+
+const fixedPort = 12305
+
 type StaticServer struct {
 	server *http.Server
 	port   int
@@ -43,6 +46,7 @@ func (s *StaticServer) GetStatus() map[string]interface{} {
 
 /**
  * 启动静态文件服务器
+ * 使用固定端口，确保 HTML 应用的缓存（localStorage 等）不会因端口变化而失效
  * 如果服务器已在运行且目录相同，直接返回当前端口
  * 如果目录不同，先关闭再重新启动
  */
@@ -58,12 +62,12 @@ func (s *StaticServer) Start(dir string) (int, error) {
 		s.server = nil
 	}
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", fixedPort))
 	if err != nil {
-		return 0, fmt.Errorf("分配端口失败: %w", err)
+		return 0, fmt.Errorf("端口 %d 已被占用，请释放该端口后重试", fixedPort)
 	}
 
-	port := listener.Addr().(*net.TCPAddr).Port
+	port := fixedPort
 
 	fs := http.FileServer(http.Dir(dir))
 	mux := http.NewServeMux()

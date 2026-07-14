@@ -49,7 +49,20 @@ export function useAppService(closeAppTab) {
       await loadServerStatus()
       addAppTab(app.id, result.name, result.url)
     } catch (err) {
-      ElMessage.error('打开应用失败: ' + err)
+      const errMsg = String(err)
+      if (errMsg.includes('端口') && errMsg.includes('占用')) {
+        ElMessageBox.alert(
+          `${errMsg}<br/><br/>请关闭占用该端口的程序后重试，或使用系统工具查看端口占用情况。`,
+          '端口冲突',
+          {
+            confirmButtonText: '我知道了',
+            type: 'warning',
+            dangerouslyUseHTMLString: true
+          }
+        )
+      } else {
+        ElMessage.error('打开应用失败: ' + err)
+      }
     }
   }
 
