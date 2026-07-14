@@ -11,39 +11,40 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
             min-height: 100vh;
             color: #e0e0e0;
-            padding: 28px 20px;
+            padding: 12px 14px;
+            display: flex;
         }
 
         .container {
-            max-width: 1100px;
+            width: 100%;
             margin: 0 auto;
-        }
-
-        h1 {
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 24px;
-            background: linear-gradient(90deg, #a78bfa, #60a5fa, #34d399);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 100%;
         }
 
         .section {
             background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 20px 24px;
-            margin-bottom: 24px;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 0;
             backdrop-filter: blur(12px);
             transition: box-shadow 0.3s;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
 
         .section:hover {
@@ -51,22 +52,23 @@
         }
 
         .section-title {
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
-            margin-bottom: 14px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-shrink: 0;
         }
 
         .section-title .icon {
-            width: 26px;
-            height: 26px;
+            width: 24px;
+            height: 24px;
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             flex-shrink: 0;
         }
 
@@ -81,36 +83,40 @@
         .codec-row {
             display: flex;
             align-items: stretch;
-            gap: 16px;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
         }
 
         .textarea-wrap {
             flex: 5;
             display: flex;
             flex-direction: column;
+            min-height: 0;
         }
 
         .textarea-wrap label {
-            font-size: 0.8rem;
+            font-size: 0.72rem;
             color: #9ca3af;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 1px;
+            flex-shrink: 0;
         }
 
         textarea {
             width: 100%;
             flex: 1;
-            min-height: 160px;
+            min-height: 0;
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 10px;
             color: #e5e7eb;
             font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
             font-size: 0.9rem;
-            padding: 14px 16px;
-            resize: vertical;
+            padding: 12px 14px;
+            resize: none;
             outline: none;
             transition: border-color 0.25s, box-shadow 0.25s;
             line-height: 1.6;
@@ -234,6 +240,20 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                display: block;
+                padding: 10px 10px;
+            }
+
+            .container {
+                height: auto;
+            }
+
+            .section {
+                flex: none;
+                padding: 10px 12px;
+            }
+
             .codec-row {
                 flex-direction: column;
             }
@@ -244,24 +264,35 @@
                 padding: 4px 0;
             }
 
-            body {
-                padding: 20px 12px;
+            textarea {
+                min-height: 140px;
+                resize: vertical;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .btn-group {
+                flex-wrap: wrap;
             }
 
-            .section {
-                padding: 20px 16px;
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.8rem;
             }
 
             textarea {
-                min-height: 120px;
+                min-height: 110px;
+                font-size: 0.85rem;
+            }
+
+            .section-title {
+                font-size: 0.85rem;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>编解码</h1>
-
         <!-- Base64 Section -->
         <div class="section">
             <div class="section-title">

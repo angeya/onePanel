@@ -4,229 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSON 格式化 & 压缩工具</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #12121a;
-            --bg-tertiary: #1a1a25;
-            --bg-input: #0f0f15;
-            --accent-primary: #6366f1;
-            --accent-secondary: #8b5cf6;
-            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-            --accent-glow: rgba(99, 102, 241, 0.3);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: #27273a;
-            --success: #10b981;
-            --error: #ef4444;
-            --warning: #f59e0b;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
+        html, body {
+            height: 100%;
         }
 
-        /* 背景装饰 */
-        .bg-decoration {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 12px 14px;
+            display: flex;
             overflow: hidden;
         }
 
-        .bg-decoration::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(ellipse 80% 50% at 20% 40%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 40% at 80% 60%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse 50% 30% at 50% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
-            animation: bgFloat 20s ease-in-out infinite;
-        }
-
-        @keyframes bgFloat {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(2%, 2%) rotate(1deg); }
-            66% { transform: translate(-1%, 1%) rotate(-1deg); }
-        }
-
-        /* 网格背景 */
-        .grid-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
+        .container {
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
             height: 100%;
-            background-image: 
-                linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            pointer-events: none;
-            z-index: 1;
         }
 
-        /* 头部 */
-        header {
-            position: relative;
-            z-index: 10;
-            padding: 24px 32px;
-            border-bottom: 1px solid var(--border-color);
-            background: rgba(10, 10, 15, 0.8);
-            backdrop-filter: blur(20px);
-        }
-
-        .header-content {
-            max-width: 1600px;
-            margin: 0 auto;
+        /* 中间按钮组 */
+        .action-group {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--accent-gradient);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
-            font-size: 20px;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-        }
-
-        .logo-text {
-            font-size: 22px;
-            font-weight: 700;
-            background: var(--accent-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .logo-subtitle {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-weight: 500;
-            letter-spacing: 0.5px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        /* 主容器 */
-        main {
-            position: relative;
-            z-index: 10;
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 24px 32px 32px;
-        }
-
-        /* 工具栏 */
-        .toolbar {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .toolbar-group {
-            display: flex;
             gap: 8px;
+            padding: 0 4px;
+            flex-shrink: 0;
+        }
+
+        .panel-options {
+            display: flex;
+            gap: 6px;
             align-items: center;
-            padding: 6px;
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
         }
 
         .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: 600;
+            padding: 8px 20px;
             border: none;
             border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.25s;
+            letter-spacing: 1px;
+            white-space: nowrap;
             font-family: inherit;
+            position: relative;
+            overflow: hidden;
         }
 
-        .btn-primary {
-            background: var(--accent-gradient);
-            color: white;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        .btn:active {
+            transform: scale(0.96);
         }
 
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        .btn.encode {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
         }
 
-        .btn-primary:active {
-            transform: translateY(0);
+        .btn.encode:hover {
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
         }
 
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
+        .btn.decode {
+            background: linear-gradient(135deg, #059669, #34d399);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.35);
         }
 
-        .btn-secondary:hover {
-            background: var(--bg-input);
-            border-color: var(--accent-primary);
+        .btn.decode:hover {
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.5);
         }
 
-        .btn-icon {
-            padding: 10px;
-            font-size: 16px;
+        .btn.copy {
+            background: rgba(255, 255, 255, 0.08);
+            color: #9ca3af;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 6px 20px;
+            font-size: 0.78rem;
+        }
+
+        .btn.copy:hover {
+            color: #e5e7eb;
+            border-color: rgba(255, 255, 255, 0.25);
         }
 
         /* 选项 */
         .option-label {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            font-size: 13px;
-            color: var(--text-secondary);
+            gap: 6px;
+            padding: 4px 10px;
+            font-size: 0.78rem;
+            color: #9ca3af;
             cursor: pointer;
             border-radius: 6px;
             transition: all 0.2s;
@@ -234,117 +116,108 @@
         }
 
         .option-label:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
+            color: #e5e7eb;
         }
 
         .option-label input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            accent-color: var(--accent-primary);
+            width: 14px;
+            height: 14px;
+            accent-color: #a78bfa;
             cursor: pointer;
         }
 
         /* 编辑器区域 */
         .editor-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            height: calc(100vh - 220px);
-            min-height: 500px;
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
         }
 
         .editor-panel {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            background: var(--bg-secondary);
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: var(--shadow-lg);
-            transition: box-shadow 0.3s ease;
+            backdrop-filter: blur(12px);
+            transition: box-shadow 0.3s;
+            min-height: 0;
         }
 
         .editor-panel:hover {
-            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.12);
         }
 
         .panel-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 14px 18px;
-            background: var(--bg-tertiary);
-            border-bottom: 1px solid var(--border-color);
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
         }
 
         .panel-title {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 14px;
+            gap: 8px;
+            font-size: 0.9rem;
             font-weight: 600;
-            color: var(--text-primary);
         }
 
         .panel-title-icon {
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--bg-secondary);
-            border-radius: 6px;
-            font-size: 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
         }
 
-        .panel-actions {
-            display: flex;
-            gap: 6px;
+        .panel-title-icon.input {
+            background: linear-gradient(135deg, #a78bfa, #7c3aed);
         }
 
-        .panel-btn {
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-
-        .panel-btn:hover {
-            color: var(--text-primary);
-            border-color: var(--accent-primary);
-            background: var(--bg-input);
+        .panel-title-icon.output {
+            background: linear-gradient(135deg, #34d399, #059669);
         }
 
         .panel-content {
             flex: 1;
             position: relative;
             overflow: hidden;
+            min-height: 0;
         }
 
         .code-editor {
             width: 100%;
             height: 100%;
-            padding: 16px 18px;
-            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-            font-size: 13px;
+            padding: 12px 14px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
             line-height: 1.6;
-            color: var(--text-primary);
-            background: var(--bg-input);
+            color: #e5e7eb;
+            background: rgba(0, 0, 0, 0.3);
             border: none;
             resize: none;
             outline: none;
             tab-size: 2;
+            transition: box-shadow 0.25s;
+        }
+
+        .code-editor:focus {
+            box-shadow: inset 0 0 0 2px rgba(139, 92, 246, 0.5);
         }
 
         .code-editor::placeholder {
-            color: var(--text-muted);
+            color: #4b5563;
         }
 
         /* 行号 */
@@ -352,22 +225,23 @@
             position: absolute;
             left: 0;
             top: 0;
-            width: 50px;
+            width: 46px;
             height: 100%;
-            padding: 16px 8px;
-            background: var(--bg-input);
-            border-right: 1px solid var(--border-color);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
+            padding: 12px 8px;
+            background: rgba(0, 0, 0, 0.35);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.8rem;
             line-height: 1.6;
-            color: var(--text-muted);
+            color: #4b5563;
             text-align: right;
             overflow: hidden;
             user-select: none;
+            z-index: 1;
         }
 
         .code-editor.with-line-numbers {
-            padding-left: 66px;
+            padding-left: 60px;
         }
 
         /* 状态栏 */
@@ -375,28 +249,29 @@
             display: flex;
             align-items: center;
             gap: 16px;
-            padding: 10px 18px;
-            background: var(--bg-tertiary);
-            border-top: 1px solid var(--border-color);
-            font-size: 12px;
-            color: var(--text-muted);
+            padding: 8px 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.75rem;
+            color: #6b7280;
+            flex-shrink: 0;
+            flex-wrap: wrap;
         }
 
         .status-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
 
-        .status-success { color: var(--success); }
-        .status-error { color: var(--error); }
+        .status-success { color: #34d399; }
+        .status-error { color: #f87171; }
 
-        /* Toast 提示 */
+        /* Toast */
         .toast-container {
             position: fixed;
-            bottom: 24px;
+            top: 24px;
             right: 24px;
-            z-index: 1000;
+            z-index: 9999;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -405,22 +280,23 @@
         .toast {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 14px 20px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: var(--shadow-lg);
+            gap: 10px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
             animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
-            min-width: 200px;
+            min-width: 180px;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 500;
         }
 
         .toast-success {
-            border-left: 3px solid var(--success);
+            background: linear-gradient(135deg, #059669, #34d399);
         }
 
         .toast-error {
-            border-left: 3px solid var(--error);
+            background: linear-gradient(135deg, #dc2626, #f87171);
         }
 
         @keyframes slideIn {
@@ -442,134 +318,104 @@
         }
 
         /* 响应式 */
-        @media (max-width: 1024px) {
+        @media (max-width: 900px) {
             .editor-container {
-                grid-template-columns: 1fr;
-                grid-template-rows: 1fr 1fr;
-                height: auto;
-                min-height: 800px;
+                flex-direction: column;
+            }
+
+            .action-group {
+                flex-direction: row;
+                justify-content: center;
+                padding: 4px 0;
             }
         }
 
         @media (max-width: 640px) {
-            header, main {
-                padding-left: 16px;
-                padding-right: 16px;
+            body {
+                display: block;
+                overflow: auto;
+                padding: 10px;
             }
 
-            .toolbar {
-                justify-content: center;
+            .container {
+                height: auto;
             }
 
             .editor-container {
                 min-height: 600px;
             }
+
+            .action-group {
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="bg-decoration"></div>
-    <div class="grid-overlay"></div>
-
-    <header>
-        <div class="header-content">
-            <div class="logo">
-                <div class="logo-icon">{ }</div>
-                <div>
-                    <div class="logo-text">JSON Tool</div>
-                    <div class="logo-subtitle">格式化 & 压缩工具</div>
-                </div>
-            </div>
-            <div class="header-actions">
-                <button class="btn btn-secondary" onclick="loadExample()">
-                    <span>示例</span>
-                </button>
-                <button class="btn btn-secondary" onclick="clearAll()">
-                    <span>清空</span>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <main>
-        <div class="toolbar">
-            <div class="toolbar-group">
-                <button class="btn btn-primary" onclick="formatJSON()">
-                    <span>格式化</span>
-                </button>
-                <button class="btn btn-primary" onclick="compressJSON()">
-                    <span>压缩</span>
-                </button>
-            </div>
-            <div class="toolbar-group">
-                <label class="option-label">
-                    <input type="checkbox" id="unescapeCheck" checked>
-                    <span>去除 Java 转义</span>
-                </label>
-                <label class="option-label">
-                    <input type="checkbox" id="sortKeysCheck">
-                    <span>排序键名</span>
-                </label>
-            </div>
-            <div class="toolbar-group">
-                <button class="btn btn-secondary btn-icon" onclick="copyOutput()" title="复制结果">
-                    <span>复制</span>
-                </button>
-                <button class="btn btn-secondary btn-icon" onclick="downloadJSON()" title="下载文件">
-                    <span>下载</span>
-                </button>
-            </div>
-        </div>
-
+    <div class="container">
         <div class="editor-container">
             <!-- 输入面板 -->
             <div class="editor-panel">
                 <div class="panel-header">
                     <div class="panel-title">
-                        <span class="panel-title-icon">📥</span>
+                        <span class="panel-title-icon input">I</span>
                         <span>输入 JSON</span>
                     </div>
-                    <div class="panel-actions">
-                        <button class="panel-btn" onclick="pasteInput()">粘贴</button>
+                    <div class="panel-options">
+                        <label class="option-label">
+                            <input type="checkbox" id="unescapeCheck" checked>
+                            <span>去转义</span>
+                        </label>
+                        <label class="option-label">
+                            <input type="checkbox" id="sortKeysCheck">
+                            <span>排序</span>
+                        </label>
                     </div>
                 </div>
                 <div class="panel-content">
                     <div class="line-numbers" id="inputLineNumbers">1</div>
-                    <textarea 
-                        class="code-editor with-line-numbers" 
+                    <textarea
+                        class="code-editor with-line-numbers"
                         id="inputEditor"
-                        placeholder="在此粘贴 JSON 数据...&#10;&#10;支持直接从 Java 字符串复制，会自动处理转义字符"
+                        placeholder="在此粘贴 JSON 数据..."
                         oninput="updateLineNumbers('input')"
                         onscroll="syncScroll('input')"
                     ></textarea>
                 </div>
                 <div class="status-bar">
                     <div class="status-item">
-                        <span>字符数:</span>
+                        <span>字符:</span>
                         <span id="inputCharCount">0</span>
                     </div>
                     <div class="status-item">
-                        <span>行数:</span>
+                        <span>行:</span>
                         <span id="inputLineCount">1</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- 中间操作按钮 -->
+            <div class="action-group">
+                <button class="btn encode" onclick="formatJSON()">格式化</button>
+                <button class="btn decode" onclick="compressJSON()">压缩</button>
+                <button class="btn copy" onclick="pasteInput()">粘贴</button>
+                <button class="btn copy" onclick="copyOutput()">复制</button>
+                <button class="btn copy" onclick="downloadJSON()">下载</button>
+                <button class="btn copy" onclick="clearAll()">清空</button>
             </div>
 
             <!-- 输出面板 -->
             <div class="editor-panel">
                 <div class="panel-header">
                     <div class="panel-title">
-                        <span class="panel-title-icon">📤</span>
+                        <span class="panel-title-icon output">O</span>
                         <span>输出结果</span>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="panel-btn" onclick="copyOutput()">复制</button>
                     </div>
                 </div>
                 <div class="panel-content">
                     <div class="line-numbers" id="outputLineNumbers">1</div>
-                    <textarea 
-                        class="code-editor with-line-numbers" 
+                    <textarea
+                        class="code-editor with-line-numbers"
                         id="outputEditor"
                         placeholder="处理后的 JSON 将显示在这里..."
                         readonly
@@ -581,11 +427,11 @@
                         <span>等待处理...</span>
                     </div>
                     <div class="status-item">
-                        <span>字符数:</span>
+                        <span>字符:</span>
                         <span id="outputCharCount">0</span>
                     </div>
                     <div class="status-item">
-                        <span>行数:</span>
+                        <span>行:</span>
                         <span id="outputLineCount">1</span>
                     </div>
                     <div class="status-item">
@@ -595,7 +441,7 @@
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 
     <div class="toast-container" id="toastContainer"></div>
 
@@ -606,7 +452,7 @@
             const lineNumbers = document.getElementById(type + 'LineNumbers');
             const lines = editor.value.split('\n').length;
             lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
-            
+
             // 更新统计
             document.getElementById(type + 'CharCount').textContent = editor.value.length;
             document.getElementById(type + 'LineCount').textContent = lines;
@@ -624,7 +470,7 @@
             if (!document.getElementById('unescapeCheck').checked) {
                 return str;
             }
-            
+
             // 处理常见的 Java 字符串转义
             return str
                 .replace(/^"/, '')  // 去除开头的引号
@@ -662,14 +508,14 @@
             try {
                 const data = parseJSON(input);
                 const shouldSort = document.getElementById('sortKeysCheck').checked;
-                
+
                 let formatted;
                 if (shouldSort) {
                     formatted = JSON.stringify(sortObjectKeys(data), null, 2);
                 } else {
                     formatted = JSON.stringify(data, null, 2);
                 }
-                
+
                 document.getElementById('outputEditor').value = formatted;
                 updateLineNumbers('output');
                 updateStatus('格式化成功', 'success');
@@ -691,14 +537,14 @@
             try {
                 const data = parseJSON(input);
                 const shouldSort = document.getElementById('sortKeysCheck').checked;
-                
+
                 let compressed;
                 if (shouldSort) {
                     compressed = JSON.stringify(sortObjectKeys(data));
                 } else {
                     compressed = JSON.stringify(data);
                 }
-                
+
                 document.getElementById('outputEditor').value = compressed;
                 updateLineNumbers('output');
                 updateStatus('压缩成功', 'success');
@@ -783,30 +629,6 @@
             showToast('已清空', 'success');
         }
 
-        // 加载示例
-        function loadExample() {
-            const example = {
-                "name": "JSON Tool",
-                "version": "1.0.0",
-                "features": ["格式化", "压缩", "去除转义"],
-                "config": {
-                    "theme": "dark",
-                    "autoFormat": true
-                },
-                "metadata": {
-                    "created": "2024-01-01",
-                    "author": "Developer"
-                }
-            };
-            
-            // Java 字符串格式的示例
-            const javaExample = JSON.stringify(JSON.stringify(example));
-            
-            document.getElementById('inputEditor').value = javaExample;
-            updateLineNumbers('input');
-            showToast('已加载示例（Java 字符串格式）', 'success');
-        }
-
         // 下载 JSON
         function downloadJSON() {
             const output = document.getElementById('outputEditor').value;
@@ -832,15 +654,15 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast toast-${type}`;
-            
+
             const icon = type === 'success' ? '✓' : '✗';
             toast.innerHTML = `
-                <span style="font-weight: 600;">${icon}</span>
+                <span style="font-weight: 700;">${icon}</span>
                 <span>${message}</span>
             `;
-            
+
             container.appendChild(toast);
-            
+
             setTimeout(() => {
                 toast.remove();
             }, 3000);
