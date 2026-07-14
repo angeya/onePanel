@@ -16,9 +16,6 @@
         <el-icon><Top /></el-icon>
         导出
       </el-button>
-      <el-button size="small" @click="appService.refreshApps()" plain>
-        <el-icon><Refresh /></el-icon>
-      </el-button>
     </div>
     <div class="app-list" v-loading="appService.appsLoading.value">
       <div
@@ -55,7 +52,7 @@
 
 <script setup>
 import { inject } from 'vue'
-import { Bottom, Top, Refresh, Document, MoreFilled, Link } from '@element-plus/icons-vue'
+import { Bottom, Top, Document, MoreFilled, Link } from '@element-plus/icons-vue'
 
 const appService = inject('appService')
 const openMyAppDialog = inject('openMyAppDialog')
@@ -98,7 +95,7 @@ const handleAppCmd = (cmd, app) => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 2px;
   padding: 6px 10px;
   flex-shrink: 0;
 }

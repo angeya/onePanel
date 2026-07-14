@@ -112,7 +112,7 @@ const executeQlCmd = (cmd) => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 2px;
   padding: 6px 10px;
   flex-shrink: 0;
 }
