@@ -116,7 +116,7 @@
       if (/^-/.test(start)) {
         parts.push('|> range(start: ' + start + ')');
       } else {
-        parts.push('|> range(start: ' + fluxString(start) + ', stop: ' + fluxString(stop) + ')');
+        parts.push('|> range(start: time(v: ' + fluxString(start) + '), stop: time(v: ' + fluxString(stop) + '))');
       }
       // measurement 过滤
       parts.push('|> filter(fn: (r) => r._measurement == ' + fluxString(p.measurement) + ')');
@@ -161,7 +161,7 @@
       if (/^-/.test(countStart)) {
         countParts.push('|> range(start: ' + countStart + ')');
       } else {
-        countParts.push('|> range(start: ' + fluxString(countStart) + ', stop: ' + fluxString(countStop) + ')');
+        countParts.push('|> range(start: time(v: ' + fluxString(countStart) + '), stop: time(v: ' + fluxString(countStop) + '))');
       }
       countParts.push('|> filter(fn: (r) => r._measurement == ' + fluxString(p.measurement) + ')');
       // 列过滤（此时列是 _field/_value，但前端过滤的是 pivot 后的列，直接应用在 count 查询上效果不一致；
