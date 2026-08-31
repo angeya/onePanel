@@ -18,6 +18,11 @@
     --success: #67c23a;
     --warning: #e6a23c;
     --scrollbar-thumb: #555;
+    --json-key: #9cdcfe;
+    --json-string: #ce9178;
+    --json-number: #b5cea8;
+    --json-boolean: #569cd6;
+    --json-null: #569cd6;
     --table-bg: #2d2d2d;
     --table-header-bg: #363636;
     --table-hover-bg: #363636;
@@ -61,6 +66,11 @@ html.theme-light {
     --success: #67c23a;
     --warning: #e6a23c;
     --scrollbar-thumb: #c0c4cc;
+    --json-key: #0451a5;
+    --json-string: #a31515;
+    --json-number: #098658;
+    --json-boolean: #0000ff;
+    --json-null: #0000ff;
     --table-bg: #ffffff;
     --table-header-bg: #f5f7fa;
     --table-hover-bg: #f5f7fa;
@@ -104,6 +114,11 @@ html.theme-blue {
     --success: #5cb85c;
     --warning: #f0ad4e;
     --scrollbar-thumb: #2a3f5f;
+    --json-key: #8ecbff;
+    --json-string: #f0a878;
+    --json-number: #a8d8a0;
+    --json-boolean: #6cb6ff;
+    --json-null: #6cb6ff;
     --table-bg: #1b2838;
     --table-header-bg: #1e3a5f;
     --table-hover-bg: #1e3a5f;
@@ -147,6 +162,11 @@ html.theme-green {
     --success: #67c23a;
     --warning: #e6a23c;
     --scrollbar-thumb: #3a5a3a;
+    --json-key: #9fd0fe;
+    --json-string: #e0a080;
+    --json-number: #b0d8a8;
+    --json-boolean: #7fb8e8;
+    --json-null: #7fb8e8;
     --table-bg: #243024;
     --table-header-bg: #2e482e;
     --table-hover-bg: #2e482e;
@@ -310,4 +330,30 @@ body {
     background-color: #FFA000;
     color: #000;
     border-radius: 2px;
+}
+
+/* 全局自定义滚动条 */
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-muted);
+    border-width: 1px;
+}
+
+*::-webkit-scrollbar-corner {
+    background: transparent;
 }

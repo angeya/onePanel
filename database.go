@@ -85,6 +85,20 @@ var schemaStatements = []string{
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY (category_id) REFERENCES server_category(id) ON DELETE SET NULL
 	)`,
+	`CREATE TABLE IF NOT EXISTS json_tree (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		source_type TEXT NOT NULL DEFAULT 'text',
+		content TEXT DEFAULT '',
+		file_path TEXT DEFAULT '',
+		tree_type TEXT NOT NULL DEFAULT 'structure',
+		id_field TEXT DEFAULT 'id',
+		parent_field TEXT DEFAULT 'parentId',
+		children_field TEXT DEFAULT 'children',
+		label_field TEXT DEFAULT 'name',
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`,
 	`CREATE INDEX IF NOT EXISTS idx_shortcut_command_category_id ON shortcut_command(category_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_shortcut_cmd_category_id ON shortcut_cmd(category_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_server_session_category_id ON server_session(category_id)`,

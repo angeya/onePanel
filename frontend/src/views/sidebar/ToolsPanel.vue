@@ -6,13 +6,17 @@
         <el-icon :size="18" color="#409eff"><Connection /></el-icon>
         <span class="tool-name">网络端口</span>
       </div>
+      <div class="tool-item" @click="addToolTab('json-tree', 'JSON树')">
+        <el-icon :size="18" color="#67c23a"><Share /></el-icon>
+        <span class="tool-name">JSON树</span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { inject } from 'vue'
-import { Connection } from '@element-plus/icons-vue'
+import { Connection, Share } from '@element-plus/icons-vue'
 
 const addToolTab = inject('addToolTab')
 </script>

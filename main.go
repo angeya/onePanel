@@ -36,6 +36,7 @@ func main() {
 	shortcutCmdService := NewShortcutCmdService(database)
 	serverListService := NewServerListService(database)
 	toolService := NewToolService()
+	jsonTreeService := NewJsonTreeService(database)
 	settingService := NewSettingService(database)
 
 	var tray *TrayManager
@@ -44,14 +45,15 @@ func main() {
 	hotkeyConfig, _ := settingService.GetGlobalHotkey()
 
 	err = wails.Run(&options.App{
-		Title:            "oneWin",
-		Width:            1280,
-		Height:           800,
-		Frameless:        true,
-		DisableResize:    false,
-		MinWidth:         960,
-		MinHeight:        640,
-		WindowStartState: options.Normal,
+		Title:                    "oneWin",
+		Width:                    1280,
+		Height:                   800,
+		Frameless:                true,
+		DisableResize:            false,
+		EnableDefaultContextMenu: true,
+		MinWidth:                 960,
+		MinHeight:                640,
+		WindowStartState:         options.Normal,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -109,6 +111,7 @@ func main() {
 			shortcutCmdService,
 			serverListService,
 			toolService,
+			jsonTreeService,
 			settingService,
 		},
 	})

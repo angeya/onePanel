@@ -96,6 +96,25 @@ type PortInfo struct {
 }
 
 /**
+ * JSON 树配置模型
+ * 对应 json_tree 表，用于保存 JSON 树工具的配置信息
+ */
+type JsonTree struct {
+	Id            int64  `json:"id"`
+	Name          string `json:"name"`
+	SourceType    string `json:"sourceType"`
+	Content       string `json:"content"`
+	FilePath      string `json:"filePath"`
+	TreeType      string `json:"treeType"`
+	IdField       string `json:"idField"`
+	ParentField   string `json:"parentField"`
+	ChildrenField string `json:"childrenField"`
+	LabelField    string `json:"labelField"`
+	CreatedAt     string `json:"createdAt"`
+	UpdatedAt     string `json:"updatedAt"`
+}
+
+/**
  * 服务器分类模型
  * 对应 server_category 表，用于服务器列表的分类管理
  */

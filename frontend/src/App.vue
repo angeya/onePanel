@@ -72,13 +72,19 @@
                 ref="quickLaunchTabRef"
                 :data-tab-id="quickLaunchTab.id"
               />
-              <NetworkPortList
-                v-for="tab in toolTabs"
-                :key="tab.id"
-                v-show="activeTabId === tab.id"
-                :data-tab-id="tab.id"
-                :embedded="true"
-              />
+              <template v-for="tab in toolTabs" :key="tab.id">
+                <NetworkPortList
+                  v-if="tab.toolKey === 'port'"
+                  v-show="activeTabId === tab.id"
+                  :data-tab-id="tab.id"
+                  :embedded="true"
+                />
+                <JsonTreeView
+                  v-else-if="tab.toolKey === 'json-tree'"
+                  v-show="activeTabId === tab.id"
+                  :data-tab-id="tab.id"
+                />
+              </template>
               <SearchBar
                 ref="searchBarRef"
                 :visible="currentSearchVisible"
@@ -132,6 +138,7 @@ import { HideWindow, QuitApp } from '../wailsjs/go/main/App'
 
 const SettingsDialog = defineAsyncComponent(() => import('./views/settings/SettingsDialog.vue'))
 const NetworkPortList = defineAsyncComponent(() => import('./views/tools/NetworkPortList.vue'))
+const JsonTreeView = defineAsyncComponent(() => import('./views/tools/JsonTreeView.vue'))
 const MyApp = defineAsyncComponent(() => import('./views/myapp/MyApp.vue'))
 const QuickLaunchDialogs = defineAsyncComponent(() => import('./views/quicklaunch/QuickLaunchDialogs.vue'))
 
