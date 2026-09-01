@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"time"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -19,6 +20,16 @@ func main() {
 		return
 	}
 	defer CloseLogger()
+
+	// 单实例检测：已有实例运行时，通知其激活窗口后直接退出
+	if !TryAcquireSingleInstance() {
+		if err := NotifyExistingInstance(); err != nil {
+			LogWarn("通知已有实例激活失败: %v", err)
+		} else {
+			LogInfo("检测到已有实例，已通知激活其窗口")
+		}
+		return
+	}
 
 	LogInfo("oneWin 应用启动")
 
@@ -61,6 +72,17 @@ func main() {
 		OnStartup: func(ctx context.Context) {
 			app.startup(ctx)
 			ptyService.SetContext(ctx)
+
+			// 监听第二次启动的通知，激活主窗口
+			StartActivateWatcher(func() {
+				runtime.WindowUnminimise(ctx)
+				runtime.WindowShow(ctx)
+				// Windows 下 ShowWindow 不抢占前台，临时置顶再还原以聚焦窗口
+				runtime.WindowSetAlwaysOnTop(ctx, true)
+				time.AfterFunc(150*time.Millisecond, func() {
+					runtime.WindowSetAlwaysOnTop(ctx, false)
+				})
+			})
 
 			tray = NewTrayManager(func() {
 				runtime.WindowShow(app.ctx)
